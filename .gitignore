@@ -61,3 +61,6 @@ Desktop.ini
 *.docx
 *.pdf
 !docs/**/*.pdf
+
+## Working asset folder (raw source images, licensed stock, exports)
+overige/

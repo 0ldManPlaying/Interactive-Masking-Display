@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:InteractiveMask.Display"
         Title="InteractiveMask - Handleiding"
+        Icon="pack://application:,,,/app.ico"
         Width="1100" Height="780"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"

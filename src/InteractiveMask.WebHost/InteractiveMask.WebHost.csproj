@@ -4,6 +4,11 @@
     <RootNamespace>InteractiveMask.WebHost</RootNamespace>
     <AssemblyName>InteractiveMask.WebHost</AssemblyName>
     <UserSecretsId>interactivemask-webhost-dev</UserSecretsId>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Product>InteractiveMask</Product>
+    <Company>InteractiveMask</Company>
   </PropertyGroup>
 
   <ItemGroup>
