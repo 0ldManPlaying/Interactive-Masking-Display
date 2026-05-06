@@ -2,6 +2,13 @@
 
 **Version 1.0.6**
 
+## Demo
+
+<video src="https://github.com/0ldManPlaying/Interactive-Masking-Display/releases/download/v1.0.6/IPM.mp4" controls width="720" muted></video>
+
+> If the player doesn't appear in your viewer, [download the demo here](https://github.com/0ldManPlaying/Interactive-Masking-Display/releases/download/v1.0.6/IPM.mp4) (228 MB, MP4).
+
+
 Windowless C# / .NET 9 / WPF kiosk application that connects to an IDIS NVR and displays a live video grid (up to 16 cameras) with per-tile **privacy blur masks** that can be toggled with a single click. Designed for healthcare facilities (Dutch *zorginstellingen*) where caregivers need to instantly hide a resident's room from on-screen view while still being able to verify the camera is working.
 
 A companion ASP.NET Core WebHost provides the same functionality over a browser, communicating with the kiosk over a local named-pipe IPC channel.
