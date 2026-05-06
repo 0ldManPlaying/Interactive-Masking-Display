@@ -1,6 +1,6 @@
 # InteractiveMask
 
-**Version 1.0.4**
+**Version 1.0.5**
 
 Windowless C# / .NET 9 / WPF kiosk application that connects to an IDIS NVR and displays a live video grid (up to 16 cameras) with per-tile **privacy blur masks** that can be toggled with a single click. Designed for healthcare facilities (Dutch *zorginstellingen*) where caregivers need to instantly hide a resident's room from on-screen view while still being able to verify the camera is working.
 
@@ -59,8 +59,18 @@ dotnet build InteractiveMask.sln -c Release -p:Platform=x64
 To produce an MSI:
 
 ```powershell
-.\build-installer.ps1
+.\build-installer.ps1 -Version 1.0.4
 ```
+
+For a signed MSI (Authenticode — e.g. SafeNet EV-token cert in `CurrentUser\My`):
+
+```powershell
+.\build-installer.ps1 -Version 1.0.4 -Sign -CertSubject 'IDIS Nederland BV'
+# or by thumbprint:
+.\build-installer.ps1 -Version 1.0.4 -Sign -CertThumbprint <40-hex>
+```
+
+`-Sign` first signs every `InteractiveMask.*.exe` / `.dll` (so the cab embedded in the MSI contains signed binaries) and then signs the MSI itself. SHA-256 file digest + SHA-256 timestamp digest. The default timestamp server is DigiCert; override via `-TimestampUrl`.
 
 ## Runtime layout
 

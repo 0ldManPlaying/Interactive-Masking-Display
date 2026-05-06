@@ -221,7 +221,8 @@ public sealed class HelpStrings
         AdminAd = "Identiteit verzorgers (AD-modus) wisselt het sessie-PIN-toetsenblok om naar een Windows-aanmelding. Zo legt het audit-log vast wie elk masker heeft uitgezet.",
         AdminAudit = "Op de Audit-tab ziet u alle mask-acties, PIN-pogingen en NVR-verbindingen met tijdstip, bron en eventuele detail. Met “Export naar CSV…” kunt u een logboek bewaren of doorsturen.",
         AdminTechNote = "Technische opmerking voor de beheerder: het wachtwoord van de NVR en het certificaat worden versleuteld bewaard via Windows DPAPI op machine-niveau. " +
-                        "De browser-bediening loopt via een ingebouwde webserver (WebHost) die u op de Web-UI-tab op het LAN kunt openzetten of beperken tot localhost.",
+                        "De browser-bediening loopt via een ingebouwde webserver (WebHost) die u op de Web-UI-tab op het LAN kunt openzetten of beperken tot localhost. " +
+                        "De MSI-installer en alle uitvoerbare bestanden zijn Authenticode-getekend (SHA-256, met tijdstempel) zodat Windows SmartScreen de uitgever kan verifiëren.",
 
         ApiTitle = "API en integratie",
         ApiIntro = "De WebHost-component biedt een kleine, lokale REST-API zodat een browser, " +
@@ -360,7 +361,8 @@ public sealed class HelpStrings
         AdminAd = "Caregiver identity (AD mode) replaces the session PIN keypad with a Windows sign-in. The audit log will then record exactly who removed each mask.",
         AdminAudit = "The Audit tab shows every mask action, PIN attempt and NVR connection with timestamp, source and any detail. Use “Export to CSV…” to keep or share the log.",
         AdminTechNote = "Technical note for administrators: the NVR password and certificate password are stored encrypted via Windows DPAPI at machine scope. " +
-                        "Browser control is served by a built-in web server (WebHost) which the Web-UI tab can expose on the LAN or restrict to localhost.",
+                        "Browser control is served by a built-in web server (WebHost) which the Web-UI tab can expose on the LAN or restrict to localhost. " +
+                        "The MSI installer and all executables are Authenticode-signed (SHA-256, timestamped) so Windows SmartScreen can verify the publisher.",
 
         ApiTitle = "API and integration",
         ApiIntro = "The WebHost component exposes a small, local REST API so a browser, tablet or another management system can perform the same actions as the kiosk itself. " +

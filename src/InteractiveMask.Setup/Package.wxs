@@ -1,6 +1,10 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall">
 
+    <!-- 64-bit MSI: all auto-harvested components live under ProgramFiles64Folder.
+         The wixproj sets InstallerPlatform=x64 which is the WiX 5 way to mark the
+         whole package as 64-bit and avoid ICE80 violations on harvested files. -->
     <Package Name="InteractiveMask"
              Manufacturer="IDIS Nederland BV"
              Version="$(ProductVersion)"
@@ -25,23 +29,28 @@
             <Directory Id="AppShortcutFolder" Name="InteractiveMask" />
         </StandardDirectory>
 
+        <!-- File harvest paths are resolved at MSBuild time relative to the wixproj.
+             build-installer.ps1 always publishes into ..\..\build\publish\{Display,WebHost}
+             which is what we hardcode here. The named BindPath in the wixproj lets
+             linker-resolved File@Source attributes use the !(bindpath.X) form. -->
+
         <!-- ============== Display: harvested file set ============== -->
         <ComponentGroup Id="DisplayFiles" Directory="DisplayFolder">
-            <Files Include="$(DisplayPublishDir)\**" />
+            <Files Include="..\..\build\publish\Display\**" />
         </ComponentGroup>
 
         <!-- ============== WebHost: harvested file set + service registration ============== -->
         <ComponentGroup Id="WebHostFiles" Directory="ServiceFolder">
-            <Files Include="$(WebHostPublishDir)\**">
+            <Files Include="..\..\build\publish\WebHost\**">
                 <!-- The exe gets a separate component below so we can attach
                      ServiceInstall + ServiceControl to it. -->
-                <Exclude Files="$(WebHostPublishDir)\InteractiveMask.WebHost.exe" />
+                <Exclude Files="..\..\build\publish\WebHost\InteractiveMask.WebHost.exe" />
             </Files>
         </ComponentGroup>
 
         <Component Id="WebHostService" Directory="ServiceFolder" Guid="0E2A9B5C-4D3F-4E2C-9E0A-2D7E0E7B7F11">
             <File Id="WebHostExe"
-                  Source="$(WebHostPublishDir)\InteractiveMask.WebHost.exe"
+                  Source="..\..\build\publish\WebHost\InteractiveMask.WebHost.exe"
                   KeyPath="yes" />
 
             <ServiceInstall Id="WebHostSvcInstall"
@@ -61,7 +70,7 @@
                             Wait="yes" />
 
             <!-- Open the LAN port the WebHost listens on (matches appsettings.json). -->
-            <util:FirewallException Id="WebHostFirewallTcp"
+            <fire:FirewallException Id="WebHostFirewallTcp"
                                     Name="InteractiveMask WebHost"
                                     Port="8080"
                                     Protocol="tcp"

@@ -3,29 +3,34 @@
   <PropertyGroup>
     <OutputName>InteractiveMask-$(Version)</OutputName>
     <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
     <Version Condition="'$(Version)' == ''">1.0.0</Version>
     <!-- Both publish dirs are populated by build-installer.ps1 before this project builds. -->
     <DisplayPublishDir Condition="'$(DisplayPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\build\publish\Display</DisplayPublishDir>
     <WebHostPublishDir Condition="'$(WebHostPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\build\publish\WebHost</WebHostPublishDir>
+
+    <!-- ProductVersion is the only preprocessor variable left — paths go through
+         named BindPaths because the WiX preprocessor mangles backslashes in
+         DefineConstants values. -->
+    <DefineConstants>ProductVersion=$(Version)</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+    <!-- Firewall element moved out of util.wixext in WiX 5 — needs its own package. -->
+    <PackageReference Include="WixToolset.Firewall.wixext" Version="5.0.2" />
   </ItemGroup>
 
+  <!-- BindPath provides the WiX linker with search directories. Without a
+       BindName the path is unnamed (used as a fallback search path); WIth one,
+       the .wxs can reference it as !(bindpath.NAME). Both publish dirs are also
+       added unnamed so File@Source values that don't use the bindpath syntax
+       still resolve. -->
   <ItemGroup>
+    <BindPath Include="$(DisplayPublishDir)" BindName="DisplayDir" />
+    <BindPath Include="$(WebHostPublishDir)" BindName="WebHostDir" />
     <BindPath Include="$(DisplayPublishDir)" />
     <BindPath Include="$(WebHostPublishDir)" />
   </ItemGroup>
-
-  <Target Name="DefineWixVariables" BeforeTargets="HarvestProjects;BuildProjects">
-    <PropertyGroup>
-      <DefineConstants>
-        DisplayPublishDir=$(DisplayPublishDir);
-        WebHostPublishDir=$(WebHostPublishDir);
-        ProductVersion=$(Version)
-      </DefineConstants>
-    </PropertyGroup>
-  </Target>
 
 </Project>
