@@ -126,11 +126,26 @@ public sealed class ConfigService
             settings.Web.CertPath = stored.Web.CertPath;
             settings.Web.CertPassword = DecryptPassword(stored.Web.CertPasswordEncrypted);
             settings.Web.BindAllInterfaces = stored.Web.BindAllInterfaces;
+            if (stored.Web.Access is not null)
+            {
+                settings.Web.Access.Mode = string.IsNullOrEmpty(stored.Web.Access.Mode) ? "off" : stored.Web.Access.Mode;
+                settings.Web.Access.Pin = DecryptPassword(stored.Web.Access.PinEncrypted);
+                settings.Web.Access.Domain = stored.Web.Access.Domain ?? "";
+            }
         }
         if (stored.Auth is not null)
         {
             settings.Auth.UseActiveDirectory = stored.Auth.UseActiveDirectory;
             settings.Auth.Domain = stored.Auth.Domain ?? "";
+        }
+        if (stored.AuditForward is not null)
+        {
+            settings.AuditForward.SyslogEnabled = stored.AuditForward.SyslogEnabled;
+            settings.AuditForward.SyslogHost = stored.AuditForward.SyslogHost ?? "";
+            settings.AuditForward.SyslogPort = stored.AuditForward.SyslogPort;
+            settings.AuditForward.SyslogProtocol = string.IsNullOrEmpty(stored.AuditForward.SyslogProtocol) ? "udp" : stored.AuditForward.SyslogProtocol;
+            settings.AuditForward.SyslogFacility = stored.AuditForward.SyslogFacility;
+            settings.AuditForward.SyslogAppName = string.IsNullOrEmpty(stored.AuditForward.SyslogAppName) ? "InteractiveMask" : stored.AuditForward.SyslogAppName;
         }
         if (!string.IsNullOrEmpty(stored.Language))
         {
@@ -175,11 +190,26 @@ public sealed class ConfigService
             CertPath = settings.Web.CertPath,
             CertPasswordEncrypted = EncryptPassword(settings.Web.CertPassword ?? ""),
             BindAllInterfaces = settings.Web.BindAllInterfaces,
+            Access = new StoredWebAccess
+            {
+                Mode = string.IsNullOrEmpty(settings.Web.Access.Mode) ? "off" : settings.Web.Access.Mode,
+                PinEncrypted = EncryptPassword(settings.Web.Access.Pin ?? ""),
+                Domain = settings.Web.Access.Domain,
+            },
         },
         Auth = new StoredAuth
         {
             UseActiveDirectory = settings.Auth.UseActiveDirectory,
             Domain = settings.Auth.Domain,
+        },
+        AuditForward = new StoredAuditForward
+        {
+            SyslogEnabled = settings.AuditForward.SyslogEnabled,
+            SyslogHost = settings.AuditForward.SyslogHost,
+            SyslogPort = settings.AuditForward.SyslogPort,
+            SyslogProtocol = settings.AuditForward.SyslogProtocol,
+            SyslogFacility = settings.AuditForward.SyslogFacility,
+            SyslogAppName = settings.AuditForward.SyslogAppName,
         },
         Language = settings.Language,
     };
@@ -216,6 +246,7 @@ public sealed class ConfigService
         public StoredKiosk? Kiosk { get; set; }
         public StoredWeb? Web { get; set; }
         public StoredAuth? Auth { get; set; }
+        public StoredAuditForward? AuditForward { get; set; }
         public string? Language { get; set; }
     }
 
@@ -223,6 +254,16 @@ public sealed class ConfigService
     {
         public bool UseActiveDirectory { get; set; }
         public string? Domain { get; set; }
+    }
+
+    private sealed class StoredAuditForward
+    {
+        public bool SyslogEnabled { get; set; }
+        public string? SyslogHost { get; set; }
+        public int SyslogPort { get; set; } = 514;
+        public string? SyslogProtocol { get; set; } = "udp";
+        public int SyslogFacility { get; set; } = 16;
+        public string? SyslogAppName { get; set; } = "InteractiveMask";
     }
 
     private sealed class StoredKiosk
@@ -237,6 +278,14 @@ public sealed class ConfigService
         public string? CertPath { get; set; }
         public string? CertPasswordEncrypted { get; set; }
         public bool BindAllInterfaces { get; set; }
+        public StoredWebAccess? Access { get; set; }
+    }
+
+    private sealed class StoredWebAccess
+    {
+        public string? Mode { get; set; } = "off";
+        public string? PinEncrypted { get; set; }
+        public string? Domain { get; set; }
     }
 
     private sealed class StoredNvr

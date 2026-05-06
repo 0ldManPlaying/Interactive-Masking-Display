@@ -1,5 +1,6 @@
 @page
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @model IndexModel
 
 <section id="grid-host"
@@ -10,11 +11,13 @@
     {
         <article class="tile" data-slot="@tile.Slot">
             <div class="tile-inner">
+                <img class="tile-thumb" alt="" />
                 <div class="tile-empty">@Model.T.EmptyTile</div>
                 <div class="tile-mask">
                     <div class="mask-text"></div>
                     <div class="mask-countdown"></div>
                 </div>
+                <button class="tile-refresh" data-action="refresh" title="@Model.T.SnapshotRefresh" aria-label="@Model.T.SnapshotRefresh">↻</button>
                 <footer class="tile-status">
                     <span class="dot"></span>
                     <span class="label">@tile.Label</span>
@@ -25,6 +28,29 @@
         </article>
     }
 </section>
+
+<!-- AD credentials modal (only used when auth-mode=ad) -->
+<div id="ad-modal" class="pin-modal" hidden>
+    <div class="pin-card ad-card">
+        <div class="pin-title">@Model.T.AdLoginTitle</div>
+        <div class="pin-sub">@Model.T.AdLoginSubtitle</div>
+        <form id="ad-form" autocomplete="off" novalidate>
+            <label class="ad-label">
+                <span>@Model.T.AdUsername</span>
+                <input id="ad-username" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            </label>
+            <label class="ad-label">
+                <span>@Model.T.AdPassword</span>
+                <input id="ad-password" type="password" autocomplete="current-password" />
+            </label>
+            <div id="ad-error" class="pin-error"></div>
+            <div class="ad-actions">
+                <button id="ad-cancel" type="button" class="pin-cancel">@Model.T.Cancel</button>
+                <button id="ad-submit" type="submit" class="ad-submit">@Model.T.AdSignIn</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- PIN-modal -->
 <div id="pin-modal" class="pin-modal" hidden>
@@ -57,6 +83,6 @@
 </div>
 
 <script>
-    window.__t = @Html.Raw(JsonSerializer.Serialize(Model.T));
+    window.__t = @Html.Raw(JsonSerializer.Serialize(Model.T, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
 </script>
 <script src="~/app.js" defer></script>

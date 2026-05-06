@@ -44,6 +44,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddSingleton<StateMirror>();
 builder.Services.AddSingleton<IpcCommandSender>();
 builder.Services.AddSingleton<WebSettingsProvider>();
+builder.Services.AddSingleton<WebAccessSessionStore>();
 builder.Services.AddHostedService<IpcMirrorService>();
 
 var app = builder.Build();
@@ -68,17 +69,115 @@ AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 };
 
 app.UseStaticFiles();
+// Auth middleware runs after static files (CSS/JS for the login page must be
+// reachable while unauthenticated) but before route handlers.
+app.UseMiddleware<WebAccessAuthMiddleware>();
 app.MapRazorPages();
+
+// Tells the login page which mode to render. Always reachable (whitelisted in
+// the auth middleware) so the page can boot even when the user isn't logged in.
+app.MapGet("/api/access-mode", (WebSettingsProvider settings) => Results.Ok(new
+{
+    mode = settings.Current.AccessMode,
+    domain = settings.Current.AccessDomain,
+}));
+
+app.MapPost("/api/login", async (HttpContext ctx, LoginRequest body, WebSettingsProvider settings, WebAccessSessionStore sessions) =>
+{
+    var current = settings.Current;
+    var mode = current.AccessMode ?? "off";
+
+    if (string.Equals(mode, "off", StringComparison.OrdinalIgnoreCase))
+    {
+        // Auth disabled — issue a session anyway so the cookie path is uniform.
+        CookieHelpers.IssueCookie(ctx, sessions, "anonymous");
+        return Results.Ok(new { ok = true });
+    }
+
+    string subject;
+    if (string.Equals(mode, "pin", StringComparison.OrdinalIgnoreCase))
+    {
+        if (string.IsNullOrEmpty(body.Pin) || string.IsNullOrEmpty(current.AccessPin))
+        {
+            return Results.Json(new { ok = false, error = "wrong" }, statusCode: 401);
+        }
+        // Constant-time comparison so a remote attacker can't probe the PIN length.
+        if (!System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(body.Pin),
+                System.Text.Encoding.UTF8.GetBytes(current.AccessPin)))
+        {
+            return Results.Json(new { ok = false, error = "wrong" }, statusCode: 401);
+        }
+        subject = "pin";
+    }
+    else if (string.Equals(mode, "ad", StringComparison.OrdinalIgnoreCase))
+    {
+        if (string.IsNullOrEmpty(body.Username))
+        {
+            return Results.Json(new { ok = false, error = "wrong" }, statusCode: 401);
+        }
+        var auth = WindowsAuth.Authenticate(body.Username!, body.Password ?? "", current.AccessDomain);
+        if (!auth.Success)
+        {
+            return Results.Json(new { ok = false, error = "wrong" }, statusCode: 401);
+        }
+        subject = auth.Username ?? body.Username!;
+    }
+    else
+    {
+        return Results.Json(new { ok = false, error = "unknown-mode" }, statusCode: 500);
+    }
+
+    CookieHelpers.IssueCookie(ctx, sessions, subject);
+    return Results.Ok(new { ok = true });
+});
+
+app.MapPost("/api/logout", (HttpContext ctx, WebAccessSessionStore sessions) =>
+{
+    var token = ctx.Request.Cookies[WebAccessSessionStore.CookieName];
+    sessions.Revoke(token);
+    ctx.Response.Cookies.Delete(WebAccessSessionStore.CookieName);
+    return Results.Ok(new { ok = true });
+});
 app.MapGet("/api/state", (StateMirror mirror) => mirror.Snapshot());
+
+// Tells the browser which credential modal to render. Driven by Display's
+// AuthSettings.UseActiveDirectory + PrivacySettings.RequireSessionPin in
+// config.json; re-read on each request so live-apply changes propagate.
+app.MapGet("/api/auth-mode", (WebSettingsProvider settings) => Results.Ok(new
+{
+    mode = settings.Current.AuthMode,
+    domain = settings.Current.AuthDomain,
+}));
 
 app.MapPost("/api/toggle", async (HttpContext ctx, ToggleApiRequest body, IpcCommandSender sender, WebSettingsProvider settings, CancellationToken ct) =>
 {
-    var t = Translations.For(settings.Current.Language);
+    var current = settings.Current;
+    var t = Translations.For(current.Language);
     var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-    var source = $"web:{ip}";
+    string source = $"web:{ip}";
+    bool preAuthenticated = false;
+    string? pin = body.Pin;
+
+    // AD mode: validate Windows credentials in-process before forwarding the
+    // toggle. This keeps the Display side free of LogonUser calls and means
+    // the user's password never travels over the IPC pipe.
+    if (string.Equals(current.AuthMode, "ad", StringComparison.OrdinalIgnoreCase) &&
+        !string.IsNullOrEmpty(body.Username))
+    {
+        var auth = WindowsAuth.Authenticate(body.Username!, body.Password ?? "", current.AuthDomain);
+        if (!auth.Success)
+        {
+            return Results.Ok(new { result = InteractiveMask.Ipc.ToggleResult.CredentialsWrong.ToString() });
+        }
+        preAuthenticated = true;
+        source = $"web:{ip}:user:{auth.Username}";
+        pin = null;
+    }
+
     try
     {
-        var resp = await sender.ToggleAsync(body.Slot, body.Pin, source, ct);
+        var resp = await sender.ToggleAsync(body.Slot, pin, source, preAuthenticated, ct);
         return Results.Ok(new
         {
             result = resp.Result.ToString(),
@@ -93,6 +192,30 @@ app.MapPost("/api/toggle", async (HttpContext ctx, ToggleApiRequest body, IpcCom
     {
         return Results.Json(new { result = "IpcError", detail = t.IpcTimeout }, statusCode: 504);
     }
+});
+
+// One-shot JPEG snapshot for a tile. The Display side encodes from its current
+// WriteableBitmap on the UI thread; we just relay the bytes. Returns:
+//   200 + image/jpeg  on success
+//   404                if the slot is empty / has no frame yet
+//   403                if the tile is currently masked (privacy first)
+//   503/504           IPC errors
+app.MapGet("/api/snapshot/{slot:int}", async (int slot, IpcCommandSender sender, CancellationToken ct) =>
+{
+    try
+    {
+        var resp = await sender.SnapshotAsync(slot, ct);
+        return resp.Status switch
+        {
+            InteractiveMask.Ipc.SnapshotStatus.Ok when resp.JpegBase64 is not null
+                => Results.File(Convert.FromBase64String(resp.JpegBase64), "image/jpeg"),
+            InteractiveMask.Ipc.SnapshotStatus.Masked   => Results.StatusCode(403),
+            InteractiveMask.Ipc.SnapshotStatus.NoFrame  => Results.NotFound(),
+            _                                            => Results.NotFound(),
+        };
+    }
+    catch (InvalidOperationException) { return Results.StatusCode(503); }
+    catch (TaskCanceledException) { return Results.StatusCode(504); }
 });
 
 // Read-only audit-log tail. Reads the NDJSON file written by Display.exe directly.
@@ -126,4 +249,24 @@ app.MapGet("/api/audit", (int? limit) =>
 
 app.Run();
 
-internal sealed record ToggleApiRequest(int Slot, string? Pin);
+internal sealed record ToggleApiRequest(int Slot, string? Pin, string? Username = null, string? Password = null);
+internal sealed record LoginRequest(string? Pin, string? Username, string? Password);
+
+internal static class CookieHelpers
+{
+    public static void IssueCookie(HttpContext ctx, WebAccessSessionStore sessions, string subject)
+    {
+        var token = sessions.Issue(subject);
+        var opts = new CookieOptions
+        {
+            HttpOnly = true,
+            // Secure flag matches the request scheme so the cookie also works
+            // on plain-HTTP localhost during development.
+            Secure = ctx.Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            MaxAge = WebAccessSessionStore.DefaultLifetime,
+        };
+        ctx.Response.Cookies.Append(WebAccessSessionStore.CookieName, token, opts);
+    }
+}

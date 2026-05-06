@@ -13,6 +13,10 @@ public enum IpcMessageType
     ToggleRequest = 100,
     /// <summary>Server -> client. Outcome of a previous <see cref="ToggleRequest"/>.</summary>
     ToggleResponse = 101,
+    /// <summary>Client -> server. One-shot JPEG snapshot of the tile's current frame.</summary>
+    SnapshotRequest = 200,
+    /// <summary>Server -> client. JPEG bytes (base64) or a "masked"/"empty" reason.</summary>
+    SnapshotResponse = 201,
 }
 
 public enum ToggleResult
@@ -22,6 +26,17 @@ public enum ToggleResult
     PinWrong,
     LockedOut,
     InvalidSlot,
+    /// <summary>
+    /// AD-mode unmask: the request did not include validated Windows credentials.
+    /// Browser must show the username/password modal and re-submit.
+    /// </summary>
+    CredentialsRequired,
+    /// <summary>
+    /// AD-mode unmask: the supplied credentials failed Windows authentication.
+    /// Returned by the WebHost itself; Display never sees an unauthenticated AD
+    /// request because the WebHost validates first.
+    /// </summary>
+    CredentialsWrong,
 }
 
 /// <summary>
@@ -51,12 +66,39 @@ public sealed record HelloDto(
     int Columns,
     List<TileStateDto> Tiles);
 
-public sealed record ToggleRequestDto(string RequestId, int Slot, string? Pin, string? Source = null);
+public sealed record ToggleRequestDto(
+    string RequestId,
+    int Slot,
+    string? Pin,
+    string? Source = null,
+    /// <summary>
+    /// Set to true by the WebHost when it has already validated Windows
+    /// credentials in AD mode. Display trusts this flag because the named pipe
+    /// is a same-machine boundary; browser clients cannot set it directly.
+    /// </summary>
+    bool PreAuthenticated = false);
 
 public sealed record ToggleResponseDto(
     string RequestId,
     ToggleResult Result,
     int? LockoutSecondsRemaining);
+
+public sealed record SnapshotRequestDto(string RequestId, int Slot);
+
+public enum SnapshotStatus
+{
+    Ok,
+    Empty,    // tile has no camera bound
+    NoFrame,  // camera bound but no frame yet
+    Masked,   // privacy mask is active — refused by design
+}
+
+public sealed record SnapshotResponseDto(
+    string RequestId,
+    int Slot,
+    SnapshotStatus Status,
+    /// <summary>Base64-encoded JPEG payload. Null unless Status == Ok.</summary>
+    string? JpegBase64);
 
 /// <summary>Shared <see cref="JsonSerializerOptions"/> for both ends of the pipe.</summary>
 public static class IpcJson

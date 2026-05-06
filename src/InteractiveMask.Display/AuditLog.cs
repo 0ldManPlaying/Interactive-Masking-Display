@@ -49,8 +49,16 @@ public sealed class AuditLog
 
     private readonly object _lock = new();
     private readonly string _path;
+    private IAuditForwarder? _forwarder;
 
     public string Path => _path;
+
+    /// <summary>
+    /// Attach (or replace) the live-forwarder. Pass null to detach. The previous
+    /// forwarder is disposed by the caller; AuditLog itself never owns the
+    /// forwarder lifetime so settings can hot-swap without log gaps.
+    /// </summary>
+    public void SetForwarder(IAuditForwarder? forwarder) => _forwarder = forwarder;
 
     public AuditLog()
     {
@@ -87,5 +95,9 @@ public sealed class AuditLog
             // missing entries when reviewing the log; in production we'd add a
             // fallback to the Windows Event Log.
         }
+
+        // Forward after the local write so a slow sink can't delay the disk
+        // write; the forwarder itself is non-blocking (bounded queue).
+        try { _forwarder?.Forward(ev); } catch { /* sink failures must never crash audit */ }
     }
 }

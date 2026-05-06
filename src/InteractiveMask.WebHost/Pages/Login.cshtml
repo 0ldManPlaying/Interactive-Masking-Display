@@ -1,0 +1,58 @@
+@page
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@model LoginModel
+@{
+    Layout = null;
+    var t = Model.T;
+}
+<!DOCTYPE html>
+<html lang="@Model.Language">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>InteractiveMask — @t.LoginTitle</title>
+    <link rel="stylesheet" href="~/site.css" />
+</head>
+<body class="login-body">
+    <main class="login-main">
+        <div class="login-card">
+            <div class="login-brand">InteractiveMask</div>
+            <div id="login-title" class="login-title">@t.LoginTitle</div>
+            <div id="login-sub" class="login-sub">@t.LoginSubtitle</div>
+
+            <!-- PIN form (hidden by default; revealed when access-mode=pin) -->
+            <form id="pin-form" class="login-form" autocomplete="off" hidden>
+                <label class="login-label">
+                    <span>@t.LoginPin</span>
+                    <input id="login-pin" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="32" />
+                </label>
+                <div id="pin-error" class="login-error"></div>
+                <button type="submit" class="login-submit">@t.LoginSubmit</button>
+            </form>
+
+            <!-- AD form (hidden by default; revealed when access-mode=ad) -->
+            <form id="ad-form" class="login-form" autocomplete="off" hidden>
+                <label class="login-label">
+                    <span>@t.AdUsername</span>
+                    <input id="login-username" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                </label>
+                <label class="login-label">
+                    <span>@t.AdPassword</span>
+                    <input id="login-password" type="password" autocomplete="current-password" />
+                </label>
+                <div id="ad-error" class="login-error"></div>
+                <button type="submit" class="login-submit">@t.AdSignIn</button>
+            </form>
+
+            <div id="loading" class="login-sub">@t.LoginLoading</div>
+        </div>
+    </main>
+
+    <script>
+        window.__t = @Html.Raw(JsonSerializer.Serialize(Model.T, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        window.__returnUrl = @Html.Raw(JsonSerializer.Serialize(Model.ReturnUrl));
+    </script>
+    <script src="~/login.js" defer></script>
+</body>
+</html>

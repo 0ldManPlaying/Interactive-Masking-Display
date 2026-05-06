@@ -11,6 +11,8 @@ public sealed class DisplayViewModel : INotifyPropertyChanged
     private string _statusLine = "";
     private int _rows;
     private int _columns;
+    private bool _connectionLost;
+    private string _connectionBanner = "";
 
     public ObservableCollection<TileViewModel> Tiles { get; } = new();
 
@@ -30,6 +32,23 @@ public sealed class DisplayViewModel : INotifyPropertyChanged
     {
         get => _statusLine;
         set => Set(ref _statusLine, value);
+    }
+
+    /// <summary>True when the NVR session is not currently connected. Drives the
+    /// visibility of the reconnect banner.</summary>
+    public bool ConnectionLost
+    {
+        get => _connectionLost;
+        set => Set(ref _connectionLost, value);
+    }
+
+    /// <summary>Localized banner text shown while disconnected, e.g. "NVR niet
+    /// bereikbaar — opnieuw verbinden over 4 s...". Updated every tick by
+    /// MainWindow so the countdown decreases visibly.</summary>
+    public string ConnectionBanner
+    {
+        get => _connectionBanner;
+        set => Set(ref _connectionBanner, value);
     }
 
     /// <summary>Build the tile collection for a given grid size, all initially empty.</summary>

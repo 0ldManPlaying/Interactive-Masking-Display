@@ -73,10 +73,56 @@ public partial class SetupWindow : Window
         UseActiveDirectory.IsChecked = settings.Auth.UseActiveDirectory;
         AuthDomain.Text = settings.Auth.Domain;
 
+        SelectComboItemByTag(WebAccessMode, settings.Web.Access.Mode);
+        WebAccessPin.Password = settings.Web.Access.Pin ?? "";
+        WebAccessDomain.Text = settings.Web.Access.Domain ?? "";
+        UpdateWebAccessVisibility();
+
+        SyslogEnabled.IsChecked = settings.AuditForward.SyslogEnabled;
+        SyslogHost.Text = settings.AuditForward.SyslogHost;
+        SyslogPort.Text = settings.AuditForward.SyslogPort.ToString(CultureInfo.InvariantCulture);
+        SyslogAppName.Text = settings.AuditForward.SyslogAppName;
+        SyslogFacility.Text = settings.AuditForward.SyslogFacility.ToString(CultureInfo.InvariantCulture);
+        SelectComboItemByTag(SyslogProtocol, settings.AuditForward.SyslogProtocol);
+        SyslogTestResult.Text = "";
+
         ConnDot.Background = (System.Windows.Media.Brush)FindResource("green");
         ConnText.Text = Strings.Instance.Current.SetupConfigLoaded;
 
         LoadAuditRows();
+    }
+
+    private void OnWebAccessModeChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        // Defensive — change-handler can fire during InitializeComponent before
+        // the panels are created.
+        if (WebAccessPinPanel is null || WebAccessAdPanel is null) return;
+        UpdateWebAccessVisibility();
+    }
+
+    private void UpdateWebAccessVisibility()
+    {
+        var mode = (WebAccessMode.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string ?? "off";
+        WebAccessPinPanel.Visibility = string.Equals(mode, "pin", StringComparison.OrdinalIgnoreCase)
+            ? System.Windows.Visibility.Visible
+            : System.Windows.Visibility.Collapsed;
+        WebAccessAdPanel.Visibility = string.Equals(mode, "ad", StringComparison.OrdinalIgnoreCase)
+            ? System.Windows.Visibility.Visible
+            : System.Windows.Visibility.Collapsed;
+    }
+
+    private static void SelectComboItemByTag(System.Windows.Controls.ComboBox combo, string tag)
+    {
+        for (int i = 0; i < combo.Items.Count; i++)
+        {
+            if (combo.Items[i] is System.Windows.Controls.ComboBoxItem item &&
+                string.Equals(item.Tag as string, tag, StringComparison.OrdinalIgnoreCase))
+            {
+                combo.SelectedIndex = i;
+                return;
+            }
+        }
+        if (combo.Items.Count > 0) combo.SelectedIndex = 0;
     }
 
     private static StringsTable T => Strings.Instance.Current;
@@ -246,7 +292,14 @@ public partial class SetupWindow : Window
                 CertPath = string.IsNullOrWhiteSpace(CertPath.Text) ? null : CertPath.Text.Trim(),
                 CertPassword = string.IsNullOrEmpty(CertPassword.Password) ? null : CertPassword.Password,
                 BindAllInterfaces = BindAllInterfaces.IsChecked == true,
+                Access =
+                {
+                    Mode = (WebAccessMode.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string ?? "off",
+                    Pin = string.IsNullOrEmpty(WebAccessPin.Password) ? null : WebAccessPin.Password,
+                    Domain = WebAccessDomain.Text?.Trim() ?? "",
+                },
             },
+            AuditForward = ReadAuditForwardFromUi(),
             Language = (LangEn.IsChecked == true) ? "en" : "nl",
         };
 
@@ -344,6 +397,46 @@ public partial class SetupWindow : Window
     {
         _auditRows.Clear();
         foreach (var r in ReadAuditRows()) _auditRows.Add(r);
+    }
+
+    private AuditForwardSettings ReadAuditForwardFromUi()
+    {
+        int.TryParse(SyslogPort.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port);
+        int.TryParse(SyslogFacility.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var facility);
+        var protocol = (SyslogProtocol.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string ?? "udp";
+        return new AuditForwardSettings
+        {
+            SyslogEnabled = SyslogEnabled.IsChecked == true,
+            SyslogHost    = SyslogHost.Text?.Trim() ?? "",
+            SyslogPort    = port > 0 ? port : 514,
+            SyslogProtocol= protocol,
+            SyslogFacility= Math.Clamp(facility, 0, 23),
+            SyslogAppName = string.IsNullOrWhiteSpace(SyslogAppName.Text) ? "InteractiveMask" : SyslogAppName.Text.Trim(),
+        };
+    }
+
+    private async void OnSyslogTest(object sender, RoutedEventArgs e)
+    {
+        var s = ReadAuditForwardFromUi();
+        if (string.IsNullOrWhiteSpace(s.SyslogHost))
+        {
+            SyslogTestResult.Text = T.AuditSyslogTestNoHost;
+            SyslogTestResult.Foreground = (System.Windows.Media.Brush)FindResource("amber");
+            return;
+        }
+        SyslogTestResult.Text = T.AuditSyslogTesting;
+        SyslogTestResult.Foreground = (System.Windows.Media.Brush)FindResource("text.muted");
+        var (ok, error) = await SyslogForwarder.SendTestAsync(s);
+        if (ok)
+        {
+            SyslogTestResult.Text = T.AuditSyslogTestOk;
+            SyslogTestResult.Foreground = (System.Windows.Media.Brush)FindResource("green");
+        }
+        else
+        {
+            SyslogTestResult.Text = string.Format(T.AuditSyslogTestFailFormat, error ?? "");
+            SyslogTestResult.Foreground = (System.Windows.Media.Brush)FindResource("red");
+        }
     }
 
     private List<AuditViewRow> ReadAuditRows()

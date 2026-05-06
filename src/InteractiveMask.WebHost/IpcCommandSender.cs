@@ -13,6 +13,7 @@ namespace InteractiveMask.WebHost;
 public sealed class IpcCommandSender
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<ToggleResponseDto>> _pending = new();
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<SnapshotResponseDto>> _pendingSnapshots = new();
     private IpcClient? _client;
 
     public TimeSpan DefaultTimeout { get; init; } = TimeSpan.FromSeconds(5);
@@ -24,7 +25,41 @@ public sealed class IpcCommandSender
         client.MessageReceived += OnMessage;
     }
 
-    public async Task<ToggleResponseDto> ToggleAsync(int slot, string? pin, string? source, CancellationToken token = default)
+    public async Task<SnapshotResponseDto> SnapshotAsync(int slot, CancellationToken token = default)
+    {
+        var client = _client ?? throw new InvalidOperationException("IPC client not attached");
+        var requestId = Guid.NewGuid().ToString("N");
+        var tcs = new TaskCompletionSource<SnapshotResponseDto>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingSnapshots[requestId] = tcs;
+
+        try
+        {
+            var req = new SnapshotRequestDto(requestId, slot);
+            var envelope = new IpcEnvelope
+            {
+                Type = IpcMessageType.SnapshotRequest,
+                Payload = JsonSerializer.SerializeToElement(req, IpcJson.Options),
+            };
+            var sent = await client.SendAsync(envelope, token);
+            if (!sent)
+            {
+                _pendingSnapshots.TryRemove(requestId, out _);
+                throw new InvalidOperationException("ipc not connected");
+            }
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            cts.CancelAfter(DefaultTimeout);
+            using (cts.Token.Register(() => tcs.TrySetCanceled()))
+            {
+                return await tcs.Task;
+            }
+        }
+        finally
+        {
+            _pendingSnapshots.TryRemove(requestId, out _);
+        }
+    }
+
+    public async Task<ToggleResponseDto> ToggleAsync(int slot, string? pin, string? source, bool preAuthenticated = false, CancellationToken token = default)
     {
         var client = _client ?? throw new InvalidOperationException("IPC client not attached");
         var requestId = Guid.NewGuid().ToString("N");
@@ -33,7 +68,7 @@ public sealed class IpcCommandSender
 
         try
         {
-            var req = new ToggleRequestDto(requestId, slot, pin, source);
+            var req = new ToggleRequestDto(requestId, slot, pin, source, preAuthenticated);
             var envelope = new IpcEnvelope
             {
                 Type = IpcMessageType.ToggleRequest,
@@ -62,15 +97,22 @@ public sealed class IpcCommandSender
 
     private void OnMessage(IpcEnvelope env)
     {
-        if (env.Type != IpcMessageType.ToggleResponse) return;
-        ToggleResponseDto? resp;
-        try { resp = env.Payload.Deserialize<ToggleResponseDto>(IpcJson.Options); }
-        catch { return; }
-        if (resp is null) return;
-
-        if (_pending.TryRemove(resp.RequestId, out var tcs))
+        if (env.Type == IpcMessageType.ToggleResponse)
         {
-            tcs.TrySetResult(resp);
+            ToggleResponseDto? resp;
+            try { resp = env.Payload.Deserialize<ToggleResponseDto>(IpcJson.Options); }
+            catch { return; }
+            if (resp is null) return;
+            if (_pending.TryRemove(resp.RequestId, out var tcs)) tcs.TrySetResult(resp);
+            return;
+        }
+        if (env.Type == IpcMessageType.SnapshotResponse)
+        {
+            SnapshotResponseDto? resp;
+            try { resp = env.Payload.Deserialize<SnapshotResponseDto>(IpcJson.Options); }
+            catch { return; }
+            if (resp is null) return;
+            if (_pendingSnapshots.TryRemove(resp.RequestId, out var tcs)) tcs.TrySetResult(resp);
         }
     }
 }

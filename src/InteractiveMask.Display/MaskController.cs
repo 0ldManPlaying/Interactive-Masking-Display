@@ -72,14 +72,24 @@ public sealed class MaskController
 
     /// <summary>
     /// Remote-control entry point used by the WebHost over IPC. Same security
-    /// rules as the desktop click flow but without modal dialogs.
+    /// rules as the desktop click flow but without modal dialogs. Respects
+    /// AD-mode: the WebHost validates Windows credentials itself and forwards
+    /// the request with <see cref="ToggleRequestDto.PreAuthenticated"/>=true,
+    /// which acts here as the desktop equivalent of "credential prompt OK".
     /// </summary>
-    public ToggleResult HandleRemoteToggle(TileViewModel tile, string? pin, string? source)
+    public ToggleResult HandleRemoteToggle(TileViewModel tile, string? pin, string? source, bool preAuthenticated = false)
     {
         var src = string.IsNullOrEmpty(source) ? "remote" : source;
+        var auth = _authSettingsProvider();
         bool pinEnabled = _requireSessionPinProvider();
 
         if (!tile.HasCamera) return ToggleResult.InvalidSlot;
+
+        // AD mode wins over PIN mode (matches the desktop flow in TryRemoveMaskLocal).
+        if (auth.UseActiveDirectory)
+        {
+            return HandleAdRemoteToggle(tile, src, preAuthenticated);
+        }
 
         if (!tile.IsMasked)
         {
@@ -133,6 +143,31 @@ public sealed class MaskController
             return ToggleResult.LockedOut;
         }
         return ToggleResult.PinWrong;
+    }
+
+    private ToggleResult HandleAdRemoteToggle(TileViewModel tile, string src, bool preAuthenticated)
+    {
+        // Apply: free, privacy-first (mirrors the desktop ApplyMaskLocal flow which
+        // never prompts for credentials when *enabling* a mask).
+        if (!tile.IsMasked)
+        {
+            tile.SetMasked(true, _autoUnmaskMinutesProvider());
+            _pinService.OnMaskApplied();
+            _audit.Write(AuditEventType.MaskOn, slot: tile.SlotIndex, label: tile.Label, source: src);
+            _onStateChanged();
+            return ToggleResult.Ok;
+        }
+
+        // Unmask: WebHost must have validated Windows credentials and set the
+        // pre-authenticated flag. Display does not re-validate because LogonUser
+        // is already done; we trust the same-machine pipe boundary.
+        if (!preAuthenticated) return ToggleResult.CredentialsRequired;
+
+        tile.SetMasked(false);
+        _pinService.OnMaskRemovedExternal();
+        _audit.Write(AuditEventType.MaskOff, slot: tile.SlotIndex, label: tile.Label, source: src);
+        _onStateChanged();
+        return ToggleResult.Ok;
     }
 
     private void ApplyMaskLocal(TileViewModel tile)

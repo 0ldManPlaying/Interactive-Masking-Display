@@ -847,6 +847,45 @@
                                                    Text="{local:Loc WebCertRestartHint}" />
                                     </StackPanel>
                                 </Border>
+
+                                <!-- ===== Toegang tot de web-interface ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc WebAccessCardTitle}" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock Foreground="{StaticResource text.muted}" FontSize="12"
+                                                   TextWrapping="Wrap"
+                                                   Text="{local:Loc WebAccessCardDescription}" />
+
+                                        <Grid Margin="0,12,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="160" />
+                                                <ColumnDefinition Width="20" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="14" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Grid.Row="0" Grid.Column="0">
+                                                <TextBlock Text="{local:Loc WebAccessMode}" Style="{StaticResource FieldLabel}" />
+                                                <ComboBox x:Name="WebAccessMode" SelectionChanged="OnWebAccessModeChanged">
+                                                    <ComboBoxItem Content="{local:Loc WebAccessModeOff}" Tag="off" />
+                                                    <ComboBoxItem Content="{local:Loc WebAccessModePin}" Tag="pin" />
+                                                    <ComboBoxItem Content="{local:Loc WebAccessModeAd}" Tag="ad" />
+                                                </ComboBox>
+                                            </StackPanel>
+                                            <StackPanel x:Name="WebAccessPinPanel" Grid.Row="0" Grid.Column="2" Visibility="Collapsed">
+                                                <TextBlock Text="{local:Loc WebAccessPin}" Style="{StaticResource FieldLabel}" />
+                                                <PasswordBox x:Name="WebAccessPin" />
+                                            </StackPanel>
+                                            <StackPanel x:Name="WebAccessAdPanel" Grid.Row="0" Grid.Column="2" Visibility="Collapsed">
+                                                <TextBlock Text="{local:Loc WebAccessDomain}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="WebAccessDomain" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ============================ Audit ============================ -->
@@ -854,6 +893,78 @@
                                 <TextBlock Text="{local:Loc AuditPageTitle}" Style="{StaticResource PageTitle}" />
                                 <TextBlock Text="{local:Loc AuditPageSubtitle}" Style="{StaticResource PageSubtitle}" />
 
+                                <!-- ============== Syslog forwarding ============== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <StackPanel>
+                                                <TextBlock Text="{local:Loc AuditCardForwarding}" Style="{StaticResource SectionHeader}" />
+                                                <TextBlock Text="{local:Loc AuditSyslogEnabled}"
+                                                           Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <CheckBox x:Name="SyslogEnabled"
+                                                      Style="{StaticResource ToggleSwitch}"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Top" />
+                                        </Grid>
+
+                                        <Grid IsEnabled="{Binding ElementName=SyslogEnabled, Path=IsChecked}" Margin="0,16,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="20" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="20" />
+                                                <ColumnDefinition Width="140" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="14" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="14" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <StackPanel Grid.Row="0" Grid.Column="0">
+                                                <TextBlock Text="{local:Loc AuditSyslogHost}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="SyslogHost" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="0" Grid.Column="2">
+                                                <TextBlock Text="{local:Loc AuditSyslogPort}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="SyslogPort" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="0" Grid.Column="4">
+                                                <TextBlock Text="{local:Loc AuditSyslogProtocol}" Style="{StaticResource FieldLabel}" />
+                                                <ComboBox x:Name="SyslogProtocol">
+                                                    <ComboBoxItem Content="UDP" Tag="udp" />
+                                                    <ComboBoxItem Content="TCP" Tag="tcp" />
+                                                </ComboBox>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="2" Grid.Column="0">
+                                                <TextBlock Text="{local:Loc AuditSyslogAppName}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="SyslogAppName" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="2" Grid.Column="2">
+                                                <TextBlock Text="{local:Loc AuditSyslogFacility}" Style="{StaticResource FieldLabel}" />
+                                                <TextBox x:Name="SyslogFacility" />
+                                            </StackPanel>
+
+                                            <Button Grid.Row="4" Grid.Column="0"
+                                                    HorizontalAlignment="Left"
+                                                    Content="{local:Loc AuditSyslogTest}"
+                                                    Style="{StaticResource BtnGhost}"
+                                                    Click="OnSyslogTest" />
+                                            <TextBlock Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="3"
+                                                       x:Name="SyslogTestResult"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12"
+                                                       TextWrapping="Wrap" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ============== Audit-log viewer ============== -->
                                 <Border Style="{StaticResource Card}">
                                     <Grid>
                                         <Grid.RowDefinitions>

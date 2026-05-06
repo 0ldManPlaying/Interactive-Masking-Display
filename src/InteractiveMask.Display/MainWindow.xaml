@@ -178,5 +178,56 @@
                    Margin="8,4"
                    VerticalAlignment="Top"
                    HorizontalAlignment="Left" />
+
+        <!-- Reconnect banner: pulses orange while the NVR session is down, with
+             a live-ticking countdown until the next reconnect attempt. Centered
+             at the top so a caregiver sees it from across the room. -->
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,12,0,0"
+                Padding="18,10"
+                Background="#E61A1D24"
+                BorderBrush="#FFB347"
+                BorderThickness="1"
+                CornerRadius="10"
+                IsHitTestVisible="False"
+                Visibility="{Binding ConnectionLost, Converter={StaticResource BoolToVis}}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="14" Opacity="0.55" ShadowDepth="0" />
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="12" Height="12"
+                         Fill="#FFB347"
+                         VerticalAlignment="Center"
+                         Margin="0,0,10,0">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ConnectionLost}" Value="True">
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard Name="ReconnectPulseSb">
+                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 From="1.0" To="0.3"
+                                                                 Duration="0:0:0.8" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                    <DataTrigger.ExitActions>
+                                        <StopStoryboard BeginStoryboardName="ReconnectPulseSb" />
+                                    </DataTrigger.ExitActions>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="{Binding ConnectionBanner}"
+                           Foreground="#FFB347"
+                           FontFamily="Segoe UI"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

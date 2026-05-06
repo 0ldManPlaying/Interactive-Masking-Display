@@ -27,6 +27,10 @@ public partial class MainWindow : Window
     private AuthSettings _auth = new();
     private AppSettings? _lastAppliedSettings;
     private bool _authenticatedExit;
+    private DateTime? _nextReconnectUtc;
+    private string _lastDisconnectLabel = "";
+    private SyslogForwarder? _auditForwarder;
+    private AuditForwardSettings _auditForward = new();
 
     public MainWindow()
     {
@@ -66,6 +70,8 @@ public partial class MainWindow : Window
 
         _privacy = settings.Privacy;
         _auth = settings.Auth;
+        _auditForward = settings.AuditForward;
+        ApplyAuditForwarder(_auditForward);
         _audit.Write(AuditEventType.AppStarted, source: "local");
         _maskController = new MaskController(
             owner: this,
@@ -89,15 +95,10 @@ public partial class MainWindow : Window
             _audit.Write(AuditEventType.NvrConnected, source: "local", detail: $"channel={channel}");
             Dispatcher.BeginInvoke(() =>
             {
-                foreach (var tile in _viewModel.Tiles)
-                {
-                    if (tile.HasCamera && tile.Status == InteractiveMask.Gdk.TileStatus.Disconnected)
-                    {
-                        // The session reports per-tile status via the GDK callback;
-                        // bumping it back to Pending here clears the previous "verbinding
-                        // verbroken" message until the first frame arrives.
-                    }
-                }
+                _nextReconnectUtc = null;
+                _lastDisconnectLabel = "";
+                _viewModel.ConnectionLost = false;
+                _viewModel.ConnectionBanner = "";
             });
         };
         _session.Disconnected += reason =>
@@ -106,11 +107,23 @@ public partial class MainWindow : Window
             _audit.Write(AuditEventType.NvrDisconnected, source: "local", detail: $"{reason} - {label}");
             Dispatcher.BeginInvoke(() =>
             {
+                _lastDisconnectLabel = label;
                 foreach (var tile in _viewModel.Tiles)
                 {
                     if (tile.HasCamera) tile.SetDisconnectDetail(label);
                 }
                 _viewModel.StatusLine = label;
+                _viewModel.ConnectionLost = true;
+                UpdateConnectionBanner();
+            });
+        };
+        _session.ReconnectScheduled += nextAttemptUtc =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _nextReconnectUtc = nextAttemptUtc;
+                _viewModel.ConnectionLost = true;
+                UpdateConnectionBanner();
             });
         };
 
@@ -136,6 +149,24 @@ public partial class MainWindow : Window
 
         ApplyKioskMode(settings.Kiosk.Enabled);
         _lastAppliedSettings = settings;
+    }
+
+    /// <summary>
+    /// Stand up (or tear down) the audit-syslog forwarder to match current
+    /// settings. Called on startup and from the live-apply path; safe to call
+    /// when the forwarder doesn't exist yet.
+    /// </summary>
+    private void ApplyAuditForwarder(AuditForwardSettings s)
+    {
+        var existing = _auditForwarder;
+        _auditForwarder = null;
+        _audit.SetForwarder(null);
+        existing?.Dispose();
+
+        if (!s.SyslogEnabled || string.IsNullOrWhiteSpace(s.SyslogHost)) return;
+
+        _auditForwarder = new SyslogForwarder(s);
+        _audit.SetForwarder(_auditForwarder);
     }
 
     private void ApplyKioskMode(bool enabled)
@@ -171,6 +202,32 @@ public partial class MainWindow : Window
                 _maskController.AutoExpireMask(tile);
             }
         }
+
+        if (_viewModel.ConnectionLost) UpdateConnectionBanner();
+    }
+
+    /// <summary>
+    /// Refresh the disconnect banner text from current state. Called once on
+    /// disconnect/schedule and then every tick while disconnected so the
+    /// countdown ticks down.
+    /// </summary>
+    private void UpdateConnectionBanner()
+    {
+        var s = Strings.Instance.Current;
+        if (_nextReconnectUtc is null)
+        {
+            _viewModel.ConnectionBanner = s.ConnectionAttempting;
+            return;
+        }
+        var remaining = _nextReconnectUtc.Value - DateTime.UtcNow;
+        if (remaining <= TimeSpan.Zero)
+        {
+            _viewModel.ConnectionBanner = s.ConnectionAttempting;
+            return;
+        }
+        int seconds = (int)Math.Ceiling(remaining.TotalSeconds);
+        var reason = string.IsNullOrEmpty(_lastDisconnectLabel) ? s.ConnectionLost : _lastDisconnectLabel;
+        _viewModel.ConnectionBanner = string.Format(s.ConnectionLostFormat, reason, seconds);
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
@@ -254,6 +311,13 @@ public partial class MainWindow : Window
         //    _auth, read lazily by the controller, so just swap the reference.
         _privacy = newSettings.Privacy;
         _auth = newSettings.Auth;
+        // 2b) Audit forwarding: hot-swap so a config change reaches the SIEM
+        //     without restart. The bounded queue is recreated by SyslogForwarder.
+        if (!AuditForwardEqual(_auditForward, newSettings.AuditForward))
+        {
+            _auditForward = newSettings.AuditForward;
+            ApplyAuditForwarder(_auditForward);
+        }
 
         // 3) Kiosk mode toggles can be installed/uninstalled live without restart.
         ApplyKioskMode(newSettings.Kiosk.Enabled);
@@ -285,6 +349,14 @@ public partial class MainWindow : Window
             Close();
         }
     }
+
+    private static bool AuditForwardEqual(AuditForwardSettings a, AuditForwardSettings b) =>
+        a.SyslogEnabled == b.SyslogEnabled &&
+        a.SyslogHost == b.SyslogHost &&
+        a.SyslogPort == b.SyslogPort &&
+        a.SyslogProtocol == b.SyslogProtocol &&
+        a.SyslogFacility == b.SyslogFacility &&
+        a.SyslogAppName == b.SyslogAppName;
 
     /// <summary>
     /// True when at least one of the settings that requires reconnecting to the
@@ -372,6 +444,11 @@ public partial class MainWindow : Window
         _gdkLifetime?.Dispose();
         _gdkLifetime = null;
         _audit.Write(AuditEventType.AppStopped, source: "local");
+        // Drain the syslog queue (best-effort) so the AppStopped event reaches
+        // the SIEM before we exit.
+        _audit.SetForwarder(null);
+        _auditForwarder?.Dispose();
+        _auditForwarder = null;
     }
 
     /// <summary>

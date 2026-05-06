@@ -16,9 +16,19 @@ public sealed record WebSettings(
     int? HttpsPort,
     string? CertPath,
     string? CertPassword,
-    bool BindAllInterfaces)
+    bool BindAllInterfaces,
+    /// <summary>Per-tile unmask auth flow: "pin" (default), "ad", or "off".</summary>
+    string AuthMode,
+    /// <summary>AD-mode default domain pre-filled in the credentials prompt; empty = none.</summary>
+    string AuthDomain,
+    /// <summary>Web-page access auth (gates the whole UI): "off", "pin", or "ad".</summary>
+    string AccessMode,
+    /// <summary>Decrypted web-access PIN. Only meaningful when AccessMode = "pin".</summary>
+    string? AccessPin,
+    /// <summary>Default domain for the AD login form. Only used when AccessMode = "ad".</summary>
+    string AccessDomain)
 {
-    public static WebSettings Default { get; } = new("nl", 8080, null, null, null, false);
+    public static WebSettings Default { get; } = new("nl", 8080, null, null, null, false, "pin", "", "off", null, "");
 }
 
 /// <summary>
@@ -95,6 +105,10 @@ public sealed class WebSettingsProvider
         string? certPwd = null;
         bool bindAll = false;
 
+        string accessMode = "off";
+        string? accessPin = null;
+        string accessDomain = "";
+
         if (root.TryGetProperty("Web", out var web) && web.ValueKind == JsonValueKind.Object)
         {
             if (web.TryGetProperty("HttpPort", out var p)  && p.TryGetInt32(out var hp)) httpPort = hp;
@@ -108,9 +122,43 @@ public sealed class WebSettingsProvider
             {
                 bindAll = ba.ValueKind == JsonValueKind.True;
             }
+            if (web.TryGetProperty("Access", out var acc) && acc.ValueKind == JsonValueKind.Object)
+            {
+                if (acc.TryGetProperty("Mode", out var m) && m.ValueKind == JsonValueKind.String) accessMode = m.GetString() ?? "off";
+                if (acc.TryGetProperty("PinEncrypted", out var pe) && pe.ValueKind == JsonValueKind.String) accessPin = DecryptPassword(pe.GetString());
+                if (acc.TryGetProperty("Domain", out var ad) && ad.ValueKind == JsonValueKind.String) accessDomain = ad.GetString() ?? "";
+            }
         }
 
-        return new WebSettings(lang, httpPort, httpsPort, certPath, certPwd, bindAll);
+        // Mirror Display's AuthSettings + PrivacySettings.RequireSessionPin so the
+        // browser shows the right modal: AD-creds in AD mode, PIN-keypad otherwise,
+        // nothing at all when auth is fully disabled.
+        string authMode = "pin";
+        string authDomain = "";
+        bool useAd = false;
+        if (root.TryGetProperty("Auth", out var auth) && auth.ValueKind == JsonValueKind.Object)
+        {
+            if (auth.TryGetProperty("UseActiveDirectory", out var u) && u.ValueKind != JsonValueKind.Undefined)
+            {
+                useAd = u.ValueKind == JsonValueKind.True;
+            }
+            if (auth.TryGetProperty("Domain", out var d) && d.ValueKind == JsonValueKind.String)
+            {
+                authDomain = d.GetString() ?? "";
+            }
+        }
+        bool requirePin = true;
+        if (root.TryGetProperty("Privacy", out var priv) && priv.ValueKind == JsonValueKind.Object)
+        {
+            if (priv.TryGetProperty("RequireSessionPin", out var r) && r.ValueKind != JsonValueKind.Undefined)
+            {
+                requirePin = r.ValueKind != JsonValueKind.False;
+            }
+        }
+        if (useAd) authMode = "ad";
+        else if (!requirePin) authMode = "off";
+
+        return new WebSettings(lang, httpPort, httpsPort, certPath, certPwd, bindAll, authMode, authDomain, accessMode, accessPin, accessDomain);
     }
 
     private static string? DecryptPassword(string? base64)

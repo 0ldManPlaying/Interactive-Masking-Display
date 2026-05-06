@@ -142,6 +142,16 @@ public sealed class StringsTable
     public string WebCertGenerate { get; init; } = "";
     public string WebCertRestartHint { get; init; } = "";
 
+    // Web-UI access auth (page-gating)
+    public string WebAccessCardTitle { get; init; } = "";
+    public string WebAccessCardDescription { get; init; } = "";
+    public string WebAccessMode { get; init; } = "";
+    public string WebAccessModeOff { get; init; } = "";
+    public string WebAccessModePin { get; init; } = "";
+    public string WebAccessModeAd { get; init; } = "";
+    public string WebAccessPin { get; init; } = "";
+    public string WebAccessDomain { get; init; } = "";
+
     // Audit tab
     public string AuditPageTitle { get; init; } = "";
     public string AuditPageSubtitle { get; init; } = "";
@@ -154,6 +164,20 @@ public sealed class StringsTable
     public string AuditHeaderLabel { get; init; } = "";
     public string AuditHeaderSource { get; init; } = "";
     public string AuditHeaderDetail { get; init; } = "";
+
+    // Audit forwarding (Syslog) sub-card
+    public string AuditCardForwarding { get; init; } = "";
+    public string AuditSyslogEnabled { get; init; } = "";
+    public string AuditSyslogHost { get; init; } = "";
+    public string AuditSyslogPort { get; init; } = "";
+    public string AuditSyslogProtocol { get; init; } = "";
+    public string AuditSyslogAppName { get; init; } = "";
+    public string AuditSyslogFacility { get; init; } = "";
+    public string AuditSyslogTest { get; init; } = "";
+    public string AuditSyslogTesting { get; init; } = "";
+    public string AuditSyslogTestOk { get; init; } = "";
+    public string AuditSyslogTestFailFormat { get; init; } = "";
+    public string AuditSyslogTestNoHost { get; init; } = "";
 
     // Admin (Beheerder) tab
     public string AdminPageTitle { get; init; } = "";
@@ -198,6 +222,11 @@ public sealed class StringsTable
 
     // MainWindow status / dialogs
     public string MainNoConfigLine { get; init; } = "";
+
+    // Reconnect banner
+    public string ConnectionLost { get; init; } = "";
+    public string ConnectionLostFormat { get; init; } = "";
+    public string ConnectionAttempting { get; init; } = "";
 
     public static readonly StringsTable Nl = new()
     {
@@ -294,6 +323,15 @@ public sealed class StringsTable
         WebCertGenerate           = "Self-signed certificaat genereren",
         WebCertRestartHint        = "Wijzigingen aan poorten of certificaat treden pas in werking nadat de WebHost-service herstart is.",
 
+        WebAccessCardTitle        = "Toegang tot de web-interface",
+        WebAccessCardDescription  = "Bepaal of de web-interface vrij toegankelijk is, of dat eerst aanmelden vereist is. Dit staat los van het PIN/AD-beleid voor het uitzetten van een privacy-masker.",
+        WebAccessMode             = "Toegangsmodus",
+        WebAccessModeOff          = "Open (geen aanmelding)",
+        WebAccessModePin          = "Gedeelde toegangs-PIN",
+        WebAccessModeAd           = "Windows-aanmelding",
+        WebAccessPin              = "Toegangs-PIN",
+        WebAccessDomain           = "Standaard domein (optioneel)",
+
         AuditPageTitle            = "Audit-log",
         AuditPageSubtitle         = "Volledige geschiedenis van mask-acties, PIN-gebeurtenissen en NVR-verbindingen.",
         AuditCardRecent           = "Recente events",
@@ -305,6 +343,19 @@ public sealed class StringsTable
         AuditHeaderLabel          = "LABEL",
         AuditHeaderSource         = "BRON",
         AuditHeaderDetail         = "DETAIL",
+
+        AuditCardForwarding       = "Syslog-doorgifte",
+        AuditSyslogEnabled        = "Audit-events naar externe SIEM/syslog-server doorsturen",
+        AuditSyslogHost           = "Host",
+        AuditSyslogPort           = "Poort",
+        AuditSyslogProtocol       = "Protocol",
+        AuditSyslogAppName        = "App-naam (RFC 5424)",
+        AuditSyslogFacility       = "Facility (0-23)",
+        AuditSyslogTest           = "Test bericht versturen",
+        AuditSyslogTesting        = "Bezig met versturen...",
+        AuditSyslogTestOk         = "Test-bericht verstuurd.",
+        AuditSyslogTestFailFormat = "Versturen mislukt: {0}",
+        AuditSyslogTestNoHost     = "Vul eerst een host in.",
 
         AdminPageTitle            = "Beheerder",
         AdminPageSubtitle         = "Toegang voor afsluiten en setup, en taalvoorkeur.",
@@ -346,6 +397,10 @@ public sealed class StringsTable
         SetupAdRemoveTitle        = "Privacy uitzetten",
 
         MainNoConfigLine          = "NVR-config ontbreekt. Rechter-muisklik voor Setup / Afsluiten.",
+
+        ConnectionLost            = "Verbinding met NVR verloren",
+        ConnectionLostFormat      = "{0} — opnieuw verbinden over {1} s...",
+        ConnectionAttempting      = "Verbinden met NVR...",
     };
 
     public static readonly StringsTable En = new()
@@ -443,6 +498,15 @@ public sealed class StringsTable
         WebCertGenerate           = "Generate self-signed certificate",
         WebCertRestartHint        = "Changes to ports or certificate take effect only after the WebHost service is restarted.",
 
+        WebAccessCardTitle        = "Web interface access",
+        WebAccessCardDescription  = "Choose whether the web interface is openly accessible, or whether sign-in is required first. This is independent of the per-tile PIN / AD policy used to disable a privacy mask.",
+        WebAccessMode             = "Access mode",
+        WebAccessModeOff          = "Open (no sign-in)",
+        WebAccessModePin          = "Shared access PIN",
+        WebAccessModeAd           = "Windows sign-in",
+        WebAccessPin              = "Access PIN",
+        WebAccessDomain           = "Default domain (optional)",
+
         AuditPageTitle            = "Audit log",
         AuditPageSubtitle         = "Full history of mask actions, PIN events and NVR connections.",
         AuditCardRecent           = "Recent events",
@@ -454,6 +518,19 @@ public sealed class StringsTable
         AuditHeaderLabel          = "LABEL",
         AuditHeaderSource         = "SOURCE",
         AuditHeaderDetail         = "DETAIL",
+
+        AuditCardForwarding       = "Syslog forwarding",
+        AuditSyslogEnabled        = "Forward audit events to an external SIEM / syslog server",
+        AuditSyslogHost           = "Host",
+        AuditSyslogPort           = "Port",
+        AuditSyslogProtocol       = "Protocol",
+        AuditSyslogAppName        = "App name (RFC 5424)",
+        AuditSyslogFacility       = "Facility (0-23)",
+        AuditSyslogTest           = "Send test message",
+        AuditSyslogTesting        = "Sending...",
+        AuditSyslogTestOk         = "Test message sent.",
+        AuditSyslogTestFailFormat = "Send failed: {0}",
+        AuditSyslogTestNoHost     = "Enter a host first.",
 
         AdminPageTitle            = "Administrator",
         AdminPageSubtitle         = "Access for exit and setup, and language preference.",
@@ -495,5 +572,9 @@ public sealed class StringsTable
         SetupAdRemoveTitle        = "Disable privacy",
 
         MainNoConfigLine          = "NVR config missing. Right-click for Setup / Exit.",
+
+        ConnectionLost            = "NVR connection lost",
+        ConnectionLostFormat      = "{0} — reconnecting in {1} s...",
+        ConnectionAttempting      = "Connecting to NVR...",
     };
 }

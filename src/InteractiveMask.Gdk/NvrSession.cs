@@ -35,6 +35,7 @@ public sealed class NvrSession : g2watch_listener, IDisposable
 
     public event Action<int>? Connected;
     public event Action<G2DISCONNECT_REASON.TYPE>? Disconnected;
+    public event Action<DateTime>? ReconnectScheduled;
     public event Action<string>? Log;
 
     /// <summary>
@@ -127,6 +128,9 @@ public sealed class NvrSession : g2watch_listener, IDisposable
         _reconnectCts?.Cancel();
         _reconnectCts = new CancellationTokenSource();
         var token = _reconnectCts.Token;
+
+        var nextAttemptUtc = DateTime.UtcNow + ReconnectDelay;
+        ReconnectScheduled?.Invoke(nextAttemptUtc);
 
         Task.Delay(ReconnectDelay, token).ContinueWith(t =>
         {

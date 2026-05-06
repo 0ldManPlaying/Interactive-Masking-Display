@@ -1,6 +1,8 @@
 using InteractiveMask.Ipc;
 using System.ComponentModel;
+using System.IO;
 using System.Text.Json;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace InteractiveMask.Display;
@@ -94,6 +96,11 @@ public sealed class IpcStateBroadcaster : IDisposable
 
     private void OnInboundRequest(IpcEnvelope envelope, IIpcSession session)
     {
+        if (envelope.Type == IpcMessageType.SnapshotRequest)
+        {
+            HandleSnapshotRequest(envelope, session);
+            return;
+        }
         if (envelope.Type != IpcMessageType.ToggleRequest) return;
 
         ToggleRequestDto? req;
@@ -116,7 +123,7 @@ public sealed class IpcStateBroadcaster : IDisposable
             else
             {
                 var tile = _viewModel.Tiles[req.Slot];
-                result = _maskController.HandleRemoteToggle(tile, req.Pin, req.Source);
+                result = _maskController.HandleRemoteToggle(tile, req.Pin, req.Source, req.PreAuthenticated);
             }
 
             if (result == ToggleResult.LockedOut)
@@ -131,6 +138,64 @@ public sealed class IpcStateBroadcaster : IDisposable
                 Payload = JsonSerializer.SerializeToElement(response, IpcJson.Options),
             });
         });
+    }
+
+    private void HandleSnapshotRequest(IpcEnvelope envelope, IIpcSession session)
+    {
+        SnapshotRequestDto? req;
+        try { req = envelope.Payload.Deserialize<SnapshotRequestDto>(IpcJson.Options); }
+        catch { return; }
+        if (req is null) return;
+
+        _dispatcher.BeginInvoke(() =>
+        {
+            var status = SnapshotStatus.Empty;
+            string? jpeg = null;
+
+            if (req.Slot >= 0 && req.Slot < _viewModel.Tiles.Count)
+            {
+                var tile = _viewModel.Tiles[req.Slot];
+                if (!tile.HasCamera)               status = SnapshotStatus.Empty;
+                else if (tile.IsMasked)            status = SnapshotStatus.Masked;
+                else if (tile.Bitmap is null)      status = SnapshotStatus.NoFrame;
+                else
+                {
+                    try
+                    {
+                        jpeg = EncodeJpegBase64(tile.Bitmap);
+                        status = SnapshotStatus.Ok;
+                    }
+                    catch
+                    {
+                        status = SnapshotStatus.NoFrame;
+                    }
+                }
+            }
+
+            session.Send(new IpcEnvelope
+            {
+                Type = IpcMessageType.SnapshotResponse,
+                Payload = JsonSerializer.SerializeToElement(
+                    new SnapshotResponseDto(req.RequestId, req.Slot, status, jpeg),
+                    IpcJson.Options),
+            });
+        });
+    }
+
+    /// <summary>
+    /// Encode the current frame as a low-quality JPEG. We intentionally cap
+    /// quality at 60 — these snapshots are diagnostic thumbnails for the web
+    /// UI, not archival images, and a smaller payload keeps the IPC envelope
+    /// snappy. Runs on the UI thread so it serialises naturally with frame
+    /// writes (RenderFrame also runs there).
+    /// </summary>
+    private static string EncodeJpegBase64(BitmapSource source)
+    {
+        var encoder = new JpegBitmapEncoder { QualityLevel = 60 };
+        encoder.Frames.Add(BitmapFrame.Create(source));
+        using var ms = new MemoryStream();
+        encoder.Save(ms);
+        return Convert.ToBase64String(ms.ToArray());
     }
 
     private TileStateDto ToDto(TileViewModel tile)

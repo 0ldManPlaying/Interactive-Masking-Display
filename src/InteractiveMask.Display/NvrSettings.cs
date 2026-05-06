@@ -9,8 +9,27 @@ public sealed class AppSettings
     public KioskSettings Kiosk { get; set; } = new();
     public WebSettings Web { get; set; } = new();
     public AuthSettings Auth { get; set; } = new();
+    public AuditForwardSettings AuditForward { get; set; } = new();
     /// <summary>Two-letter UI language code: "nl" (default) or "en".</summary>
     public string Language { get; set; } = "nl";
+}
+
+/// <summary>
+/// Real-time audit forwarding to an external SIEM via syslog (RFC 5424).
+/// Adding more sinks (e.g. webhook for an EPD) is intentionally additive — keep
+/// each sink behind its own enabled flag.
+/// </summary>
+public sealed class AuditForwardSettings
+{
+    public bool SyslogEnabled { get; set; }
+    public string SyslogHost { get; set; } = "";
+    public int SyslogPort { get; set; } = 514;
+    /// <summary>"udp" (default, fire-and-forget) or "tcp" (persistent, reconnects).</summary>
+    public string SyslogProtocol { get; set; } = "udp";
+    /// <summary>RFC 5424 facility code; 16 = local0, the conventional choice for app audit.</summary>
+    public int SyslogFacility { get; set; } = 16;
+    /// <summary>RFC 5424 APP-NAME field (max 48 chars). Visible to the SIEM as the source app.</summary>
+    public string SyslogAppName { get; set; } = "InteractiveMask";
 }
 
 public sealed class AuthSettings
@@ -40,6 +59,22 @@ public sealed class WebSettings
     public string? CertPassword { get; set; }
     /// <summary>When false (default) Kestrel only listens on localhost; when true on 0.0.0.0.</summary>
     public bool BindAllInterfaces { get; set; }
+    /// <summary>Authentication required to access the web UI itself. Decoupled from
+    /// the per-tile PIN/AD policy — that one is for unmask actions; this one gates
+    /// the page itself. Modes: "off" (default, open), "pin" (shared web PIN),
+    /// "ad" (Windows credentials).</summary>
+    public WebAccessSettings Access { get; set; } = new();
+}
+
+public sealed class WebAccessSettings
+{
+    /// <summary>"off" (default), "pin", or "ad".</summary>
+    public string Mode { get; set; } = "off";
+    /// <summary>Plain-text web-access PIN; ConfigService DPAPI-encrypts on save.
+    /// Only meaningful when Mode = "pin".</summary>
+    public string? Pin { get; set; }
+    /// <summary>Default AD domain pre-filled in the login form. Empty = no default.</summary>
+    public string Domain { get; set; } = "";
 }
 
 public sealed class KioskSettings

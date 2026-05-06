@@ -1,9 +1,20 @@
 // ---- Live state polling -----------------------------------------------------
 const STATE_URL = '/api/state';
 const TOGGLE_URL = '/api/toggle';
+const AUTH_MODE_URL = '/api/auth-mode';
 const POLL_MS = 1000;
 
 const T = window.__t || {};
+let authMode = { mode: 'pin', domain: '' };
+
+async function refreshAuthMode() {
+    try {
+        const resp = await fetch(AUTH_MODE_URL, { cache: 'no-store' });
+        if (resp.ok) authMode = await resp.json();
+    } catch { /* keep last good */ }
+}
+refreshAuthMode();
+setInterval(refreshAuthMode, 5000);
 
 const gridHost = document.getElementById('grid-host');
 const connDot  = document.getElementById('conn-dot');
@@ -55,6 +66,11 @@ function setConn(connected) {
 async function poll() {
     try {
         const resp = await fetch(STATE_URL, { cache: 'no-store' });
+        if (resp.status === 401) {
+            // Session expired or web auth was just enabled — bounce to login.
+            window.location.replace('/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search));
+            return;
+        }
         if (!resp.ok) { setConn(false); return; }
         const state = await resp.json();
         setConn(state.ipcConnected);
@@ -63,6 +79,28 @@ async function poll() {
             if (article) applyTile(article, tile);
         }
     } catch { setConn(false); }
+}
+
+// ---- Logout button (only visible when access auth is enabled) --------------
+
+const logoutBtn = document.getElementById('logout-btn');
+async function refreshLogoutVisibility() {
+    try {
+        const resp = await fetch('/api/access-mode', { cache: 'no-store' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (logoutBtn) logoutBtn.hidden = (data.mode || 'off').toLowerCase() === 'off';
+    } catch { /* keep last */ }
+}
+refreshLogoutVisibility();
+
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            await fetch('/api/logout', { method: 'POST' });
+        } catch { /* ignore — we'll navigate anyway */ }
+        window.location.replace('/login');
+    });
 }
 
 poll();
@@ -141,11 +179,11 @@ document.addEventListener('keydown', ev => {
     }
 });
 
-async function postToggle(slot, pin) {
+async function postToggle(slot, body) {
     const resp = await fetch(TOGGLE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slot, pin }),
+        body: JSON.stringify({ slot, ...body }),
     });
     if (!resp.ok) {
         let detail = '';
@@ -159,7 +197,7 @@ async function handleTileClick(article) {
     const slot = parseInt(article.dataset.slot, 10);
     if (!article.classList.contains('has-camera')) return;
 
-    let resp = await postToggle(slot, null);
+    let resp = await postToggle(slot, {});
 
     while (true) {
         if (resp.result === 'Ok') return;
@@ -168,7 +206,7 @@ async function handleTileClick(article) {
             const wasMasked = article.classList.contains('masked');
             const pin = await openPinModal(wasMasked ? 'verify' : 'set');
             if (!pin) return;
-            resp = await postToggle(slot, pin);
+            resp = await postToggle(slot, { pin });
             continue;
         }
 
@@ -178,7 +216,22 @@ async function handleTileClick(article) {
             renderPinDots();
             const pin = await openPinModal('verify');
             if (!pin) return;
-            resp = await postToggle(slot, pin);
+            resp = await postToggle(slot, { pin });
+            continue;
+        }
+
+        if (resp.result === 'CredentialsRequired') {
+            const creds = await openAdModal();
+            if (!creds) return;
+            resp = await postToggle(slot, creds);
+            continue;
+        }
+
+        if (resp.result === 'CredentialsWrong') {
+            adError.textContent = T.adWrongCredentials || T.error;
+            const creds = await openAdModal(true);
+            if (!creds) return;
+            resp = await postToggle(slot, creds);
             continue;
         }
 
@@ -201,7 +254,97 @@ async function handleTileClick(article) {
     }
 }
 
+// ---- AD credentials modal --------------------------------------------------
+
+const adModal = document.getElementById('ad-modal');
+const adForm = document.getElementById('ad-form');
+const adUsername = document.getElementById('ad-username');
+const adPassword = document.getElementById('ad-password');
+const adError = document.getElementById('ad-error');
+const adCancel = document.getElementById('ad-cancel');
+let adPromise = null;
+
+function openAdModal(keepValues) {
+    if (!keepValues) {
+        adUsername.value = '';
+        adPassword.value = '';
+        adError.textContent = '';
+    } else {
+        // Wrong-credentials retry: leave username, clear password, focus password.
+        adPassword.value = '';
+    }
+    adModal.hidden = false;
+    setTimeout(() => (keepValues ? adPassword : adUsername).focus(), 0);
+    return new Promise(resolve => { adPromise = resolve; });
+}
+
+function closeAdModal(value) {
+    adModal.hidden = true;
+    const resolve = adPromise;
+    adPromise = null;
+    // Always wipe the password field so it doesn't linger in the DOM.
+    adPassword.value = '';
+    if (resolve) resolve(value);
+}
+
+adForm.addEventListener('submit', ev => {
+    ev.preventDefault();
+    const username = adUsername.value.trim();
+    const password = adPassword.value;
+    if (!username || !password) return;
+    closeAdModal({ username, password });
+});
+
+adCancel.addEventListener('click', () => closeAdModal(null));
+
+document.addEventListener('keydown', ev => {
+    if (adModal.hidden) return;
+    if (ev.key === 'Escape') closeAdModal(null);
+});
+
 gridHost.addEventListener('click', ev => {
+    const refreshBtn = ev.target.closest('.tile-refresh');
+    if (refreshBtn) {
+        const article = refreshBtn.closest('.tile');
+        if (article) refreshSnapshot(article);
+        ev.stopPropagation();
+        return;
+    }
     const article = ev.target.closest('.tile');
     if (article) handleTileClick(article);
 });
+
+// ---- Manual snapshot refresh ------------------------------------------------
+
+async function refreshSnapshot(article) {
+    if (!article.classList.contains('has-camera')) return;
+    const slot = parseInt(article.dataset.slot, 10);
+    const img = article.querySelector('.tile-thumb');
+    if (!img) return;
+
+    article.classList.add('snapshot-loading');
+    try {
+        const resp = await fetch(`/api/snapshot/${slot}?t=${Date.now()}`, { cache: 'no-store' });
+        if (resp.status === 403) {
+            // Privacy is on — no thumbnail; clear any stale one.
+            img.removeAttribute('src');
+            article.classList.add('snapshot-blocked');
+            return;
+        }
+        if (!resp.ok) {
+            img.removeAttribute('src');
+            return;
+        }
+        const blob = await resp.blob();
+        const previous = img.dataset.objectUrl;
+        if (previous) URL.revokeObjectURL(previous);
+        const url = URL.createObjectURL(blob);
+        img.dataset.objectUrl = url;
+        img.src = url;
+        article.classList.remove('snapshot-blocked');
+    } catch {
+        img.removeAttribute('src');
+    } finally {
+        article.classList.remove('snapshot-loading');
+    }
+}

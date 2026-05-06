@@ -390,6 +390,13 @@
                                     <TextBlock x:Name="NavAdminText"     FontSize="13" />
                                 </StackPanel>
                             </RadioButton>
+                            <RadioButton x:Name="NavApi"       Style="{StaticResource NavItem}"
+                                         Tag="ApiPanel"       Checked="OnNavChecked">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE943;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" FontSize="16" Margin="0,0,12,0" />
+                                    <TextBlock x:Name="NavApiText"       FontSize="13" />
+                                </StackPanel>
+                            </RadioButton>
                             <RadioButton x:Name="NavFaq"       Style="{StaticResource NavItem}"
                                          Tag="FaqPanel"       Checked="OnNavChecked">
                                 <StackPanel Orientation="Horizontal">
@@ -814,7 +821,78 @@
                                 </Border>
                             </StackPanel>
 
-                            <!-- ============================ 8. FAQ ============================ -->
+                            <!-- ============================ 8. API ============================ -->
+                            <StackPanel x:Name="ApiPanel" Visibility="Collapsed">
+                                <TextBlock x:Name="ApiTitleText"    Style="{StaticResource PageTitle}" />
+                                <TextBlock x:Name="ApiSubtitleText" Style="{StaticResource PageSubtitle}" />
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ApiIntroText" Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ApiBaseTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="ApiBaseBodyText"  Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ApiAuthTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="ApiAuthBodyText"  Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ApiEndpointsTitleText" Style="{StaticResource SectionHeader}" />
+
+                                        <TextBlock x:Name="ApiStateMethodText"      FontFamily="Consolas" Foreground="{StaticResource accent}" FontSize="13" Margin="0,8,0,2" />
+                                        <TextBlock x:Name="ApiStateBodyText"        Style="{StaticResource BodyText}" />
+
+                                        <TextBlock x:Name="ApiAuthModeMethodText"   FontFamily="Consolas" Foreground="{StaticResource accent}" FontSize="13" Margin="0,12,0,2" />
+                                        <TextBlock x:Name="ApiAuthModeBodyText"     Style="{StaticResource BodyText}" />
+
+                                        <TextBlock x:Name="ApiToggleMethodText"     FontFamily="Consolas" Foreground="{StaticResource accent}" FontSize="13" Margin="0,12,0,2" />
+                                        <TextBlock x:Name="ApiToggleBodyText"       Style="{StaticResource BodyText}" />
+
+                                        <TextBlock x:Name="ApiSnapshotMethodText"   FontFamily="Consolas" Foreground="{StaticResource accent}" FontSize="13" Margin="0,12,0,2" />
+                                        <TextBlock x:Name="ApiSnapshotBodyText"     Style="{StaticResource BodyText}" />
+
+                                        <TextBlock x:Name="ApiAuditMethodText"      FontFamily="Consolas" Foreground="{StaticResource accent}" FontSize="13" Margin="0,12,0,2" />
+                                        <TextBlock x:Name="ApiAuditBodyText"        Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ApiAccessTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="ApiAccessBodyText"  Style="{StaticResource BodyText}" />
+
+                                        <TextBlock x:Name="ApiAccessModeMethodText" FontFamily="Consolas" Foreground="{StaticResource accent}" FontSize="13" Margin="0,12,0,2" />
+                                        <TextBlock x:Name="ApiAccessModeBodyText"   Style="{StaticResource BodyText}" />
+
+                                        <TextBlock x:Name="ApiLoginMethodText"      FontFamily="Consolas" Foreground="{StaticResource accent}" FontSize="13" Margin="0,12,0,2" />
+                                        <TextBlock x:Name="ApiLoginBodyText"        Style="{StaticResource BodyText}" />
+
+                                        <TextBlock x:Name="ApiLogoutMethodText"     FontFamily="Consolas" Foreground="{StaticResource accent}" FontSize="13" Margin="0,12,0,2" />
+                                        <TextBlock x:Name="ApiLogoutBodyText"       Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#1A2331" BorderBrush="#22324A" BorderThickness="1"
+                                        CornerRadius="6" Padding="12,10">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ApiIpcTitleText" FontWeight="SemiBold" Foreground="{StaticResource accent}" Margin="0,0,0,4" />
+                                        <TextBlock x:Name="ApiIpcBodyText"  Style="{StaticResource MutedText}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ============================ 9. FAQ ============================ -->
                             <StackPanel x:Name="FaqPanel" Visibility="Collapsed">
                                 <TextBlock x:Name="FaqTitleText"    Style="{StaticResource PageTitle}" />
                                 <TextBlock x:Name="FaqSubtitleText" Style="{StaticResource PageSubtitle}" />

@@ -25,6 +25,7 @@ public sealed class HelpStrings
     public string NavAutoOff { get; init; } = "";
     public string NavRemote { get; init; } = "";
     public string NavAdmin { get; init; } = "";
+    public string NavApi { get; init; } = "";
     public string NavFaq { get; init; } = "";
 
     // 1. Welcome
@@ -89,7 +90,39 @@ public sealed class HelpStrings
     public string AdminAudit { get; init; } = "";
     public string AdminTechNote { get; init; } = "";
 
-    // 8. FAQ
+    // 8. API & Integration
+    public string ApiTitle { get; init; } = "";
+    public string ApiIntro { get; init; } = "";
+    public string ApiBaseTitle { get; init; } = "";
+    public string ApiBaseBody { get; init; } = "";
+    public string ApiAuthTitle { get; init; } = "";
+    public string ApiAuthBody { get; init; } = "";
+    public string ApiEndpointsTitle { get; init; } = "";
+
+    public string ApiStateMethod { get; init; } = "";
+    public string ApiStateBody { get; init; } = "";
+    public string ApiAuthModeMethod { get; init; } = "";
+    public string ApiAuthModeBody { get; init; } = "";
+    public string ApiToggleMethod { get; init; } = "";
+    public string ApiToggleBody { get; init; } = "";
+    public string ApiSnapshotMethod { get; init; } = "";
+    public string ApiSnapshotBody { get; init; } = "";
+    public string ApiAuditMethod { get; init; } = "";
+    public string ApiAuditBody { get; init; } = "";
+
+    public string ApiAccessTitle { get; init; } = "";
+    public string ApiAccessBody { get; init; } = "";
+    public string ApiAccessModeMethod { get; init; } = "";
+    public string ApiAccessModeBody { get; init; } = "";
+    public string ApiLoginMethod { get; init; } = "";
+    public string ApiLoginBody { get; init; } = "";
+    public string ApiLogoutMethod { get; init; } = "";
+    public string ApiLogoutBody { get; init; } = "";
+
+    public string ApiIpcTitle { get; init; } = "";
+    public string ApiIpcBody { get; init; } = "";
+
+    // 9. FAQ
     public string FaqTitle { get; init; } = "";
     public string FaqQ1 { get; init; } = "";
     public string FaqA1 { get; init; } = "";
@@ -123,6 +156,7 @@ public sealed class HelpStrings
         NavAutoOff    = "Auto-uit timer",
         NavRemote     = "Bediening op afstand",
         NavAdmin      = "Voor beheerders",
+        NavApi        = "API en integratie",
         NavFaq        = "Veelgestelde vragen",
 
         WelcomeTitle = "Welkom",
@@ -189,6 +223,50 @@ public sealed class HelpStrings
         AdminTechNote = "Technische opmerking voor de beheerder: het wachtwoord van de NVR en het certificaat worden versleuteld bewaard via Windows DPAPI op machine-niveau. " +
                         "De browser-bediening loopt via een ingebouwde webserver (WebHost) die u op de Web-UI-tab op het LAN kunt openzetten of beperken tot localhost.",
 
+        ApiTitle = "API en integratie",
+        ApiIntro = "De WebHost-component biedt een kleine, lokale REST-API zodat een browser, " +
+                   "tablet of een ander beheersysteem dezelfde acties kan uitvoeren als de kiosk zelf. " +
+                   "Alle endpoints accepteren en retourneren JSON, behalve het snapshot-endpoint dat een JPEG-binary teruggeeft.",
+        ApiBaseTitle = "Basis-URL",
+        ApiBaseBody = "http://<naam-van-de-kioskcomputer>:<HttpPort> — standaard poort 8080. " +
+                      "Indien geconfigureerd is HTTPS beschikbaar op de aparte poort uit Setup → Web-UI. " +
+                      "De API luistert standaard alleen op localhost; vink in Setup “Toegankelijk op het LAN” aan om vanaf andere apparaten te bereiken.",
+        ApiAuthTitle = "Authenticatie-modus",
+        ApiAuthBody = "De server bepaalt zelf de authenticatie-flow. /api/auth-mode geeft “pin”, “ad” of “off” terug. " +
+                      "In “pin”-mode stuurt de client de sessie-PIN bij /api/toggle. In “ad”-mode stuurt de client gebruikersnaam + wachtwoord; " +
+                      "de WebHost valideert lokaal via Windows LogonUser en geeft alleen het pre-geauthentiseerde toggle-commando door aan de Display-kant. " +
+                      "Wachtwoorden gaan dus nooit over de IPC-verbinding.",
+        ApiEndpointsTitle = "Endpoints",
+
+        ApiStateMethod = "GET /api/state",
+        ApiStateBody = "Volledige snapshot van het raster en de tegelstatus (slot, label, masker-aan/uit, status, countdown). " +
+                       "Gebruikt door de browser-UI; pollt standaard 1× per seconde.",
+        ApiAuthModeMethod = "GET /api/auth-mode",
+        ApiAuthModeBody = "Geeft { mode, domain } terug. mode = \"pin\" | \"ad\" | \"off\". domain is alleen gevuld in AD-mode.",
+        ApiToggleMethod = "POST /api/toggle",
+        ApiToggleBody = "Body: { slot, pin?, username?, password? }. Antwoord-result: Ok / PinRequired / PinWrong / LockedOut / CredentialsRequired / CredentialsWrong / InvalidSlot. " +
+                        "In PIN-mode levert een eerste klik PinRequired; herhaal met de PIN. In AD-mode levert een unmask CredentialsRequired; herhaal met username + password.",
+        ApiSnapshotMethod = "GET /api/snapshot/{slot}",
+        ApiSnapshotBody = "Eenmalige JPEG-snapshot van de huidige frame (image/jpeg). " +
+                          "200 = OK met JPEG-bytes, 403 = privacy-masker actief (geweigerd), 404 = geen camera of geen frame. " +
+                          "Bedoeld voor handmatige refresh in browser/tablet — geen periodieke polling.",
+        ApiAuditMethod = "GET /api/audit?limit=N",
+        ApiAuditBody = "Tail van het audit-log (NDJSON-events als JSON-array). limit standaard 100, max 5000.",
+
+        ApiAccessTitle = "Toegangsbeveiliging van de web-interface",
+        ApiAccessBody = "Naast het PIN/AD-beleid voor het uitzetten van een masker kan de web-interface zelf ook achter aanmelding worden geplaatst. Modus instellen via Setup → Web-UI → Toegang tot de web-interface. Drie modi: \"off\" (open, standaard), \"pin\" (gedeelde toegangs-PIN, DPAPI-encrypted opgeslagen), \"ad\" (Windows-aanmelding). Bij modus \"pin\" of \"ad\" stuurt de server bij elke onbeveiligde route een 401 (API) of redirect naar /login (pagina). Sessies leven 8 uur met sliding window via een HttpOnly-cookie.",
+        ApiAccessModeMethod = "GET /api/access-mode",
+        ApiAccessModeBody = "Geeft { mode, domain } voor de toegangsbeveiliging terug. Altijd toegankelijk zonder authenticatie zodat de login-pagina kan booten.",
+        ApiLoginMethod = "POST /api/login",
+        ApiLoginBody = "Body: { pin? } in PIN-modus, of { username, password } in AD-modus. Bij succes 200 + sessie-cookie. Bij faal 401.",
+        ApiLogoutMethod = "POST /api/logout",
+        ApiLogoutBody = "Beëindigt de huidige sessie en wist de cookie.",
+
+        ApiIpcTitle = "Interne IPC (alleen voor beheerders)",
+        ApiIpcBody = "Display.exe en WebHost.exe communiceren via de named-pipe \\\\.\\pipe\\InteractiveMask " +
+                     "met length-prefixed JSON-envelopes. Niet bedoeld voor extern gebruik; de pipe-grens is per definitie een same-machine vertrouwensgrens. " +
+                     "De pre-authenticated flag op een ToggleRequest mag dus alleen door de WebHost worden gezet.",
+
         FaqTitle = "Veelgestelde vragen",
         FaqQ1 = "Wat als ik mijn sessie-PIN vergeet?",
         FaqA1 = "Vraag een beheerder om de admin-PIN. Via Setup → Beheerder kan deze de sessie opnieuw initialiseren door alle maskers te verwijderen; daarna kunt u een nieuwe sessie-PIN kiezen.",
@@ -218,6 +296,7 @@ public sealed class HelpStrings
         NavAutoOff    = "Auto-off timer",
         NavRemote     = "Remote control",
         NavAdmin      = "For administrators",
+        NavApi        = "API and integration",
         NavFaq        = "FAQ",
 
         WelcomeTitle = "Welcome",
@@ -282,6 +361,49 @@ public sealed class HelpStrings
         AdminAudit = "The Audit tab shows every mask action, PIN attempt and NVR connection with timestamp, source and any detail. Use “Export to CSV…” to keep or share the log.",
         AdminTechNote = "Technical note for administrators: the NVR password and certificate password are stored encrypted via Windows DPAPI at machine scope. " +
                         "Browser control is served by a built-in web server (WebHost) which the Web-UI tab can expose on the LAN or restrict to localhost.",
+
+        ApiTitle = "API and integration",
+        ApiIntro = "The WebHost component exposes a small, local REST API so a browser, tablet or another management system can perform the same actions as the kiosk itself. " +
+                   "All endpoints accept and return JSON, except the snapshot endpoint which returns a JPEG binary.",
+        ApiBaseTitle = "Base URL",
+        ApiBaseBody = "http://<kiosk-host-name>:<HttpPort> — default port 8080. " +
+                      "If configured, HTTPS is available on the separate port set in Setup → Web UI. " +
+                      "By default the API only listens on localhost; check “Accessible on the LAN” in Setup to allow remote access.",
+        ApiAuthTitle = "Authentication mode",
+        ApiAuthBody = "The server decides which auth flow to use. /api/auth-mode returns \"pin\", \"ad\" or \"off\". " +
+                      "In pin mode the client posts the session PIN with /api/toggle. In ad mode the client posts username + password; " +
+                      "the WebHost validates locally via Windows LogonUser and forwards a pre-authenticated toggle to the Display side. " +
+                      "Passwords therefore never travel across the IPC channel.",
+        ApiEndpointsTitle = "Endpoints",
+
+        ApiStateMethod = "GET /api/state",
+        ApiStateBody = "Full snapshot of the grid and per-tile state (slot, label, masked, status, countdown). " +
+                       "Used by the browser UI; polled once per second by default.",
+        ApiAuthModeMethod = "GET /api/auth-mode",
+        ApiAuthModeBody = "Returns { mode, domain }. mode = \"pin\" | \"ad\" | \"off\". domain is only populated in AD mode.",
+        ApiToggleMethod = "POST /api/toggle",
+        ApiToggleBody = "Body: { slot, pin?, username?, password? }. Result: Ok / PinRequired / PinWrong / LockedOut / CredentialsRequired / CredentialsWrong / InvalidSlot. " +
+                        "In PIN mode a first click yields PinRequired; retry with the PIN. In AD mode an unmask yields CredentialsRequired; retry with username + password.",
+        ApiSnapshotMethod = "GET /api/snapshot/{slot}",
+        ApiSnapshotBody = "One-shot JPEG snapshot of the current frame (image/jpeg). " +
+                          "200 = OK with JPEG bytes, 403 = privacy mask active (refused), 404 = no camera or no frame. " +
+                          "Designed for manual refresh in a browser/tablet — not for periodic polling.",
+        ApiAuditMethod = "GET /api/audit?limit=N",
+        ApiAuditBody = "Tail of the audit log as a JSON array of NDJSON events. limit defaults to 100, max 5000.",
+
+        ApiAccessTitle = "Web interface access protection",
+        ApiAccessBody = "Independent of the per-tile PIN/AD policy, the web interface itself can sit behind sign-in. Configure under Setup → Web UI → Web interface access. Three modes: \"off\" (open, default), \"pin\" (shared access PIN, DPAPI-encrypted), \"ad\" (Windows credentials). When set to \"pin\" or \"ad\" the server returns 401 for unauthenticated API calls and redirects pages to /login. Sessions live 8 hours with a sliding window via an HttpOnly cookie.",
+        ApiAccessModeMethod = "GET /api/access-mode",
+        ApiAccessModeBody = "Returns { mode, domain } for web access. Always reachable without authentication so the login page can boot.",
+        ApiLoginMethod = "POST /api/login",
+        ApiLoginBody = "Body: { pin? } in PIN mode, or { username, password } in AD mode. On success 200 + session cookie. On failure 401.",
+        ApiLogoutMethod = "POST /api/logout",
+        ApiLogoutBody = "Ends the current session and clears the cookie.",
+
+        ApiIpcTitle = "Internal IPC (administrators only)",
+        ApiIpcBody = "Display.exe and WebHost.exe communicate over the named pipe \\\\.\\pipe\\InteractiveMask " +
+                     "with length-prefixed JSON envelopes. Not intended for external use; the pipe boundary is by design a same-machine trust boundary. " +
+                     "The pre-authenticated flag on a ToggleRequest may therefore only be set by the WebHost.",
 
         FaqTitle = "Frequently asked questions",
         FaqQ1 = "What if I forget my session PIN?",

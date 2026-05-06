@@ -63,6 +63,7 @@ public partial class HelpWindow : Window
         SetText(NavAutoOffText,    h.NavAutoOff);
         SetText(NavRemoteText,     h.NavRemote);
         SetText(NavAdminText,      h.NavAdmin);
+        SetText(NavApiText,        h.NavApi);
         SetText(NavFaqText,        h.NavFaq);
 
         // 1. Welcome
@@ -134,7 +135,37 @@ public partial class HelpWindow : Window
         SetText(AdminAuditText,    h.AdminAudit);
         SetText(AdminTechNoteText, h.AdminTechNote);
 
-        // 8. FAQ
+        // 8. API
+        SetText(ApiTitleText,           h.ApiTitle);
+        SetText(ApiSubtitleText,        h.PageSubtitle);
+        SetText(ApiIntroText,           h.ApiIntro);
+        SetText(ApiBaseTitleText,       h.ApiBaseTitle);
+        SetText(ApiBaseBodyText,        h.ApiBaseBody);
+        SetText(ApiAuthTitleText,       h.ApiAuthTitle);
+        SetText(ApiAuthBodyText,        h.ApiAuthBody);
+        SetText(ApiEndpointsTitleText,  h.ApiEndpointsTitle);
+        SetText(ApiStateMethodText,     h.ApiStateMethod);
+        SetText(ApiStateBodyText,       h.ApiStateBody);
+        SetText(ApiAuthModeMethodText,  h.ApiAuthModeMethod);
+        SetText(ApiAuthModeBodyText,    h.ApiAuthModeBody);
+        SetText(ApiToggleMethodText,    h.ApiToggleMethod);
+        SetText(ApiToggleBodyText,      h.ApiToggleBody);
+        SetText(ApiSnapshotMethodText,  h.ApiSnapshotMethod);
+        SetText(ApiSnapshotBodyText,    h.ApiSnapshotBody);
+        SetText(ApiAuditMethodText,     h.ApiAuditMethod);
+        SetText(ApiAuditBodyText,       h.ApiAuditBody);
+        SetText(ApiAccessTitleText,     h.ApiAccessTitle);
+        SetText(ApiAccessBodyText,      h.ApiAccessBody);
+        SetText(ApiAccessModeMethodText,h.ApiAccessModeMethod);
+        SetText(ApiAccessModeBodyText,  h.ApiAccessModeBody);
+        SetText(ApiLoginMethodText,     h.ApiLoginMethod);
+        SetText(ApiLoginBodyText,       h.ApiLoginBody);
+        SetText(ApiLogoutMethodText,    h.ApiLogoutMethod);
+        SetText(ApiLogoutBodyText,      h.ApiLogoutBody);
+        SetText(ApiIpcTitleText,        h.ApiIpcTitle);
+        SetText(ApiIpcBodyText,         h.ApiIpcBody);
+
+        // 9. FAQ
         SetText(FaqTitleText,    h.FaqTitle);
         SetText(FaqSubtitleText, h.PageSubtitle);
         SetText(FaqQ1Text, h.FaqQ1); SetText(FaqA1Text, h.FaqA1);
@@ -171,7 +202,7 @@ public partial class HelpWindow : Window
         foreach (var name in new[]
         {
             "WelcomePanel", "ScreenPanel", "PrivacyOnPanel", "PrivacyOffPanel",
-            "AutoOffPanel", "RemotePanel", "AdminPanel", "FaqPanel",
+            "AutoOffPanel", "RemotePanel", "AdminPanel", "ApiPanel", "FaqPanel",
         })
         {
             if (FindName(name) is FrameworkElement fe)
