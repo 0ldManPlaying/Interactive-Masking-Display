@@ -857,34 +857,27 @@
                                                    TextWrapping="Wrap"
                                                    Text="{local:Loc WebAccessCardDescription}" />
 
-                                        <Grid Margin="0,12,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="20" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="14" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <StackPanel Grid.Row="0" Grid.Column="0">
-                                                <TextBlock Text="{local:Loc WebAccessMode}" Style="{StaticResource FieldLabel}" />
-                                                <ComboBox x:Name="WebAccessMode" SelectionChanged="OnWebAccessModeChanged">
-                                                    <ComboBoxItem Content="{local:Loc WebAccessModeOff}" Tag="off" />
-                                                    <ComboBoxItem Content="{local:Loc WebAccessModePin}" Tag="pin" />
-                                                    <ComboBoxItem Content="{local:Loc WebAccessModeAd}" Tag="ad" />
-                                                </ComboBox>
-                                            </StackPanel>
-                                            <StackPanel x:Name="WebAccessPinPanel" Grid.Row="0" Grid.Column="2" Visibility="Collapsed">
-                                                <TextBlock Text="{local:Loc WebAccessPin}" Style="{StaticResource FieldLabel}" />
-                                                <PasswordBox x:Name="WebAccessPin" />
-                                            </StackPanel>
-                                            <StackPanel x:Name="WebAccessAdPanel" Grid.Row="0" Grid.Column="2" Visibility="Collapsed">
-                                                <TextBlock Text="{local:Loc WebAccessDomain}" Style="{StaticResource FieldLabel}" />
-                                                <TextBox x:Name="WebAccessDomain" />
-                                            </StackPanel>
-                                        </Grid>
+                                        <!-- Mode selector — full width so the labels for off/pin/ad don't get clipped -->
+                                        <StackPanel Margin="0,16,0,0">
+                                            <TextBlock Text="{local:Loc WebAccessMode}" Style="{StaticResource FieldLabel}" />
+                                            <ComboBox x:Name="WebAccessMode" SelectionChanged="OnWebAccessModeChanged">
+                                                <ComboBoxItem Content="{local:Loc WebAccessModeOff}" Tag="off" />
+                                                <ComboBoxItem Content="{local:Loc WebAccessModePin}" Tag="pin" />
+                                                <ComboBoxItem Content="{local:Loc WebAccessModeAd}" Tag="ad" />
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <!-- PIN field appears below the dropdown when mode = pin -->
+                                        <StackPanel x:Name="WebAccessPinPanel" Margin="0,14,0,0" Visibility="Collapsed">
+                                            <TextBlock Text="{local:Loc WebAccessPin}" Style="{StaticResource FieldLabel}" />
+                                            <PasswordBox x:Name="WebAccessPin" />
+                                        </StackPanel>
+
+                                        <!-- Domain field appears below the dropdown when mode = ad -->
+                                        <StackPanel x:Name="WebAccessAdPanel" Margin="0,14,0,0" Visibility="Collapsed">
+                                            <TextBlock Text="{local:Loc WebAccessDomain}" Style="{StaticResource FieldLabel}" />
+                                            <TextBox x:Name="WebAccessDomain" />
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

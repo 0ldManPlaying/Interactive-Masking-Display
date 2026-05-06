@@ -52,20 +52,42 @@ var app = builder.Build();
 // Replace Kestrel's default stacktrace dump with a single readable line so a
 // port collision (very common during dev: Apache/IIS on 8080, etc.) doesn't
 // look like a serious crash. Any other failure still propagates.
+// Walk inner exceptions because Kestrel wraps the SocketException in an
+// IOException (and AddressInUseException) before it reaches us.
+static SocketException? FindSocket(Exception? ex)
+{
+    while (ex is not null)
+    {
+        if (ex is SocketException se) return se;
+        ex = ex.InnerException;
+    }
+    return null;
+}
+
 AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 {
-    if (e.ExceptionObject is SocketException se && se.SocketErrorCode == SocketError.AccessDenied)
+    var se = e.ExceptionObject is Exception ex ? FindSocket(ex) : null;
+    if (se is null) return;
+
+    var port = bootSettings.HttpPort;
+    var inUse = se.SocketErrorCode == SocketError.AddressAlreadyInUse;
+    var denied = se.SocketErrorCode == SocketError.AccessDenied;
+    if (!inUse && !denied) return;
+
+    Console.Error.WriteLine();
+    if (inUse)
     {
-        var port = bootSettings.HttpPort;
-        Console.Error.WriteLine();
-        Console.Error.WriteLine($"  Kan niet binden op poort {port}: een andere applicatie luistert daar al,");
-        Console.Error.WriteLine($"  of Windows heeft de poort gereserveerd.");
-        Console.Error.WriteLine($"  Tip: verander de HTTP-poort in Display -> Setup -> Web-UI,");
-        Console.Error.WriteLine($"       of stop het andere proces (bv. Apache, IIS, andere WebHost-instantie).");
-        Console.Error.WriteLine($"  Gebruik 'netstat -ano | findstr :{port}' om de bezetter te vinden.");
-        Console.Error.WriteLine();
-        Environment.Exit(2);
+        Console.Error.WriteLine($"  Poort {port} is al in gebruik door een andere applicatie.");
+        Console.Error.WriteLine($"  Veelvoorkomend: een eerdere WebHost-instantie draait nog, of Apache/IIS bezet de poort.");
     }
+    else
+    {
+        Console.Error.WriteLine($"  Kan niet binden op poort {port}: Windows heeft de poort gereserveerd of er is geen permissie.");
+    }
+    Console.Error.WriteLine($"  Tip: stop het andere proces, of verander de HTTP-poort via Display -> Setup -> Web-UI.");
+    Console.Error.WriteLine($"  Vinden welk proces de poort gebruikt: netstat -ano | findstr :{port}");
+    Console.Error.WriteLine();
+    Environment.Exit(2);
 };
 
 app.UseStaticFiles();
