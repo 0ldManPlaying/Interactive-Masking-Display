@@ -13,13 +13,40 @@
     <NoWarn>$(NoWarn);CS0067;CS0108;CS0162;CS0169;CS0219;CS0414;CS0649;CS0660;CS0661;CS8073</NoWarn>
   </PropertyGroup>
 
-  <!-- Pull all GDK C# bindings directly from the GDK install dir. The bindings have
-       internal cross-dependencies (e.g. g2_watch.cs uses types from g2_define_rest.cs),
-       so we mirror the original G2Sampler.csproj approach: include everything except
-       Properties (AssemblyInfo conflicts with the SDK auto-generated attributes). -->
+  <!-- Trim the GDK sampler down to just the modules we actually use:
+         - g2watch (live grid) + g2decoder (frame decode) + g2_main (init)
+         - g2_live, g2_device_info, g2_foundation, g2_guid (used internally by watch)
+         - All define/* files (cheap type definitions, lots of cross-references)
+         - utility/* (small core helpers)
+         - foundation/g2color (used by decoder)
+       Excluded: admin / search / play / backup / monitor / status / user / violet /
+       rtp / fen / app frame relay implementation files (~700 KB of code we don't
+       call). We keep their define/* counterparts because the watch_listener
+       interface references types that live there (e.g. G2DEVICE_STATUS,
+       G2REST_API_RESPONSE, G2INSTANT_RECORDING_RESULT). -->
   <ItemGroup>
     <Compile Include="$(GdkSamplerPath)\**\*.cs"
-             Exclude="$(GdkSamplerPath)\Properties\**\*.cs"
+             Exclude="
+                 $(GdkSamplerPath)\Properties\**\*.cs;
+                 $(GdkSamplerPath)\app\**\*.cs;
+                 $(GdkSamplerPath)\g2_admin.cs;
+                 $(GdkSamplerPath)\g2_admin_detour_proto.cs;
+                 $(GdkSamplerPath)\g2_search.cs;
+                 $(GdkSamplerPath)\g2_play.cs;
+                 $(GdkSamplerPath)\g2_play_sole.cs;
+                 $(GdkSamplerPath)\g2_play_saver.cs;
+                 $(GdkSamplerPath)\g2_backup.cs;
+                 $(GdkSamplerPath)\g2_backup_saver.cs;
+                 $(GdkSamplerPath)\g2_monitor.cs;
+                 $(GdkSamplerPath)\g2_status.cs;
+                 $(GdkSamplerPath)\g2_user.cs;
+                 $(GdkSamplerPath)\g2_violet.cs;
+                 $(GdkSamplerPath)\g2_rtp.cs;
+                 $(GdkSamplerPath)\g2_fen.cs;
+                 $(GdkSamplerPath)\foundation\g2ivmetadata_info.cs;
+                 $(GdkSamplerPath)\foundation\g2ivobject.cs;
+                 $(GdkSamplerPath)\foundation\g2shape.cs;
+                 $(GdkSamplerPath)\foundation\g2monitoring_device_status.cs"
              LinkBase="GdkBindings" />
   </ItemGroup>
 

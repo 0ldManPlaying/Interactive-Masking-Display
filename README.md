@@ -1,6 +1,6 @@
 # InteractiveMask
 
-**Version 1.0.3**
+**Version 1.0.4**
 
 Windowless C# / .NET 9 / WPF kiosk application that connects to an IDIS NVR and displays a live video grid (up to 16 cameras) with per-tile **privacy blur masks** that can be toggled with a single click. Designed for healthcare facilities (Dutch *zorginstellingen*) where caregivers need to instantly hide a resident's room from on-screen view while still being able to verify the camera is working.
 
