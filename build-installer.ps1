@@ -37,15 +37,18 @@ if ($Sign -and -not $CertSubject -and -not $CertThumbprint) {
 if (Test-Path $publishRoot) { Remove-Item $publishRoot -Recurse -Force }
 New-Item -ItemType Directory -Path $publishRoot | Out-Null
 
-Write-Host "==> Publishing Display ($Configuration / $Rid)" -ForegroundColor Cyan
+Write-Host "==> Publishing Display ($Configuration / $Rid, self-contained)" -ForegroundColor Cyan
+# Self-contained = bundle the .NET 9 + WindowsDesktop runtime alongside the app
+# so the installer works on any clean Windows x64 PC. Adds ~80 MB to the MSI but
+# removes the runtime install dependency (zorginstelling deploys, SCCM/Intune).
 dotnet publish .\src\InteractiveMask.Display\InteractiveMask.Display.csproj `
-    -c $Configuration -r $Rid --self-contained false -o $displayPublish `
+    -c $Configuration -r $Rid --self-contained true -o $displayPublish `
     -p:PublishSingleFile=false `
     -p:Platform=x64
 
-Write-Host "==> Publishing WebHost ($Configuration / $Rid)" -ForegroundColor Cyan
+Write-Host "==> Publishing WebHost ($Configuration / $Rid, self-contained)" -ForegroundColor Cyan
 dotnet publish .\src\InteractiveMask.WebHost\InteractiveMask.WebHost.csproj `
-    -c $Configuration -r $Rid --self-contained false -o $webHostPublish `
+    -c $Configuration -r $Rid --self-contained true -o $webHostPublish `
     -p:PublishSingleFile=false `
     -p:Platform=x64
 
