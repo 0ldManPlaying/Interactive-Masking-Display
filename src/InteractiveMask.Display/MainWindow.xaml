@@ -1,0 +1,182 @@
+<Window x:Class="InteractiveMask.Display.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:InteractiveMask.Display"
+        Title="InteractiveMask"
+        Width="1280" Height="720"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="Black"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Loaded="OnLoaded"
+        Closing="OnClosing"
+        KeyDown="OnKeyDown"
+        PreviewMouseRightButtonUp="OnContextMenuRequested">
+
+    <Window.Resources>
+        <!-- Converters must be declared BEFORE any template that references them via
+             StaticResource; WPF resolves StaticResource at parse time and cannot
+             handle forward references. -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <DataTemplate DataType="{x:Type local:TileViewModel}">
+            <!-- Background must be solid (not Transparent) for hit-testing to fire
+                 the MouseLeftButtonDown handler reliably across the whole tile. -->
+            <Grid Background="#1A1A1A"
+                  Margin="2"
+                  MouseLeftButtonDown="OnTileClicked">
+
+                <!-- Live image. The BlurEffect is only attached when IsMasked=true;
+                     leaving an Effect on every tile (even with Radius=0) costs the GPU
+                     an intermediate render target per tile per frame, which is heavy
+                     for 16 tiles at 25 fps. -->
+                <Image Source="{Binding Bitmap}"
+                       Stretch="UniformToFill"
+                       RenderOptions.BitmapScalingMode="LowQuality">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Setter Property="Effect" Value="{x:Null}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMasked}" Value="True">
+                                    <Setter Property="Effect">
+                                        <Setter.Value>
+                                            <BlurEffect Radius="80"
+                                                        KernelType="Gaussian"
+                                                        RenderingBias="Performance" />
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Privacy overlay shown when masked: a translucent dim layer plus
+                     the "Privacy actief - {Label}" text and (when armed) the
+                     auto-unmask countdown. Centered so it's the first thing a
+                     caregiver glancing at the screen will read. -->
+                <Grid Visibility="{Binding IsMasked, Converter={StaticResource BoolToVis}}"
+                      Background="#60000000"
+                      IsHitTestVisible="False">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding MaskOverlayText}"
+                                   Foreground="White"
+                                   FontFamily="Segoe UI"
+                                   FontSize="22"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center" />
+                        <TextBlock Text="{Binding CountdownText}"
+                                   Foreground="#FFB347"
+                                   FontFamily="Segoe UI"
+                                   FontSize="22"
+                                   FontWeight="SemiBold"
+                                   Margin="0,8,0,0"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Empty tile placeholder when no camera is bound -->
+                <TextBlock Text="{Binding Source={x:Static local:Strings.Instance}, Path=Current.EmptyTile}"
+                           Foreground="#404040"
+                           FontFamily="Segoe UI"
+                           FontSize="14"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasCamera}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Bottom status bar (label + status indicator + countdown) -->
+                <Border VerticalAlignment="Bottom"
+                        HorizontalAlignment="Stretch"
+                        Background="#80000000"
+                        Padding="6,3"
+                        Visibility="{Binding HasCamera, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8"
+                                 Fill="{Binding StatusBrush}"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding Label}"
+                                   Foreground="White"
+                                   FontFamily="Segoe UI"
+                                   FontSize="12"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding StatusText}"
+                                   Foreground="#FFCC66"
+                                   FontFamily="Segoe UI"
+                                   FontSize="12"
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Source={x:Static local:Strings.Instance}, Path=Current.PrivacyBadge}"
+                                   Foreground="#FF7777"
+                                   FontFamily="Segoe UI"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding IsMasked, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Warning border: pulses orange in the final WarningMinutes minutes
+                     before auto-unmask so a caregiver notices the mask is about to lift. -->
+                <Border BorderBrush="#FFB347"
+                        BorderThickness="3"
+                        IsHitTestVisible="False">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsTimerWarning}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard Name="WarnPulseSb">
+                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 From="1.0" To="0.25" Duration="0:0:0.7" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                    <DataTrigger.ExitActions>
+                                        <StopStoryboard BeginStoryboardName="WarnPulseSb" />
+                                    </DataTrigger.ExitActions>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <ItemsControl x:Name="TilesHost" ItemsSource="{Binding Tiles}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="{Binding Rows}" Columns="{Binding Columns}" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+
+        <TextBlock x:Name="StatusBar"
+                   Text="{Binding StatusLine}"
+                   Foreground="#80FFFFFF"
+                   FontFamily="Consolas"
+                   FontSize="12"
+                   Margin="8,4"
+                   VerticalAlignment="Top"
+                   HorizontalAlignment="Left" />
+    </Grid>
+</Window>

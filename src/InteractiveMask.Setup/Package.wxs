@@ -1,0 +1,100 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+    <Package Name="InteractiveMask"
+             Manufacturer="IDIS Nederland BV"
+             Version="$(ProductVersion)"
+             UpgradeCode="A2C0BC42-1B12-4C96-9D3E-7F4A4B27E901"
+             Scope="perMachine"
+             Compressed="yes">
+
+        <SummaryInformation Description="InteractiveMask kiosk + WebHost service" />
+        <MediaTemplate EmbedCab="yes" />
+
+        <!-- Major-upgrade: a newer version uninstalls the old one in-place. -->
+        <MajorUpgrade DowngradeErrorMessage="Een nieuwere versie van [ProductName] is al geinstalleerd." />
+
+        <!-- ============== Layout ============== -->
+        <StandardDirectory Id="ProgramFiles64Folder">
+            <Directory Id="INSTALLFOLDER" Name="InteractiveMask">
+                <Directory Id="DisplayFolder" Name="Display" />
+                <Directory Id="ServiceFolder" Name="Service" />
+            </Directory>
+        </StandardDirectory>
+        <StandardDirectory Id="ProgramMenuFolder">
+            <Directory Id="AppShortcutFolder" Name="InteractiveMask" />
+        </StandardDirectory>
+
+        <!-- ============== Display: harvested file set ============== -->
+        <ComponentGroup Id="DisplayFiles" Directory="DisplayFolder">
+            <Files Include="$(DisplayPublishDir)\**" />
+        </ComponentGroup>
+
+        <!-- ============== WebHost: harvested file set + service registration ============== -->
+        <ComponentGroup Id="WebHostFiles" Directory="ServiceFolder">
+            <Files Include="$(WebHostPublishDir)\**">
+                <!-- The exe gets a separate component below so we can attach
+                     ServiceInstall + ServiceControl to it. -->
+                <Exclude Files="$(WebHostPublishDir)\InteractiveMask.WebHost.exe" />
+            </Files>
+        </ComponentGroup>
+
+        <Component Id="WebHostService" Directory="ServiceFolder" Guid="0E2A9B5C-4D3F-4E2C-9E0A-2D7E0E7B7F11">
+            <File Id="WebHostExe"
+                  Source="$(WebHostPublishDir)\InteractiveMask.WebHost.exe"
+                  KeyPath="yes" />
+
+            <ServiceInstall Id="WebHostSvcInstall"
+                            Name="InteractiveMaskWebHost"
+                            DisplayName="InteractiveMask WebHost"
+                            Description="Provides the local browser bediening for the InteractiveMask kiosk."
+                            Type="ownProcess"
+                            Start="auto"
+                            ErrorControl="normal"
+                            Vital="yes"
+                            Account="LocalSystem" />
+            <ServiceControl Id="WebHostSvcControl"
+                            Name="InteractiveMaskWebHost"
+                            Start="install"
+                            Stop="both"
+                            Remove="uninstall"
+                            Wait="yes" />
+
+            <!-- Open the LAN port the WebHost listens on (matches appsettings.json). -->
+            <util:FirewallException Id="WebHostFirewallTcp"
+                                    Name="InteractiveMask WebHost"
+                                    Port="8080"
+                                    Protocol="tcp"
+                                    Scope="any"
+                                    Profile="all" />
+        </Component>
+
+        <!-- ============== Start-menu shortcut ============== -->
+        <Component Id="DisplayShortcut" Directory="AppShortcutFolder" Guid="A56B5C3F-2C2C-4E91-9D49-1A6F8B7C81FF">
+            <Shortcut Id="DisplayStartMenuShortcut"
+                      Name="InteractiveMask Display"
+                      Description="Start de kiosk-applicatie"
+                      Target="[DisplayFolder]InteractiveMask.Display.exe"
+                      WorkingDirectory="DisplayFolder" />
+            <RemoveFolder Id="RemoveAppShortcutFolder" Directory="AppShortcutFolder" On="uninstall" />
+            <RegistryValue Root="HKCU"
+                           Key="Software\InteractiveMask"
+                           Name="installed"
+                           Type="integer"
+                           Value="1"
+                           KeyPath="yes" />
+        </Component>
+
+        <!-- ============== Feature tree ============== -->
+        <Feature Id="DisplayFeature" Title="Display kiosk" Level="1">
+            <ComponentGroupRef Id="DisplayFiles" />
+            <ComponentRef Id="DisplayShortcut" />
+        </Feature>
+
+        <Feature Id="WebHostFeature" Title="WebHost service" Level="1">
+            <ComponentGroupRef Id="WebHostFiles" />
+            <ComponentRef Id="WebHostService" />
+        </Feature>
+
+    </Package>
+</Wix>

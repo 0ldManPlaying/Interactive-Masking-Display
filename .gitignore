@@ -1,0 +1,63 @@
+## Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+ARM/
+ARM64/
+[Bb]uild[Ll]og.*
+*.binlog
+
+## Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+*.sln.docstates
+
+## Test results
+TestResult*.xml
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+!packages/build/
+*.nuget.props
+*.nuget.targets
+
+## Local secrets / dev config
+appsettings.Development.json
+appsettings.Local.json
+**/secrets.json
+.env
+.env.*
+
+## Certificates and runtime state (never commit)
+*.pfx
+*.p12
+*.snk
+state.json
+audit.log
+
+## OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+## Temp / lockfiles
+*~
+~$*
+*.tmp
+
+## Docs while in progress
+*.docx
+*.pdf
+!docs/**/*.pdf

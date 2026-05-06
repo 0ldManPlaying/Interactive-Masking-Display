@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>PoC.GdkConnect</RootNamespace>
+    <AssemblyName>PoC.GdkConnect</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\InteractiveMask.Gdk\InteractiveMask.Gdk.csproj" />
+  </ItemGroup>
+
+</Project>

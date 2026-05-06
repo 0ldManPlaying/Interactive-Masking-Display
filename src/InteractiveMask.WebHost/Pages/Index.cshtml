@@ -1,0 +1,62 @@
+@page
+@using System.Text.Json
+@model IndexModel
+
+<section id="grid-host"
+         class="grid-host"
+         data-rows="@Model.InitialSnapshot.Rows"
+         data-cols="@Model.InitialSnapshot.Columns">
+    @foreach (var tile in Model.InitialSnapshot.Tiles)
+    {
+        <article class="tile" data-slot="@tile.Slot">
+            <div class="tile-inner">
+                <div class="tile-empty">@Model.T.EmptyTile</div>
+                <div class="tile-mask">
+                    <div class="mask-text"></div>
+                    <div class="mask-countdown"></div>
+                </div>
+                <footer class="tile-status">
+                    <span class="dot"></span>
+                    <span class="label">@tile.Label</span>
+                    <span class="status-text"></span>
+                    <span class="privacy-flag">@Model.T.PrivacyBadge</span>
+                </footer>
+            </div>
+        </article>
+    }
+</section>
+
+<!-- PIN-modal -->
+<div id="pin-modal" class="pin-modal" hidden>
+    <div class="pin-card">
+        <div id="pin-title" class="pin-title">@Model.T.PinVerifyTitle</div>
+        <div id="pin-sub" class="pin-sub">@Model.T.PinHint4Digits</div>
+        <div class="pin-dots">
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+        </div>
+        <div id="pin-error" class="pin-error"></div>
+        <div class="pin-keypad">
+            <button class="pin-key" data-digit="1">1</button>
+            <button class="pin-key" data-digit="2">2</button>
+            <button class="pin-key" data-digit="3">3</button>
+            <button class="pin-key" data-digit="4">4</button>
+            <button class="pin-key" data-digit="5">5</button>
+            <button class="pin-key" data-digit="6">6</button>
+            <button class="pin-key" data-digit="7">7</button>
+            <button class="pin-key" data-digit="8">8</button>
+            <button class="pin-key" data-digit="9">9</button>
+            <button class="pin-key pin-key-empty" disabled></button>
+            <button class="pin-key" data-digit="0">0</button>
+            <button class="pin-key pin-back" data-action="back">←</button>
+        </div>
+        <button id="pin-cancel" class="pin-cancel">@Model.T.Cancel</button>
+    </div>
+</div>
+
+<script>
+    window.__t = @Html.Raw(JsonSerializer.Serialize(Model.T));
+</script>
+<script src="~/app.js" defer></script>

@@ -1,0 +1,32 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Shared compile settings -->
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <!-- IDIS GDK is x64-only (G2ClientGDK.dll lives in 6.6.1_X64\bin) -->
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <!-- GDK install location. Override via environment variable IDIS_GDK_PATH if installed elsewhere. -->
+    <GdkPath Condition="'$(IDIS_GDK_PATH)' != ''">$(IDIS_GDK_PATH)</GdkPath>
+    <GdkPath Condition="'$(GdkPath)' == ''">E:\ISS GDK\6.6.1_X64\6.6.1</GdkPath>
+    <GdkBinPath>$(GdkPath)\bin</GdkBinPath>
+    <GdkSamplerPath>$(GdkPath)\sampler\csharp</GdkSamplerPath>
+
+    <!-- GDK C# bindings rely on _WIN64 for x64 type marshalling -->
+    <DefineConstants>$(DefineConstants);_WIN64</DefineConstants>
+
+    <!-- GDK bindings use unsafe pointer manipulation -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Standard NuGet hygiene -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+</Project>

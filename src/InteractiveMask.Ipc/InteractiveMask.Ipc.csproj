@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>InteractiveMask.Ipc</RootNamespace>
+    <AssemblyName>InteractiveMask.Ipc</AssemblyName>
+    <!-- Plain .NET 9 (no -windows) so the WebHost service host can run anywhere
+         and link in this contract project. Display will still pull it in via its
+         own net9.0-windows target. -->
+    <TargetFramework>net9.0</TargetFramework>
+    <UseWPF>false</UseWPF>
+    <UseWindowsForms>false</UseWindowsForms>
+  </PropertyGroup>
+
+</Project>

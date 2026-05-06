@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>InteractiveMask.Gdk</RootNamespace>
+    <AssemblyName>InteractiveMask.Gdk</AssemblyName>
+
+    <!-- The GDK C# bindings are vendor source from IDIS. They emit nullability and
+         analyzer warnings that we cannot fix without modifying IDIS code. Disable
+         the .NET analyzers and silence the most common warning categories so our
+         own build output stays focused on issues in our code. -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <NoWarn>$(NoWarn);CS0067;CS0108;CS0162;CS0169;CS0219;CS0414;CS0649;CS0660;CS0661;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625;CS8629;CS8765;CS8767</NoWarn>
+  </PropertyGroup>
+
+  <!-- Pull all GDK C# bindings directly from the GDK install dir. The bindings have
+       internal cross-dependencies (e.g. g2_watch.cs uses types from g2_define_rest.cs),
+       so we mirror the original G2Sampler.csproj approach: include everything except
+       Properties (AssemblyInfo conflicts with the SDK auto-generated attributes). -->
+  <ItemGroup>
+    <Compile Include="$(GdkSamplerPath)\**\*.cs"
+             Exclude="$(GdkSamplerPath)\Properties\**\*.cs"
+             LinkBase="GdkBindings" />
+  </ItemGroup>
+
+  <!-- System.Drawing.Common required by g2_decoder.cs (uses Rectangle, Size). -->
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- Copy the GDK runtime DLLs next to the output so consumers can run.
+       G2ClientGDK depends on G2LibavMT (FFmpeg) and G2FishEye; SDL2 is used for audio.
+       The Microsoft.DirectX/SlimDX assemblies are legacy and not needed for our codepath. -->
+  <ItemGroup>
+    <None Include="$(GdkBinPath)\G2ClientGDK.dll" Condition="Exists('$(GdkBinPath)\G2ClientGDK.dll')">
+      <Link>%(Filename)%(Extension)</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><Visible>false</Visible>
+    </None>
+    <None Include="$(GdkBinPath)\G2LibavMT.dll" Condition="Exists('$(GdkBinPath)\G2LibavMT.dll')">
+      <Link>%(Filename)%(Extension)</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><Visible>false</Visible>
+    </None>
+    <None Include="$(GdkBinPath)\G2FishEye.dll" Condition="Exists('$(GdkBinPath)\G2FishEye.dll')">
+      <Link>%(Filename)%(Extension)</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><Visible>false</Visible>
+    </None>
+    <None Include="$(GdkBinPath)\SDL2.dll" Condition="Exists('$(GdkBinPath)\SDL2.dll')">
+      <Link>%(Filename)%(Extension)</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><Visible>false</Visible>
+    </None>
+  </ItemGroup>
+
+</Project>

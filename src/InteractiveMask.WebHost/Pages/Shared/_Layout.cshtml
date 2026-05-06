@@ -1,0 +1,26 @@
+@inject WebSettingsProvider Settings
+@{
+    var lang = Settings.Current.Language;
+    var t = Translations.For(lang);
+}
+<!DOCTYPE html>
+<html lang="@lang">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>InteractiveMask</title>
+    <link rel="stylesheet" href="~/site.css" />
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">InteractiveMask</div>
+        <div class="conn">
+            <span id="conn-dot" class="dot dot-grey"></span>
+            <span id="conn-text">@t.WaitingForDisplay</span>
+        </div>
+    </header>
+    <main>
+        @RenderBody()
+    </main>
+</body>
+</html>
