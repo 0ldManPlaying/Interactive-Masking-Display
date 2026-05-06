@@ -7,9 +7,9 @@
     <AssemblyName>InteractiveMask.Display</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
-    <FileVersion>1.0.0.0</FileVersion>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Version>1.0.1</Version>
+    <FileVersion>1.0.1.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
     <Product>InteractiveMask</Product>
     <Company>InteractiveMask</Company>
   </PropertyGroup>
@@ -17,6 +17,13 @@
   <ItemGroup>
     <ProjectReference Include="..\InteractiveMask.Gdk\InteractiveMask.Gdk.csproj" />
     <ProjectReference Include="..\InteractiveMask.Ipc\InteractiveMask.Ipc.csproj" />
+  </ItemGroup>
+
+  <!-- ApplicationIcon sets only the EXE/window chrome icon. Adding the same
+       file as a WPF Resource makes it reachable via pack://application:,,,/app.ico
+       so per-Window Icon="..." bindings actually resolve at runtime. -->
+  <ItemGroup>
+    <Resource Include="app.ico" />
   </ItemGroup>
 
   <ItemGroup>
