@@ -4,12 +4,13 @@
     <RootNamespace>InteractiveMask.Gdk</RootNamespace>
     <AssemblyName>InteractiveMask.Gdk</AssemblyName>
 
-    <!-- The GDK C# bindings are vendor source from IDIS. They emit nullability and
-         analyzer warnings that we cannot fix without modifying IDIS code. Disable
-         the .NET analyzers and silence the most common warning categories so our
-         own build output stays focused on issues in our code. -->
+    <!-- The GDK C# bindings are vendor source from IDIS, written without nullable
+         annotations. Turn nullable off for this project so we don't get a wall of
+         CS86xx warnings from code we don't own; analyzer warnings are silenced
+         the same way. Our own projects still build with nullable enabled. -->
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
-    <NoWarn>$(NoWarn);CS0067;CS0108;CS0162;CS0169;CS0219;CS0414;CS0649;CS0660;CS0661;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625;CS8629;CS8765;CS8767</NoWarn>
+    <Nullable>disable</Nullable>
+    <NoWarn>$(NoWarn);CS0067;CS0108;CS0162;CS0169;CS0219;CS0414;CS0649;CS0660;CS0661;CS8073</NoWarn>
   </PropertyGroup>
 
   <!-- Pull all GDK C# bindings directly from the GDK install dir. The bindings have

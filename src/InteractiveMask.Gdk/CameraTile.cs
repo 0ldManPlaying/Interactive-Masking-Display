@@ -1,3 +1,4 @@
+#nullable enable
 using GDK;
 using System.Runtime.InteropServices;
 
