@@ -604,10 +604,12 @@
                                                   AutoGenerateColumns="False"
                                                   CanUserAddRows="False"
                                                   CanUserDeleteRows="False"
+                                                  IsReadOnly="True"
                                                   SelectionMode="Single"
                                                   HeadersVisibility="Column"
                                                   Height="240"
-                                                  Margin="0,4,0,0">
+                                                  Margin="0,4,0,0"
+                                                  MouseDoubleClick="OnNvrRowDoubleClick">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Binding="{Binding Name}" Width="160">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc NvrHeaderName}" /></DataGridTextColumn.Header>
@@ -618,7 +620,7 @@
                                                 <DataGridTextColumn Binding="{Binding Port}" Width="80">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc NvrFieldPort}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
-                                                <DataGridTextColumn Binding="{Binding User}" Width="120">
+                                                <DataGridTextColumn Binding="{Binding User}" Width="140">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc NvrFieldUser}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
                                                 <DataGridTemplateColumn Width="*" CanUserSort="False">
@@ -627,32 +629,51 @@
                                                     </DataGridTemplateColumn.Header>
                                                     <DataGridTemplateColumn.CellTemplate>
                                                         <DataTemplate>
-                                                            <PasswordBox Loaded="OnNvrPasswordLoaded"
-                                                                         PasswordChanged="OnNvrPasswordChanged"
-                                                                         Tag="{Binding}"
-                                                                         BorderThickness="0"
-                                                                         Background="Transparent"
-                                                                         Padding="6,0" />
+                                                            <!-- Render password as static dots so the user sees "is set" / "is empty"
+                                                                 without exposing the actual value or trying to in-cell edit. -->
+                                                            <TextBlock VerticalAlignment="Center"
+                                                                       Foreground="{StaticResource text.muted}"
+                                                                       FontFamily="Consolas"
+                                                                       Padding="6,0">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Text" Value="••••••••" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Password}" Value="">
+                                                                                <Setter Property="Text" Value="—" />
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Password}" Value="{x:Null}">
+                                                                                <Setter Property="Text" Value="—" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
                                                         </DataTemplate>
                                                     </DataGridTemplateColumn.CellTemplate>
                                                 </DataGridTemplateColumn>
-                                                <DataGridTemplateColumn Width="44" CanUserSort="False" CanUserResize="False" CanUserReorder="False">
+                                                <DataGridTemplateColumn Width="80" CanUserSort="False" CanUserResize="False" CanUserReorder="False">
                                                     <DataGridTemplateColumn.Header><TextBlock Text="" /></DataGridTemplateColumn.Header>
                                                     <DataGridTemplateColumn.CellTemplate>
                                                         <DataTemplate>
-                                                            <Button Click="OnDeleteNvrRow"
-                                                                    Background="Transparent"
-                                                                    BorderThickness="0"
-                                                                    Foreground="{StaticResource text.muted}"
-                                                                    FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
-                                                                    FontSize="14"
-                                                                    Cursor="Hand"
-                                                                    Padding="0"
-                                                                    Width="28" Height="28"
-                                                                    HorizontalAlignment="Center"
-                                                                    VerticalAlignment="Center"
-                                                                    ToolTip="{local:Loc NvrDeleteRowTooltip}"
-                                                                    Content="&#xE74D;" />
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <Button Click="OnEditNvrRow"
+                                                                        Background="Transparent" BorderThickness="0"
+                                                                        Foreground="{StaticResource text.muted}"
+                                                                        FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                                                        FontSize="14" Cursor="Hand" Padding="0"
+                                                                        Width="28" Height="28"
+                                                                        ToolTip="{local:Loc NvrEditRowTooltip}"
+                                                                        Content="&#xE70F;" />
+                                                                <Button Click="OnDeleteNvrRow"
+                                                                        Background="Transparent" BorderThickness="0"
+                                                                        Foreground="{StaticResource text.muted}"
+                                                                        FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                                                        FontSize="14" Cursor="Hand" Padding="0"
+                                                                        Width="28" Height="28"
+                                                                        ToolTip="{local:Loc NvrDeleteRowTooltip}"
+                                                                        Content="&#xE74D;" />
+                                                            </StackPanel>
                                                         </DataTemplate>
                                                     </DataGridTemplateColumn.CellTemplate>
                                                 </DataGridTemplateColumn>

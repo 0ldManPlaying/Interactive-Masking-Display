@@ -1,0 +1,120 @@
+<Window x:Class="InteractiveMask.Display.NvrEditDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:InteractiveMask.Display"
+        Title="NVR"
+        Icon="pack://application:,,,/app.ico"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="False"
+        FontFamily="Segoe UI Variable Display, Segoe UI"
+        Foreground="#E6E6E6"
+        KeyDown="OnKeyDown">
+
+    <Border Background="#1A1D24"
+            BorderBrush="#2A2F3A"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="28"
+            MinWidth="440">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="0" Opacity="0.5" />
+        </Border.Effect>
+        <StackPanel>
+            <TextBlock x:Name="Header"
+                       Text="{local:Loc NvrDialogTitle}"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center" />
+            <TextBlock x:Name="Subheader"
+                       Text="{local:Loc NvrDialogSubtitle}"
+                       Foreground="#8B95A7"
+                       FontSize="13"
+                       HorizontalAlignment="Center"
+                       Margin="0,4,0,18" />
+
+            <TextBlock Text="{local:Loc NvrHeaderName}"
+                       Foreground="#8B95A7" FontSize="12" Margin="0,0,0,6" />
+            <TextBox x:Name="NameBox"
+                     Background="#232831" Foreground="#E6E6E6"
+                     BorderBrush="#2A2F3A" BorderThickness="1"
+                     Padding="10,8" MinHeight="36"
+                     CaretBrush="#4DABF7" />
+
+            <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="120" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="{local:Loc NvrFieldIp}"
+                           Foreground="#8B95A7" FontSize="12" Margin="0,0,0,6" />
+                <TextBlock Grid.Row="0" Grid.Column="2"
+                           Text="{local:Loc NvrFieldPort}"
+                           Foreground="#8B95A7" FontSize="12" Margin="0,0,0,6" />
+                <TextBox Grid.Row="1" Grid.Column="0" x:Name="IpBox"
+                         Background="#232831" Foreground="#E6E6E6"
+                         BorderBrush="#2A2F3A" BorderThickness="1"
+                         Padding="10,8" MinHeight="36"
+                         CaretBrush="#4DABF7" />
+                <TextBox Grid.Row="1" Grid.Column="2" x:Name="PortBox"
+                         Background="#232831" Foreground="#E6E6E6"
+                         BorderBrush="#2A2F3A" BorderThickness="1"
+                         Padding="10,8" MinHeight="36"
+                         CaretBrush="#4DABF7" />
+            </Grid>
+
+            <TextBlock Text="{local:Loc NvrFieldUser}"
+                       Foreground="#8B95A7" FontSize="12" Margin="0,12,0,6" />
+            <TextBox x:Name="UserBox"
+                     Background="#232831" Foreground="#E6E6E6"
+                     BorderBrush="#2A2F3A" BorderThickness="1"
+                     Padding="10,8" MinHeight="36"
+                     CaretBrush="#4DABF7" />
+
+            <TextBlock Text="{local:Loc NvrFieldPassword}"
+                       Foreground="#8B95A7" FontSize="12" Margin="0,12,0,6" />
+            <PasswordBox x:Name="PasswordBoxField"
+                         Background="#232831" Foreground="#E6E6E6"
+                         BorderBrush="#2A2F3A" BorderThickness="1"
+                         Padding="10,8" MinHeight="36"
+                         CaretBrush="#4DABF7" />
+
+            <TextBlock Foreground="#8B95A7" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
+                       Text="{local:Loc NvrPasswordHint}" />
+
+            <TextBlock x:Name="ErrorText"
+                       Foreground="#FF7777" FontSize="12"
+                       TextWrapping="Wrap"
+                       Margin="0,12,0,0" Text="" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                <Button x:Name="CancelButton"
+                        Content="{local:Loc SetupCancel}"
+                        Click="OnCancel"
+                        Background="Transparent" Foreground="#8B95A7"
+                        BorderBrush="#374050" BorderThickness="1"
+                        Padding="14,8" Cursor="Hand"
+                        Margin="0,0,8,0" />
+                <Button x:Name="OkButton"
+                        Content="{local:Loc SetupSave}"
+                        Click="OnOk"
+                        IsDefault="True"
+                        Background="#4DABF7" Foreground="#0F1115"
+                        FontWeight="SemiBold"
+                        BorderThickness="0"
+                        Padding="14,8" Cursor="Hand" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

@@ -100,8 +100,15 @@ public sealed class StringsTable
     public string NvrPasswordHint { get; init; } = "";
     public string NvrAddRow { get; init; } = "";
     public string NvrDeleteRowTooltip { get; init; } = "";
+    public string NvrEditRowTooltip { get; init; } = "";
     public string NvrHeaderName { get; init; } = "";
     public string NvrMultiHint { get; init; } = "";
+    public string NvrDialogTitle { get; init; } = "";
+    public string NvrDialogAddTitle { get; init; } = "";
+    public string NvrDialogEditTitle { get; init; } = "";
+    public string NvrDialogSubtitle { get; init; } = "";
+    public string NvrDialogEditSubtitle { get; init; } = "";
+    public string NvrDialogErrIpEmpty { get; init; } = "";
 
     // Cameras tab
     public string CamerasPageTitle { get; init; } = "";
@@ -304,8 +311,15 @@ public sealed class StringsTable
         NvrPasswordHint           = "Het wachtwoord wordt versleuteld opgeslagen via Windows DPAPI (machine-scope).",
         NvrAddRow                 = "NVR toevoegen",
         NvrDeleteRowTooltip       = "NVR verwijderen",
+        NvrEditRowTooltip         = "NVR bewerken",
         NvrHeaderName             = "NAAM",
         NvrMultiHint              = "Voeg meerdere NVRs toe als je een grid wilt opbouwen met camera's uit verschillende recorders. Iedere camera in de Cameras-tab kiest welke NVR via de NVR-kolom.",
+        NvrDialogTitle            = "NVR-verbinding",
+        NvrDialogAddTitle         = "NVR toevoegen",
+        NvrDialogEditTitle        = "NVR bewerken",
+        NvrDialogSubtitle         = "Direct LAN, IDIS-protocol op poort 8016 (standaard).",
+        NvrDialogEditSubtitle     = "Pas de verbindingsgegevens aan.",
+        NvrDialogErrIpEmpty       = "IP-adres of hostnaam is verplicht.",
 
         CamerasPageTitle          = "Cameras",
         CamerasPageSubtitle       = "Welke camera's worden in welk slot van het grid getoond.",
@@ -498,8 +512,15 @@ public sealed class StringsTable
         NvrPasswordHint           = "The password is stored encrypted via Windows DPAPI (machine scope).",
         NvrAddRow                 = "Add NVR",
         NvrDeleteRowTooltip       = "Delete NVR",
+        NvrEditRowTooltip         = "Edit NVR",
         NvrHeaderName             = "NAME",
         NvrMultiHint              = "Add multiple NVRs to build a grid with cameras from different recorders. Each camera on the Cameras tab picks its NVR via the NVR column.",
+        NvrDialogTitle            = "NVR connection",
+        NvrDialogAddTitle         = "Add NVR",
+        NvrDialogEditTitle        = "Edit NVR",
+        NvrDialogSubtitle         = "Direct LAN, IDIS protocol on port 8016 (default).",
+        NvrDialogEditSubtitle     = "Update the connection details.",
+        NvrDialogErrIpEmpty       = "IP address or hostname is required.",
 
         CamerasPageTitle          = "Cameras",
         CamerasPageSubtitle       = "Which cameras are shown in which slot of the grid.",

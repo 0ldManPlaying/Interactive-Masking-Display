@@ -254,7 +254,7 @@ public partial class SetupWindow : Window
         // so any stale state.json or audit entry referring to that Id stays
         // unambiguous.
         int nextId = _nvrs.Count == 0 ? 0 : _nvrs.Max(n => n.Id) + 1;
-        _nvrs.Add(new NvrSettings
+        var draft = new NvrSettings
         {
             Id = nextId,
             Name = $"NVR {nextId + 1}",
@@ -262,7 +262,50 @@ public partial class SetupWindow : Window
             Port = 8016,
             User = "",
             Password = "",
-        });
+        };
+
+        // Show the edit modal immediately so the user can fill in IP / user /
+        // password in one go. On Save the row is appended to the list; on
+        // Cancel nothing is added (avoids ghost-rows).
+        var dlg = new NvrEditDialog(this, draft, isNew: true);
+        if (dlg.ShowDialog() == true)
+        {
+            _nvrs.Add(draft);
+        }
+    }
+
+    private void OnEditNvrRow(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+        if (btn.DataContext is not NvrSettings row) return;
+        OpenNvrEditModal(row);
+    }
+
+    private void OnNvrRowDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        // Double-clicking a row opens the same edit modal as the pencil icon.
+        if (NvrGrid.SelectedItem is NvrSettings row)
+        {
+            OpenNvrEditModal(row);
+            e.Handled = true;
+        }
+    }
+
+    private void OpenNvrEditModal(NvrSettings row)
+    {
+        var dlg = new NvrEditDialog(this, row, isNew: false);
+        if (dlg.ShowDialog() == true)
+        {
+            // The DataGrid binds to the same NvrSettings instance the dialog
+            // mutated, but the columns aren't INotifyPropertyChanged so we
+            // force a refresh by removing+reinserting the row at the same index.
+            int idx = _nvrs.IndexOf(row);
+            if (idx >= 0)
+            {
+                _nvrs.RemoveAt(idx);
+                _nvrs.Insert(idx, row);
+            }
+        }
     }
 
     private void OnDeleteNvrRow(object sender, RoutedEventArgs e)
@@ -277,32 +320,6 @@ public partial class SetupWindow : Window
             return;
         }
         _nvrs.Remove(row);
-    }
-
-    /// <summary>
-    /// PasswordBox doesn't support direct two-way binding (passwords aren't
-    /// reflected on the DependencyProperty for security reasons), so we mirror
-    /// the value into the row's Password property whenever it changes. The Tag
-    /// attribute carries the row reference set up by the column template.
-    /// </summary>
-    private void OnNvrPasswordChanged(object sender, RoutedEventArgs e)
-    {
-        if (sender is not PasswordBox pb) return;
-        if (pb.Tag is not NvrSettings row) return;
-        row.Password = pb.Password;
-    }
-
-    /// <summary>
-    /// Mirror the existing Password into the PasswordBox when the row is first
-    /// rendered. Without this, opening Setup would show empty password fields
-    /// for already-configured NVRs and a save-without-touch would clear them.
-    /// </summary>
-    private void OnNvrPasswordLoaded(object sender, RoutedEventArgs e)
-    {
-        if (sender is not PasswordBox pb) return;
-        if (pb.Tag is not NvrSettings row) return;
-        if (string.IsNullOrEmpty(row.Password)) return;
-        if (pb.Password != row.Password) pb.Password = row.Password;
     }
 
     // ---- Save / cancel -----------------------------------------------------
