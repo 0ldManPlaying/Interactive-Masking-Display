@@ -1,6 +1,5 @@
 @page
 @using System.Text.Json
-@using System.Text.Json.Serialization
 @model LoginModel
 @{
     Layout = null;
@@ -54,7 +53,7 @@
     </main>
 
     <script>
-        window.__t = @Html.Raw(JsonSerializer.Serialize(Model.T, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        window.__t = @Html.Raw(JsonSerializer.Serialize(Model.T, WebJson.CamelCase));
         window.__returnUrl = @Html.Raw(JsonSerializer.Serialize(Model.ReturnUrl));
     </script>
     <script src="~/login.js" defer></script>

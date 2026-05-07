@@ -52,10 +52,19 @@ public sealed class WebSettingsProvider
             "InteractiveMask", "config.json");
     }
 
+    /// <summary>
+    /// Fires when the on-disk access-auth settings (mode, PIN, domain) change
+    /// since the previous cached read. Subscribers (e.g. <c>WebAccessSessionStore</c>)
+    /// can revoke active cookies so a freshly disabled mode or a rotated PIN
+    /// invalidates outstanding sessions.
+    /// </summary>
+    public event Action? AccessChanged;
+
     public WebSettings Current
     {
         get
         {
+            bool fireAccessChanged = false;
             lock (_lock)
             {
                 try
@@ -63,16 +72,26 @@ public sealed class WebSettingsProvider
                     var info = new FileInfo(_path);
                     if (!info.Exists) return _cached;
                     if (info.LastWriteTimeUtc <= _lastReadUtc) return _cached;
+                    var previous = _cached;
                     _cached = ReadFromDisk();
                     _lastReadUtc = info.LastWriteTimeUtc;
+                    if (previous.AccessMode != _cached.AccessMode ||
+                        previous.AccessPin != _cached.AccessPin ||
+                        previous.AccessDomain != _cached.AccessDomain)
+                    {
+                        fireAccessChanged = true;
+                    }
                 }
                 catch
                 {
                     // Last good cache wins; partial writes during a Display save
                     // resolve themselves on the next read.
                 }
-                return _cached;
             }
+            // Fire OUTSIDE the lock so handlers can call back into the provider
+            // (or take their own locks) without risking a deadlock.
+            if (fireAccessChanged) AccessChanged?.Invoke();
+            return _cached;
         }
     }
 

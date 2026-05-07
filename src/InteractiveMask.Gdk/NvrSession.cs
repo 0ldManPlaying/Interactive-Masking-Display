@@ -1,5 +1,6 @@
 #nullable enable
 using GDK;
+using System.Collections.Concurrent;
 
 namespace InteractiveMask.Gdk;
 
@@ -21,7 +22,12 @@ public sealed class NvrSession : g2watch_listener, IDisposable
     private readonly g2watch _watch = new();
     private readonly g2decoder _decoder = new();
     private readonly object _decoderLock = new();
-    private readonly Dictionary<int, CameraTile> _tilesByCamera = new();
+    // ConcurrentDictionary so the GDK callback thread (HandleFrame.TryGetValue)
+    // and the UI thread (UpdateCameras / RegisterTile) don't race on the
+    // dictionary itself. Lifetime of the values (CameraTile) is still owned
+    // by NvrSession; CameraTile.Dispose serialises against in-flight frames
+    // via its internal buffer lock.
+    private readonly ConcurrentDictionary<int, CameraTile> _tilesByCamera = new();
     private readonly object _stateLock = new();
 
     private NvrConnectionInfo? _connection;
@@ -46,10 +52,9 @@ public sealed class NvrSession : g2watch_listener, IDisposable
     public CameraTile RegisterTile(int cameraIndex, int streamId, string label)
     {
         if (_started) throw new InvalidOperationException("RegisterTile must be called before Start");
-        if (_tilesByCamera.ContainsKey(cameraIndex))
-            throw new InvalidOperationException($"camera index {cameraIndex} already registered");
         var tile = new CameraTile(cameraIndex, streamId, label);
-        _tilesByCamera[cameraIndex] = tile;
+        if (!_tilesByCamera.TryAdd(cameraIndex, tile))
+            throw new InvalidOperationException($"camera index {cameraIndex} already registered");
         return tile;
     }
 
@@ -65,14 +70,18 @@ public sealed class NvrSession : g2watch_listener, IDisposable
     public CameraDiff UpdateCameras(IEnumerable<(int cameraIndex, int streamId, string label)> target)
     {
         var diff = new CameraDiff();
+        if (_disposed) return diff;
+
         var targetList = target.ToList();
         var targetIndexes = new HashSet<int>(targetList.Select(t => t.cameraIndex));
 
-        // Remove cameras no longer in target.
+        // Remove cameras no longer in target. CameraTile.Dispose serialises
+        // against in-flight HandleFrame calls so this is safe even though the
+        // GDK callback thread can be mid-decode for the very camera we drop.
         var toRemove = _tilesByCamera.Keys.Where(k => !targetIndexes.Contains(k)).ToList();
         foreach (var idx in toRemove)
         {
-            if (_tilesByCamera.Remove(idx, out var tile))
+            if (_tilesByCamera.TryRemove(idx, out var tile))
             {
                 tile.Dispose();
                 diff.Removed.Add(idx);
@@ -89,8 +98,16 @@ public sealed class NvrSession : g2watch_listener, IDisposable
             else
             {
                 var tile = new CameraTile(idx, stream, label);
-                _tilesByCamera[idx] = tile;
-                diff.Added.Add(tile);
+                if (_tilesByCamera.TryAdd(idx, tile))
+                {
+                    diff.Added.Add(tile);
+                }
+                else
+                {
+                    // Lost the race against another caller — dispose the dup
+                    // before it leaks its native buffers.
+                    tile.Dispose();
+                }
             }
         }
 
@@ -153,8 +170,10 @@ public sealed class NvrSession : g2watch_listener, IDisposable
         _watch.cleanup();
         _decoder.cleanup();
 
-        foreach (var tile in _tilesByCamera.Values) tile.Dispose();
+        // Snapshot the tiles before clearing so we don't enumerate while disposing.
+        var tiles = _tilesByCamera.Values.ToList();
         _tilesByCamera.Clear();
+        foreach (var tile in tiles) tile.Dispose();
     }
 
     private void ConnectInternal()
@@ -193,6 +212,7 @@ public sealed class NvrSession : g2watch_listener, IDisposable
         }
 
         _reconnectCts?.Cancel();
+        _reconnectCts?.Dispose();
         _reconnectCts = new CancellationTokenSource();
         var token = _reconnectCts.Token;
 

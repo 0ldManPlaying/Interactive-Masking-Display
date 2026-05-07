@@ -49,6 +49,16 @@ builder.Services.AddHostedService<IpcMirrorService>();
 
 var app = builder.Build();
 
+// Revoke every active web-access session as soon as the admin changes the
+// access mode / PIN / domain on disk. Without this, a previously-issued
+// HttpOnly cookie keeps unlocking the UI for up to 8 hours after a PIN
+// rotation — exactly the gap the rotation is supposed to close.
+{
+    var settingsForWiring = app.Services.GetRequiredService<WebSettingsProvider>();
+    var sessionsForWiring = app.Services.GetRequiredService<WebAccessSessionStore>();
+    settingsForWiring.AccessChanged += () => sessionsForWiring.RevokeAll();
+}
+
 // Replace Kestrel's default stacktrace dump with a single readable line so a
 // port collision (very common during dev: Apache/IIS on 8080, etc.) doesn't
 // look like a serious crash. Any other failure still propagates.

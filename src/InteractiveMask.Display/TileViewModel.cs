@@ -8,10 +8,12 @@ using System.Windows.Threading;
 
 namespace InteractiveMask.Display;
 
-public sealed class TileViewModel : INotifyPropertyChanged
+public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly Dispatcher _dispatcher;
+    private readonly PropertyChangedEventHandler _onLanguageChanged;
     private CameraTile? _camera;
+    private bool _disposed;
 
     private WriteableBitmap? _bitmap;
     private string _label = "";
@@ -162,7 +164,19 @@ public sealed class TileViewModel : INotifyPropertyChanged
         _dispatcher = dispatcher;
         // Re-emit text-bearing properties when the language changes so live taal-switch
         // affects already-bound overlay texts and status labels.
-        Strings.Instance.PropertyChanged += (_, _) => RefreshLanguageStrings();
+        // Stored as a field so Dispose can unsubscribe — without that, every
+        // grid-resize creates new TileViewModels that hold a static-event back
+        // reference and never get GC'd.
+        _onLanguageChanged = (_, _) => RefreshLanguageStrings();
+        Strings.Instance.PropertyChanged += _onLanguageChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        Strings.Instance.PropertyChanged -= _onLanguageChanged;
+        Detach();
     }
 
     private void RefreshLanguageStrings()

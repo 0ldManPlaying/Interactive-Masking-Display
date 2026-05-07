@@ -18,9 +18,13 @@ public sealed class IpcCommandSender
 
     public TimeSpan DefaultTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
-    /// <summary>Bind the sender to the IPC client. Call once at startup.</summary>
+    /// <summary>Bind the sender to the IPC client. Call once at startup. Calling
+    /// twice would subscribe OnMessage twice and cause every response to be
+    /// dispatched in duplicate.</summary>
     public void Attach(IpcClient client)
     {
+        if (_client is not null)
+            throw new InvalidOperationException("IpcCommandSender already attached to a client");
         _client = client;
         client.MessageReceived += OnMessage;
     }

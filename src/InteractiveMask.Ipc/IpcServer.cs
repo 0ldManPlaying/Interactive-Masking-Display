@@ -101,6 +101,11 @@ public sealed class IpcServer : IDisposable
             {
                 await server.WaitForConnectionAsync(token);
             }
+            catch (OperationCanceledException)
+            {
+                server.Dispose();
+                return;
+            }
             catch
             {
                 server.Dispose();

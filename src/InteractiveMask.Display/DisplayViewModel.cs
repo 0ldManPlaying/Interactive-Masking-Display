@@ -51,9 +51,12 @@ public sealed class DisplayViewModel : INotifyPropertyChanged
         set => Set(ref _connectionBanner, value);
     }
 
-    /// <summary>Build the tile collection for a given grid size, all initially empty.</summary>
+    /// <summary>Build the tile collection for a given grid size, all initially empty.
+    /// Disposes any previous tiles so they unsubscribe from <see cref="Strings.Instance"/>
+    /// and don't pin the old view-models in memory after a grid resize.</summary>
     public void InitializeGrid(int rows, int columns, Dispatcher dispatcher)
     {
+        foreach (var old in Tiles) old.Dispose();
         Rows = rows;
         Columns = columns;
         Tiles.Clear();

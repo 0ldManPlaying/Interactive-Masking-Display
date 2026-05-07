@@ -70,6 +70,7 @@ public sealed class IpcClient : IDisposable
         _disposed = true;
         _cts.Cancel();
         _writeLock.Dispose();
+        _cts.Dispose();
     }
 
     private async Task RunLoop(CancellationToken token)

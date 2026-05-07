@@ -1,4 +1,20 @@
+using System.Text.Json;
+
 namespace InteractiveMask.WebHost;
+
+/// <summary>
+/// Shared <see cref="JsonSerializerOptions"/> for Razor pages. Allocating a
+/// fresh options instance per request triggers reflection-cache warm-up every
+/// time, which is expensive at the polling rate of /api/access-mode and
+/// /api/state. One static instance covers the whole WebHost.
+/// </summary>
+public static class WebJson
+{
+    public static JsonSerializerOptions CamelCase { get; } = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+}
 
 /// <summary>
 /// Single bag of UI strings for the browser. Mirrors the Display-side
