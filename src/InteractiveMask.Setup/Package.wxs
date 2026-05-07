@@ -138,6 +138,9 @@
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="InteractiveMask nu starten" />
+
+        <!-- Custom EULA in Dutch instead of the default Lorem ipsum placeholder. -->
+        <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
         <Property Id="WixShellExecTarget" Value="[#DisplayExe]" />
         <CustomAction Id="LaunchApplication"
                       DllEntry="WixShellExec"

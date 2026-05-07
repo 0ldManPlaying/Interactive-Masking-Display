@@ -349,16 +349,13 @@ public partial class MainWindow : Window
         // 3) Kiosk mode toggles can be installed/uninstalled live without restart.
         ApplyKioskMode(newSettings.Kiosk.Enabled);
 
-        // 3) Camera labels for the same camera index can be updated in place
-        //    without reconnecting to the NVR.
+        // 3) Camera-list change is live-applied: NvrSession reconciles the diff
+        //    against the GDK subscription, then we rebind tiles in the view model
+        //    without losing the live image on cameras that didn't change.
         if (!structuralChange)
         {
-            foreach (var cam in newSettings.Cameras)
-            {
-                if (!_slotByCameraIndex.TryGetValue(cam.CameraIndex, out var slot)) continue;
-                if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
-                _viewModel.Tiles[slot].UpdateLabel(cam.Label);
-            }
+            ApplyCameraChangesLive(newSettings.Cameras);
+            _lastAppliedSettings = newSettings;
             _viewModel.StatusLine = Strings.Instance.Current.SetupChangesApplied;
             return;
         }
@@ -377,6 +374,73 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Reconcile the running session against a new camera list without a restart.
+    /// Three cases per camera:
+    ///   - Removed: detach the tile from its old slot and tell the session to drop it
+    ///   - Added: register with the GDK and bind to its target slot
+    ///   - Moved or stream/label changed: detach from old slot, push new state to the
+    ///     existing CameraTile, rebind to (possibly new) slot
+    /// </summary>
+    private void ApplyCameraChangesLive(List<CameraSlotSettings> newCameras)
+    {
+        if (_session is null) return;
+
+        var newByCameraIdx = newCameras
+            .GroupBy(c => c.CameraIndex)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        // Detach tiles whose camera was removed OR whose slot moved. We always
+        // detach when the slot changed and re-attach in step 3 so the
+        // ViewModel state matches the new config exactly.
+        var oldEntries = _slotByCameraIndex.ToList();
+        foreach (var (cameraIdx, oldSlot) in oldEntries)
+        {
+            bool stillPresent = newByCameraIdx.TryGetValue(cameraIdx, out var newCam);
+            bool slotMoved = stillPresent && newCam!.Slot != oldSlot;
+            if (!stillPresent || slotMoved)
+            {
+                if (oldSlot >= 0 && oldSlot < _viewModel.Tiles.Count)
+                {
+                    _viewModel.Tiles[oldSlot].Detach();
+                }
+                _slotByCameraIndex.Remove(cameraIdx);
+            }
+        }
+
+        // Tell the GDK which cameras we now want subscribed to (and at which streams).
+        var diff = _session.UpdateCameras(
+            newCameras.Select(c => (c.CameraIndex, c.StreamId, c.Label)));
+
+        _audit.Write(AuditEventType.AppStarted, source: "config",
+            detail: $"camera list updated: +{diff.Added.Count} / -{diff.Removed.Count}");
+
+        // Bind every camera in the new list to its target slot. Skipping the ones
+        // already bound at the right slot avoids unnecessary churn for unchanged
+        // cameras (their image stays live throughout the apply).
+        foreach (var cam in newCameras)
+        {
+            if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
+            if (_slotByCameraIndex.ContainsKey(cam.CameraIndex)) continue;
+
+            if (_session.Tiles.TryGetValue(cam.CameraIndex, out var cameraTile))
+            {
+                _viewModel.BindCameraToSlot(cam.Slot, cameraTile);
+                _slotByCameraIndex[cam.CameraIndex] = cam.Slot;
+            }
+        }
+
+        // Refresh labels for cameras that may have only had their label changed
+        // (covered by Detach+Attach above only if slot moved; for unchanged slot
+        // with label-only change, push the label directly).
+        foreach (var cam in newCameras)
+        {
+            if (!_slotByCameraIndex.TryGetValue(cam.CameraIndex, out var slot)) continue;
+            if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
+            _viewModel.Tiles[slot].UpdateLabel(cam.Label);
+        }
+    }
+
     private static bool AuditForwardEqual(AuditForwardSettings a, AuditForwardSettings b) =>
         a.SyslogEnabled == b.SyslogEnabled &&
         a.SyslogHost == b.SyslogHost &&
@@ -387,11 +451,12 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// True when at least one of the settings that requires reconnecting to the
-    /// NVR or rebuilding the tile grid has changed.
+    /// NVR or rebuilding the tile grid has changed. Camera list changes are
+    /// NOT structural anymore — they're live-applied via NvrSession.UpdateCameras
+    /// + a ViewModel rebind, so the user keeps the live image during the change.
     /// </summary>
     private bool HasStructuralChange(AppSettings updated)
     {
-        // NVR connection
         var oldNvr = _session is null ? null : _lastAppliedSettings?.Nvr;
         if (oldNvr is null) return true;
         if (oldNvr.Ip != updated.Nvr.Ip ||
@@ -400,20 +465,10 @@ public partial class MainWindow : Window
             oldNvr.Password != updated.Nvr.Password)
             return true;
 
-        // Grid size
         if (_viewModel.Rows != updated.Grid.Rows || _viewModel.Columns != updated.Grid.Columns)
             return true;
 
-        // Camera bindings (set of slot+cameraIndex+streamId)
-        var oldKeys = _lastAppliedSettings?.Cameras
-            .Select(c => $"{c.Slot}|{c.CameraIndex}|{c.StreamId}")
-            .OrderBy(s => s)
-            .ToList() ?? new List<string>();
-        var newKeys = updated.Cameras
-            .Select(c => $"{c.Slot}|{c.CameraIndex}|{c.StreamId}")
-            .OrderBy(s => s)
-            .ToList();
-        return !oldKeys.SequenceEqual(newKeys);
+        return false;
     }
 
     private void RequestExit()

@@ -20,8 +20,8 @@ public sealed class CameraTile : IDisposable
     private bool _disposed;
 
     public int CameraIndex { get; }
-    public int StreamId { get; }
-    public string Label { get; }
+    public int StreamId { get; private set; }
+    public string Label { get; private set; }
 
     public TileStatus Status { get; private set; } = TileStatus.Pending;
     public string? LastError { get; private set; }
@@ -32,6 +32,17 @@ public sealed class CameraTile : IDisposable
     internal CameraTile(int cameraIndex, int streamId, string label)
     {
         CameraIndex = cameraIndex;
+        StreamId = streamId;
+        Label = label;
+    }
+
+    /// <summary>
+    /// Live-apply a stream / label change without disposing the tile. Called by
+    /// <see cref="NvrSession.UpdateCameras"/> when Setup saves a config that
+    /// changes properties on a camera that already exists.
+    /// </summary>
+    internal void UpdateStreamAndLabel(int streamId, string label)
+    {
         StreamId = streamId;
         Label = label;
     }

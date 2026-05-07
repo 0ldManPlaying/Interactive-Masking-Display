@@ -274,13 +274,14 @@ public partial class SetupWindow : Window
         var dupSlot = cameraRows.GroupBy(c => c.Slot).FirstOrDefault(g => g.Count() > 1);
         if (dupSlot is not null)
         {
-            ShowError(string.Format(T.SetupErrDuplicateSlotFormat, dupSlot.Key));
+            // Show 1-based numbering so the message lines up with what the user sees.
+            ShowError(string.Format(T.SetupErrDuplicateSlotFormat, dupSlot.Key + 1));
             return;
         }
         var dupCamera = cameraRows.GroupBy(c => c.CameraIndex).FirstOrDefault(g => g.Count() > 1);
         if (dupCamera is not null)
         {
-            ShowError(string.Format(T.SetupErrDuplicateCameraFormat, dupCamera.Key));
+            ShowError(string.Format(T.SetupErrDuplicateCameraFormat, dupCamera.Key + 1));
             return;
         }
 

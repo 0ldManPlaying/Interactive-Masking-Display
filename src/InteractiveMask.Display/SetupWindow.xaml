@@ -657,11 +657,14 @@
                                                   HeadersVisibility="Column"
                                                   Height="380"
                                                   Margin="0,4,0,0">
+                                            <DataGrid.Resources>
+                                                <local:IntPlusOneConverter x:Key="OneBased" />
+                                            </DataGrid.Resources>
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Binding="{Binding Slot}" Width="70">
+                                                <DataGridTextColumn Binding="{Binding Slot, Converter={StaticResource OneBased}}" Width="70">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderSlot}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
-                                                <DataGridTextColumn Binding="{Binding CameraIndex}" Width="90">
+                                                <DataGridTextColumn Binding="{Binding CameraIndex, Converter={StaticResource OneBased}}" Width="90">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderCameraIndex}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
                                                 <DataGridComboBoxColumn x:Name="StreamColumn"

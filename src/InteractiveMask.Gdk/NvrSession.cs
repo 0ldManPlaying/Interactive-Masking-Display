@@ -53,6 +53,72 @@ public sealed class NvrSession : g2watch_listener, IDisposable
         return tile;
     }
 
+    /// <summary>
+    /// Live-apply a new camera list to a running session. Reconciles the diff:
+    /// removed cameras are unsubscribed and disposed, new cameras are registered,
+    /// and existing cameras get their stream / label updated in place. The GDK
+    /// camera-list and stream-set subscriptions are re-pushed with force=true
+    /// so the NVR sees the new selection without the kiosk being restarted.
+    ///
+    /// Returns the diff so callers (MainWindow) can update their view models.
+    /// </summary>
+    public CameraDiff UpdateCameras(IEnumerable<(int cameraIndex, int streamId, string label)> target)
+    {
+        var diff = new CameraDiff();
+        var targetList = target.ToList();
+        var targetIndexes = new HashSet<int>(targetList.Select(t => t.cameraIndex));
+
+        // Remove cameras no longer in target.
+        var toRemove = _tilesByCamera.Keys.Where(k => !targetIndexes.Contains(k)).ToList();
+        foreach (var idx in toRemove)
+        {
+            if (_tilesByCamera.Remove(idx, out var tile))
+            {
+                tile.Dispose();
+                diff.Removed.Add(idx);
+            }
+        }
+
+        // Add new cameras and update existing ones in place.
+        foreach (var (idx, stream, label) in targetList)
+        {
+            if (_tilesByCamera.TryGetValue(idx, out var existing))
+            {
+                existing.UpdateStreamAndLabel(stream, label);
+            }
+            else
+            {
+                var tile = new CameraTile(idx, stream, label);
+                _tilesByCamera[idx] = tile;
+                diff.Added.Add(tile);
+            }
+        }
+
+        // Re-push the subscription if we're connected. force=true so the NVR
+        // applies the new set even if it already has a stale list cached.
+        if (_channel >= 0 && _started)
+        {
+            var cameras = new g2channel_set();
+            var streams = new g2channel_stream_set();
+            foreach (var tile in _tilesByCamera.Values)
+            {
+                cameras.insert(tile.CameraIndex);
+                streams.insert(tile.CameraIndex, tile.StreamId);
+            }
+            _watch.set_camera_list(_channel, cameras, force: true);
+            _watch.set_camera_stream_set(_channel, streams, force: true);
+        }
+
+        return diff;
+    }
+
+    /// <summary>Result of a live <see cref="UpdateCameras"/> reconciliation.</summary>
+    public sealed class CameraDiff
+    {
+        public List<CameraTile> Added { get; } = new();
+        public List<int> Removed { get; } = new();
+    }
+
     public void Start(NvrConnectionInfo connection)
     {
         if (_started) return;
