@@ -127,12 +127,39 @@ public partial class MainWindow : Window
             });
         };
 
+        // Defensive registration: a corrupted config (or a manual edit) could contain
+        // the same camera index twice or two cameras pointing at the same slot. Either
+        // would have thrown InvalidOperationException out of RegisterTile and crashed
+        // the app on every startup, including after re-install (config.json lives in
+        // ProgramData and survives uninstall by design).
+        var seenCameraIndexes = new HashSet<int>();
+        var seenSlots = new HashSet<int>();
         foreach (var cam in settings.Cameras)
         {
             if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
-            var camera = _session.RegisterTile(cam.CameraIndex, cam.StreamId, cam.Label);
-            _viewModel.BindCameraToSlot(cam.Slot, camera);
-            _slotByCameraIndex[cam.CameraIndex] = cam.Slot;
+            if (!seenSlots.Add(cam.Slot))
+            {
+                _audit.Write(AuditEventType.AppStarted, source: "config",
+                    detail: $"duplicate slot {cam.Slot} skipped (camera={cam.CameraIndex})");
+                continue;
+            }
+            if (!seenCameraIndexes.Add(cam.CameraIndex))
+            {
+                _audit.Write(AuditEventType.AppStarted, source: "config",
+                    detail: $"duplicate camera {cam.CameraIndex} skipped (slot={cam.Slot})");
+                continue;
+            }
+            try
+            {
+                var camera = _session.RegisterTile(cam.CameraIndex, cam.StreamId, cam.Label);
+                _viewModel.BindCameraToSlot(cam.Slot, camera);
+                _slotByCameraIndex[cam.CameraIndex] = cam.Slot;
+            }
+            catch (Exception ex)
+            {
+                _audit.Write(AuditEventType.AppStarted, source: "config",
+                    detail: $"camera {cam.CameraIndex} (slot {cam.Slot}) skipped: {ex.Message}");
+            }
         }
 
         RestoreState();

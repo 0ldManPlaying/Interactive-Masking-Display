@@ -1,6 +1,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
-     xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall">
+     xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
 
     <!-- 64-bit MSI: all auto-harvested components live under ProgramFiles64Folder.
          The wixproj sets InstallerPlatform=x64 which is the WiX 5 way to mark the
@@ -28,6 +29,12 @@
         <StandardDirectory Id="ProgramMenuFolder">
             <Directory Id="AppShortcutFolder" Name="InteractiveMask" />
         </StandardDirectory>
+        <StandardDirectory Id="DesktopFolder" />
+
+        <!-- Window-icon resource referenced by both shortcuts. The .ico lives
+             inside the Display project and is also used as the EXE icon. -->
+        <Icon Id="AppIco" SourceFile="..\InteractiveMask.Display\app.ico" />
+        <Property Id="ARPPRODUCTICON" Value="AppIco" />
 
         <!-- File harvest paths are resolved at MSBuild time relative to the wixproj.
              build-installer.ps1 always publishes into ..\..\build\publish\{Display,WebHost}
@@ -36,8 +43,19 @@
 
         <!-- ============== Display: harvested file set ============== -->
         <ComponentGroup Id="DisplayFiles" Directory="DisplayFolder">
-            <Files Include="..\..\build\publish\Display\**" />
+            <!-- Display.exe needs an explicit File@Id ("DisplayExe") so the
+                 launch-after-install custom action and the shortcuts can refer to
+                 it via [#DisplayExe]. The rest of the publish folder is harvested. -->
+            <Files Include="..\..\build\publish\Display\**">
+                <Exclude Files="..\..\build\publish\Display\InteractiveMask.Display.exe" />
+            </Files>
         </ComponentGroup>
+
+        <Component Id="DisplayExeComponent" Directory="DisplayFolder" Guid="C73D8A91-1F4B-4F1B-9D5E-0AE5E4B1C8FA">
+            <File Id="DisplayExe"
+                  Source="..\..\build\publish\Display\InteractiveMask.Display.exe"
+                  KeyPath="yes" />
+        </Component>
 
         <!-- ============== WebHost: harvested file set + service registration ============== -->
         <ComponentGroup Id="WebHostFiles" Directory="ServiceFolder">
@@ -84,7 +102,8 @@
                       Name="InteractiveMask Display"
                       Description="Start de kiosk-applicatie"
                       Target="[DisplayFolder]InteractiveMask.Display.exe"
-                      WorkingDirectory="DisplayFolder" />
+                      WorkingDirectory="DisplayFolder"
+                      Icon="AppIco" />
             <RemoveFolder Id="RemoveAppShortcutFolder" Directory="AppShortcutFolder" On="uninstall" />
             <RegistryValue Root="HKCU"
                            Key="Software\InteractiveMask"
@@ -94,10 +113,54 @@
                            KeyPath="yes" />
         </Component>
 
+        <!-- ============== Desktop shortcut ============== -->
+        <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="B62C9D1A-3E33-4F87-A12B-5D7C0A0B5C22">
+            <Shortcut Id="DisplayDesktopShortcut"
+                      Name="InteractiveMask"
+                      Description="Start de kiosk-applicatie"
+                      Target="[DisplayFolder]InteractiveMask.Display.exe"
+                      WorkingDirectory="DisplayFolder"
+                      Icon="AppIco" />
+            <RegistryValue Root="HKCU"
+                           Key="Software\InteractiveMask"
+                           Name="desktop_shortcut"
+                           Type="integer"
+                           Value="1"
+                           KeyPath="yes" />
+        </Component>
+
+        <!-- ============== Launch-after-install option ============== -->
+        <!-- WixUI_InstallDir gives us a standard install wizard with the optional
+             "launch after finish" checkbox slot exposed via WIXUI_EXITDIALOG*
+             properties. The custom action below fires when the user ticks the
+             checkbox and clicks Finish. -->
+        <ui:WixUI Id="WixUI_InstallDir" />
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="InteractiveMask nu starten" />
+        <Property Id="WixShellExecTarget" Value="[#DisplayExe]" />
+        <CustomAction Id="LaunchApplication"
+                      DllEntry="WixShellExec"
+                      Impersonate="yes"
+                      BinaryRef="Wix4UtilCA_X64" />
+
+        <!-- Hook the custom action to the Finish button. Fires only on a fresh
+             install (not on uninstall or repair) and only when the user kept
+             the optional checkbox ticked. -->
+        <UI>
+            <Publish Dialog="ExitDialog"
+                     Control="Finish"
+                     Event="DoAction"
+                     Value="LaunchApplication"
+                     Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+        </UI>
+
         <!-- ============== Feature tree ============== -->
         <Feature Id="DisplayFeature" Title="Display kiosk" Level="1">
             <ComponentGroupRef Id="DisplayFiles" />
+            <ComponentRef Id="DisplayExeComponent" />
             <ComponentRef Id="DisplayShortcut" />
+            <ComponentRef Id="DesktopShortcut" />
         </Feature>
 
         <Feature Id="WebHostFeature" Title="WebHost service" Level="1">

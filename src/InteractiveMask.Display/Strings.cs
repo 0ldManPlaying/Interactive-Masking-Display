@@ -105,6 +105,10 @@ public sealed class StringsTable
     public string CamerasCardBindings { get; init; } = "";
     public string CamerasAddRow { get; init; } = "";
     public string CamerasHelpText { get; init; } = "";
+    public string CamerasDeleteRowTooltip { get; init; } = "";
+    public string StreamHigh { get; init; } = "";
+    public string StreamDefault { get; init; } = "";
+    public string StreamLow { get; init; } = "";
     public string CamerasHeaderSlot { get; init; } = "";
     public string CamerasHeaderCameraIndex { get; init; } = "";
     public string CamerasHeaderStream { get; init; } = "";
@@ -115,6 +119,10 @@ public sealed class StringsTable
     public string GridPageSubtitle { get; init; } = "";
     public string GridCardSize { get; init; } = "";
     public string GridTilesCountFormat { get; init; } = "";
+    public string GridChoice1Caption { get; init; } = "";
+    public string GridChoice4Caption { get; init; } = "";
+    public string GridChoice9Caption { get; init; } = "";
+    public string GridChoice16Caption { get; init; } = "";
 
     // Privacy tab
     public string PrivacyPageTitle { get; init; } = "";
@@ -205,6 +213,8 @@ public sealed class StringsTable
     public string SetupErrWarningMinutes { get; init; } = "";
     public string SetupErrHttpPort { get; init; } = "";
     public string SetupErrHttpsPort { get; init; } = "";
+    public string SetupErrDuplicateSlotFormat { get; init; } = "";
+    public string SetupErrDuplicateCameraFormat { get; init; } = "";
     public string SetupErrSaveFailedFormat { get; init; } = "";
     public string SetupCertCreatedFormat { get; init; } = "";
     public string SetupCertCreateFailedFormat { get; init; } = "";
@@ -288,7 +298,11 @@ public sealed class StringsTable
         CamerasPageSubtitle       = "Welke camera's worden in welk slot van het grid getoond.",
         CamerasCardBindings       = "Slot-bindingen",
         CamerasAddRow             = "Rij toevoegen",
-        CamerasHelpText           = "Slot = positie in het grid (0..N-1, links-naar-rechts, boven-naar-onder). Stream 1 = stream 2 (lage resolutie).",
+        CamerasHelpText           = "Slot = positie in het grid (0..N-1, links-naar-rechts, boven-naar-onder). Kies bij Stream Normaal voor live multi-camera weergave; Hoog kost meer bandbreedte.",
+        CamerasDeleteRowTooltip   = "Rij verwijderen",
+        StreamHigh                = "Hoog",
+        StreamDefault             = "Normaal",
+        StreamLow                 = "Laag",
         CamerasHeaderSlot         = "SLOT",
         CamerasHeaderCameraIndex  = "CAMERA #",
         CamerasHeaderStream       = "STREAM",
@@ -298,6 +312,10 @@ public sealed class StringsTable
         GridPageSubtitle          = "Hoeveel tegels worden er op het scherm getoond.",
         GridCardSize              = "Grid-grootte",
         GridTilesCountFormat      = "{0} tegels",
+        GridChoice1Caption        = "1 tegel (volledig scherm)",
+        GridChoice4Caption        = "4 tegels",
+        GridChoice9Caption        = "9 tegels",
+        GridChoice16Caption       = "16 tegels",
 
         PrivacyPageTitle          = "Privacy",
         PrivacyPageSubtitle       = "Sessie-PIN-beleid, auto-uit timer en visuele waarschuwing.",
@@ -381,6 +399,8 @@ public sealed class StringsTable
         SetupErrWarningMinutes    = "Waarschuwing-minuten moet 0 of hoger zijn.",
         SetupErrHttpPort          = "HTTP-poort moet een positief getal zijn.",
         SetupErrHttpsPort         = "HTTPS-poort moet een positief getal zijn (of leeg voor uit).",
+        SetupErrDuplicateSlotFormat   = "Slot {0} is meer dan één keer gebruikt. Iedere positie mag maar één camera hebben.",
+        SetupErrDuplicateCameraFormat = "Camera {0} staat meer dan één keer in de lijst. Iedere camera mag maar op één positie staan.",
         SetupErrSaveFailedFormat  = "Opslaan mislukt: {0}",
         SetupCertCreatedFormat    = "Self-signed certificaat aangemaakt: {0}",
         SetupCertCreateFailedFormat = "Kon certificaat niet aanmaken: {0}",
@@ -463,7 +483,11 @@ public sealed class StringsTable
         CamerasPageSubtitle       = "Which cameras are shown in which slot of the grid.",
         CamerasCardBindings       = "Slot bindings",
         CamerasAddRow             = "Add row",
-        CamerasHelpText           = "Slot = position in the grid (0..N-1, left-to-right, top-to-bottom). Stream 1 = stream 2 (low resolution).",
+        CamerasHelpText           = "Slot = position in the grid (0..N-1, left-to-right, top-to-bottom). Pick Default at Stream for live multi-camera viewing; High costs more bandwidth.",
+        CamerasDeleteRowTooltip   = "Delete row",
+        StreamHigh                = "High",
+        StreamDefault             = "Default",
+        StreamLow                 = "Low",
         CamerasHeaderSlot         = "SLOT",
         CamerasHeaderCameraIndex  = "CAMERA #",
         CamerasHeaderStream       = "STREAM",
@@ -473,6 +497,10 @@ public sealed class StringsTable
         GridPageSubtitle          = "How many tiles are shown on screen.",
         GridCardSize              = "Grid size",
         GridTilesCountFormat      = "{0} tiles",
+        GridChoice1Caption        = "1 tile (full-screen)",
+        GridChoice4Caption        = "4 tiles",
+        GridChoice9Caption        = "9 tiles",
+        GridChoice16Caption       = "16 tiles",
 
         PrivacyPageTitle          = "Privacy",
         PrivacyPageSubtitle       = "Session-PIN policy, auto-off timer and visual warning.",
@@ -556,6 +584,8 @@ public sealed class StringsTable
         SetupErrWarningMinutes    = "Warning minutes must be 0 or higher.",
         SetupErrHttpPort          = "HTTP port must be a positive number.",
         SetupErrHttpsPort         = "HTTPS port must be a positive number (or empty for off).",
+        SetupErrDuplicateSlotFormat   = "Slot {0} is used more than once. Each grid position can hold only one camera.",
+        SetupErrDuplicateCameraFormat = "Camera {0} appears more than once. Each camera can be placed on only one position.",
         SetupErrSaveFailedFormat  = "Save failed: {0}",
         SetupCertCreatedFormat    = "Self-signed certificate created: {0}",
         SetupCertCreateFailedFormat = "Could not create certificate: {0}",

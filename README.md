@@ -1,12 +1,12 @@
 # InteractiveMask
 
-**Version 1.0.6**
+**Version 1.1.0**
 
 ## Demo
 
-<video src="https://github.com/0ldManPlaying/Interactive-Masking-Display/releases/download/v1.0.6/IPM.mp4" controls width="720" muted></video>
+<video src="https://github.com/0ldManPlaying/Interactive-Masking-Display/releases/download/v1.1.0/IPM.mp4" controls width="720" muted></video>
 
-> If the player doesn't appear in your viewer, [download the demo here](https://github.com/0ldManPlaying/Interactive-Masking-Display/releases/download/v1.0.6/IPM.mp4) (228 MB, MP4).
+> If the player doesn't appear in your viewer, [download the demo here](https://github.com/0ldManPlaying/Interactive-Masking-Display/releases/download/v1.1.0/IPM.mp4) (228 MB, MP4).
 
 
 Windowless C# / .NET 9 / WPF kiosk application that connects to an IDIS NVR and displays a live video grid (up to 16 cameras) with per-tile **privacy blur masks** that can be toggled with a single click. Designed for healthcare facilities (Dutch *zorginstellingen*) where caregivers need to instantly hide a resident's room from on-screen view while still being able to verify the camera is working.
@@ -66,15 +66,15 @@ dotnet build InteractiveMask.sln -c Release -p:Platform=x64
 To produce an MSI:
 
 ```powershell
-.\build-installer.ps1 -Version 1.0.6
+.\build-installer.ps1 -Version 1.1.0
 ```
 
 For a signed MSI (Authenticode — e.g. SafeNet EV-token cert in `CurrentUser\My`):
 
 ```powershell
-.\build-installer.ps1 -Version 1.0.6 -Sign -CertSubject 'IDIS Nederland BV'
+.\build-installer.ps1 -Version 1.1.0 -Sign -CertSubject 'IDIS Nederland BV'
 # or by thumbprint:
-.\build-installer.ps1 -Version 1.0.6 -Sign -CertThumbprint <40-hex>
+.\build-installer.ps1 -Version 1.1.0 -Sign -CertThumbprint <40-hex>
 ```
 
 `-Sign` first signs every `InteractiveMask.*.exe` / `.dll` (so the cab embedded in the MSI contains signed binaries) and then signs the MSI itself. SHA-256 file digest + SHA-256 timestamp digest. The default timestamp server is DigiCert; override via `-TimestampUrl`.

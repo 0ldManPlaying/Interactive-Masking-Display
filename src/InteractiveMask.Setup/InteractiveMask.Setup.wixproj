@@ -19,6 +19,8 @@
     <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
     <!-- Firewall element moved out of util.wixext in WiX 5 — needs its own package. -->
     <PackageReference Include="WixToolset.Firewall.wixext" Version="5.0.2" />
+    <!-- WixUI dialog set + ExitDialogOptionalCheckbox for the launch-after-install option. -->
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
   </ItemGroup>
 
   <!-- BindPath provides the WiX linker with search directories. Without a

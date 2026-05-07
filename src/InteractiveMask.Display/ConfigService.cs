@@ -105,7 +105,13 @@ public sealed class ConfigService
         }
         if (stored.Cameras is not null)
         {
+            // Dedupe on both Slot and CameraIndex to recover gracefully from a config
+            // that was edited by hand or written by a buggy older build. First entry
+            // wins; later entries with the same slot or camera index are dropped.
+            var seenSlot = new HashSet<int>();
+            var seenCamera = new HashSet<int>();
             settings.Cameras = stored.Cameras
+                .Where(c => seenSlot.Add(c.Slot) && seenCamera.Add(c.CameraIndex))
                 .Select(c => new CameraSlotSettings
                 {
                     Slot = c.Slot,

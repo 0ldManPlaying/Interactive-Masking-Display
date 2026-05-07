@@ -664,12 +664,40 @@
                                                 <DataGridTextColumn Binding="{Binding CameraIndex}" Width="90">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderCameraIndex}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
-                                                <DataGridTextColumn Binding="{Binding StreamId}" Width="80">
-                                                    <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderStream}" /></DataGridTextColumn.Header>
-                                                </DataGridTextColumn>
+                                                <DataGridComboBoxColumn x:Name="StreamColumn"
+                                                                        SelectedValueBinding="{Binding StreamId, UpdateSourceTrigger=PropertyChanged}"
+                                                                        SelectedValuePath="Value"
+                                                                        DisplayMemberPath="Display"
+                                                                        Width="120">
+                                                    <DataGridComboBoxColumn.Header><TextBlock Text="{local:Loc CamerasHeaderStream}" /></DataGridComboBoxColumn.Header>
+                                                </DataGridComboBoxColumn>
                                                 <DataGridTextColumn Binding="{Binding Label}" Width="*">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderLabel}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
+                                                <!-- Delete column: trashcan-icon button per row, right-aligned, more
+                                                     discoverable than relying on the Del key. -->
+                                                <DataGridTemplateColumn Width="44" CanUserSort="False" CanUserResize="False" CanUserReorder="False">
+                                                    <DataGridTemplateColumn.Header>
+                                                        <TextBlock Text="" />
+                                                    </DataGridTemplateColumn.Header>
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Button Click="OnDeleteCameraRow"
+                                                                    Background="Transparent"
+                                                                    BorderThickness="0"
+                                                                    Foreground="{StaticResource text.muted}"
+                                                                    FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                                                    FontSize="14"
+                                                                    Cursor="Hand"
+                                                                    Padding="0"
+                                                                    Width="28" Height="28"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    ToolTip="{local:Loc CamerasDeleteRowTooltip}"
+                                                                    Content="&#xE74D;" />
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                         <TextBlock Foreground="{StaticResource text.muted}" FontSize="12" Margin="0,12,0,0"
@@ -688,22 +716,28 @@
                                     <StackPanel>
                                         <TextBlock Text="{local:Loc GridCardSize}" Style="{StaticResource SectionHeader}" />
                                         <StackPanel Orientation="Horizontal">
+                                            <RadioButton x:Name="Grid1" Style="{StaticResource GridChoice}" GroupName="GridSize">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="1 x 1" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice1Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </RadioButton>
                                             <RadioButton x:Name="Grid2" Style="{StaticResource GridChoice}" GroupName="GridSize">
                                                 <StackPanel HorizontalAlignment="Center">
                                                     <TextBlock Text="2 x 2" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="4 tegels"  Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice4Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
                                                 </StackPanel>
                                             </RadioButton>
                                             <RadioButton x:Name="Grid3" Style="{StaticResource GridChoice}" GroupName="GridSize">
                                                 <StackPanel HorizontalAlignment="Center">
                                                     <TextBlock Text="3 x 3" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="9 tegels"  Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice9Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
                                                 </StackPanel>
                                             </RadioButton>
                                             <RadioButton x:Name="Grid4" Style="{StaticResource GridChoice}" GroupName="GridSize">
                                                 <StackPanel HorizontalAlignment="Center">
                                                     <TextBlock Text="4 x 4" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="16 tegels" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice16Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
                                                 </StackPanel>
                                             </RadioButton>
                                         </StackPanel>

@@ -18,6 +18,7 @@ public partial class SetupWindow : Window
     private readonly AuditLog _audit;
     private readonly ObservableCollection<CameraSlotSettings> _cameras = new();
     private readonly ObservableCollection<AuditViewRow> _auditRows = new();
+    private readonly StreamChoices _streamChoices = new();
 
     public bool ConfigChanged { get; private set; }
 
@@ -30,6 +31,10 @@ public partial class SetupWindow : Window
         CameraGrid.ItemsSource = _cameras;
         AuditGrid.ItemsSource = _auditRows;
         AuditPath.Text = audit.Path;
+        // DataGridComboBoxColumn lives outside the visual tree until rendered, so
+        // it doesn't pick up DataContext or Window resources via the usual binding
+        // mechanisms. Wire ItemsSource directly to the live-language collection.
+        StreamColumn.ItemsSource = _streamChoices;
         Loaded += (_, _) => Populate();
     }
 
@@ -129,12 +134,14 @@ public partial class SetupWindow : Window
 
     private void SelectGridChoice(int rows)
     {
+        Grid1.IsChecked = rows == 1;
         Grid2.IsChecked = rows == 2;
         Grid3.IsChecked = rows == 3;
-        Grid4.IsChecked = rows == 4 || rows < 2 || rows > 4;
+        Grid4.IsChecked = rows == 4 || rows < 1 || rows > 4;
     }
 
     private int CurrentGridChoice() =>
+        Grid1.IsChecked == true ? 1 :
         Grid2.IsChecked == true ? 2 :
         Grid3.IsChecked == true ? 3 :
         4;
@@ -213,6 +220,13 @@ public partial class SetupWindow : Window
         });
     }
 
+    private void OnDeleteCameraRow(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+        if (btn.DataContext is not CameraSlotSettings row) return;
+        _cameras.Remove(row);
+    }
+
     // ---- Save / cancel -----------------------------------------------------
 
     private void OnSave(object sender, RoutedEventArgs e)
@@ -251,6 +265,24 @@ public partial class SetupWindow : Window
         var gridRows = CurrentGridChoice();
 
         CameraGrid.CommitEdit(DataGridEditingUnit.Row, true);
+
+        // Validate the camera list before save. Two errors that would crash the
+        // running app on next start: same slot used twice, or same camera index
+        // referenced from two slots. Surface them early with a clear message
+        // pointing at the offending row.
+        var cameraRows = _cameras.Where(c => c.Slot >= 0).ToList();
+        var dupSlot = cameraRows.GroupBy(c => c.Slot).FirstOrDefault(g => g.Count() > 1);
+        if (dupSlot is not null)
+        {
+            ShowError(string.Format(T.SetupErrDuplicateSlotFormat, dupSlot.Key));
+            return;
+        }
+        var dupCamera = cameraRows.GroupBy(c => c.CameraIndex).FirstOrDefault(g => g.Count() > 1);
+        if (dupCamera is not null)
+        {
+            ShowError(string.Format(T.SetupErrDuplicateCameraFormat, dupCamera.Key));
+            return;
+        }
 
         var settings = new AppSettings
         {
@@ -498,4 +530,36 @@ public partial class SetupWindow : Window
             Detail = ev.Detail,
         };
     }
+}
+
+/// <summary>
+/// User-facing stream labels for the cameras DataGrid. The stored value stays
+/// an int (0/1/2) so the existing config schema is unchanged; only the display
+/// is friendly. Labels follow the camera-stream convention: 0 = main / highest,
+/// 1 = secondary / default for multi-channel viewing, 2 = third / lowest.
+/// </summary>
+public sealed class StreamChoices : ObservableCollection<StreamChoice>
+{
+    public StreamChoices()
+    {
+        Add(new StreamChoice { Value = 0, Display = Strings.Instance.Current.StreamHigh });
+        Add(new StreamChoice { Value = 1, Display = Strings.Instance.Current.StreamDefault });
+        Add(new StreamChoice { Value = 2, Display = Strings.Instance.Current.StreamLow });
+        Strings.Instance.PropertyChanged += (_, _) => Refresh();
+    }
+
+    private void Refresh()
+    {
+        if (Count != 3) return;
+        var s = Strings.Instance.Current;
+        this[0] = new StreamChoice { Value = 0, Display = s.StreamHigh };
+        this[1] = new StreamChoice { Value = 1, Display = s.StreamDefault };
+        this[2] = new StreamChoice { Value = 2, Display = s.StreamLow };
+    }
+}
+
+public sealed class StreamChoice
+{
+    public int Value { get; init; }
+    public string Display { get; init; } = "";
 }
