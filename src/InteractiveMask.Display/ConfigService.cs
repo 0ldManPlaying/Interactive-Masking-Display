@@ -85,12 +85,47 @@ public sealed class ConfigService
 
     private static void ApplyStored(AppSettings settings, StoredConfig stored)
     {
-        if (stored.Nvr is not null)
+        // Multi-NVR is the new shape. Legacy configs with a single Nvr field
+        // get migrated into Nvrs[0] (Id=0) so existing camera entries (which
+        // default NvrId to 0) keep working without any user action.
+        if (stored.Nvrs is { Count: > 0 })
         {
-            settings.Nvr.Ip = stored.Nvr.Ip;
-            settings.Nvr.Port = stored.Nvr.Port;
-            settings.Nvr.User = stored.Nvr.User;
-            settings.Nvr.Password = DecryptPassword(stored.Nvr.PasswordEncrypted) ?? settings.Nvr.Password;
+            settings.Nvrs = stored.Nvrs
+                .Select(n => new NvrSettings
+                {
+                    Id = n.Id,
+                    Name = string.IsNullOrEmpty(n.Name) ? $"NVR {n.Id + 1}" : n.Name,
+                    Ip = n.Ip ?? "",
+                    Port = n.Port,
+                    User = n.User ?? "",
+                    Password = DecryptPassword(n.PasswordEncrypted) ?? "",
+                })
+                .ToList();
+        }
+        else if (stored.Nvr is not null && !string.IsNullOrEmpty(stored.Nvr.Ip))
+        {
+            settings.Nvrs = new List<NvrSettings>
+            {
+                new()
+                {
+                    Id = 0,
+                    Name = "NVR 1",
+                    Ip = stored.Nvr.Ip,
+                    Port = stored.Nvr.Port,
+                    User = stored.Nvr.User,
+                    Password = DecryptPassword(stored.Nvr.PasswordEncrypted) ?? "",
+                }
+            };
+        }
+        // Mirror the first NVR into the legacy Nvr field so any code path that
+        // hasn't been updated to iterate Nvrs still sees something sensible.
+        if (settings.Nvrs.Count > 0)
+        {
+            var first = settings.Nvrs[0];
+            settings.Nvr.Ip = first.Ip;
+            settings.Nvr.Port = first.Port;
+            settings.Nvr.User = first.User;
+            settings.Nvr.Password = first.Password;
         }
         if (stored.Grid is not null)
         {
@@ -105,16 +140,17 @@ public sealed class ConfigService
         }
         if (stored.Cameras is not null)
         {
-            // Dedupe on both Slot and CameraIndex to recover gracefully from a config
-            // that was edited by hand or written by a buggy older build. First entry
-            // wins; later entries with the same slot or camera index are dropped.
+            // Dedupe on Slot and on (NvrId, CameraIndex). The same camera index
+            // can legitimately appear twice across different NVRs; we only need
+            // to prevent duplicates within one NVR. First entry wins.
             var seenSlot = new HashSet<int>();
-            var seenCamera = new HashSet<int>();
+            var seenCamera = new HashSet<(int nvrId, int cameraIndex)>();
             settings.Cameras = stored.Cameras
-                .Where(c => seenSlot.Add(c.Slot) && seenCamera.Add(c.CameraIndex))
+                .Where(c => seenSlot.Add(c.Slot) && seenCamera.Add((c.NvrId, c.CameraIndex)))
                 .Select(c => new CameraSlotSettings
                 {
                     Slot = c.Slot,
+                    NvrId = c.NvrId,
                     CameraIndex = c.CameraIndex,
                     StreamId = c.StreamId,
                     Label = c.Label ?? "",
@@ -161,13 +197,29 @@ public sealed class ConfigService
 
     private static StoredConfig ToStored(AppSettings settings) => new()
     {
-        Nvr = new StoredNvr
-        {
-            Ip = settings.Nvr.Ip,
-            Port = settings.Nvr.Port,
-            User = settings.Nvr.User,
-            PasswordEncrypted = EncryptPassword(settings.Nvr.Password),
-        },
+        Nvrs = settings.Nvrs
+            .Select(n => new StoredNvr
+            {
+                Id = n.Id,
+                Name = n.Name,
+                Ip = n.Ip,
+                Port = n.Port,
+                User = n.User,
+                PasswordEncrypted = EncryptPassword(n.Password),
+            })
+            .ToList(),
+        // Keep legacy single-Nvr field in sync (mirror first entry) so code
+        // that hasn't been updated to read Nvrs still sees something sensible
+        // and an older build reading this config still works.
+        Nvr = settings.Nvrs.Count > 0
+            ? new StoredNvr
+            {
+                Ip = settings.Nvrs[0].Ip,
+                Port = settings.Nvrs[0].Port,
+                User = settings.Nvrs[0].User,
+                PasswordEncrypted = EncryptPassword(settings.Nvrs[0].Password),
+            }
+            : null,
         Grid = new StoredGrid
         {
             Rows = settings.Grid.Rows,
@@ -183,6 +235,7 @@ public sealed class ConfigService
             .Select(c => new StoredCamera
             {
                 Slot = c.Slot,
+                NvrId = c.NvrId,
                 CameraIndex = c.CameraIndex,
                 StreamId = c.StreamId,
                 Label = c.Label,
@@ -245,6 +298,9 @@ public sealed class ConfigService
 
     private sealed class StoredConfig
     {
+        /// <summary>Multi-NVR list (preferred). New configs only have this.</summary>
+        public List<StoredNvr>? Nvrs { get; set; }
+        /// <summary>Legacy single-NVR field (still read for migration).</summary>
         public StoredNvr? Nvr { get; set; }
         public StoredGrid? Grid { get; set; }
         public StoredPrivacy? Privacy { get; set; }
@@ -296,6 +352,8 @@ public sealed class ConfigService
 
     private sealed class StoredNvr
     {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
         public string Ip { get; set; } = "";
         public int Port { get; set; } = 8016;
         public string User { get; set; } = "";
@@ -318,6 +376,7 @@ public sealed class ConfigService
     private sealed class StoredCamera
     {
         public int Slot { get; set; }
+        public int NvrId { get; set; }
         public int CameraIndex { get; set; }
         public int StreamId { get; set; } = 1;
         public string Label { get; set; } = "";

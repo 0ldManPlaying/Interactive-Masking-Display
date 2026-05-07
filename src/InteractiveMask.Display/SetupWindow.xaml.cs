@@ -17,6 +17,7 @@ public partial class SetupWindow : Window
     private readonly AdminPinService _adminPin;
     private readonly AuditLog _audit;
     private readonly ObservableCollection<CameraSlotSettings> _cameras = new();
+    private readonly ObservableCollection<NvrSettings> _nvrs = new();
     private readonly ObservableCollection<AuditViewRow> _auditRows = new();
     private readonly StreamChoices _streamChoices = new();
 
@@ -29,12 +30,17 @@ public partial class SetupWindow : Window
         _adminPin = adminPin;
         _audit = audit;
         CameraGrid.ItemsSource = _cameras;
+        NvrGrid.ItemsSource = _nvrs;
         AuditGrid.ItemsSource = _auditRows;
         AuditPath.Text = audit.Path;
         // DataGridComboBoxColumn lives outside the visual tree until rendered, so
         // it doesn't pick up DataContext or Window resources via the usual binding
         // mechanisms. Wire ItemsSource directly to the live-language collection.
         StreamColumn.ItemsSource = _streamChoices;
+        // NVR-id ComboBox shows NVR names, stores the int id. Bound to the same
+        // ObservableCollection that the NVR DataGrid edits, so adding/removing
+        // an NVR row updates the cameras dropdown immediately.
+        NvrColumn.ItemsSource = _nvrs;
         Loaded += (_, _) => Populate();
     }
 
@@ -42,10 +48,19 @@ public partial class SetupWindow : Window
     {
         var settings = _configService.Load();
 
-        NvrIp.Text = settings.Nvr.Ip;
-        NvrPort.Text = settings.Nvr.Port.ToString(CultureInfo.InvariantCulture);
-        NvrUser.Text = settings.Nvr.User;
-        NvrPassword.Password = settings.Nvr.Password;
+        _nvrs.Clear();
+        foreach (var n in settings.Nvrs)
+        {
+            _nvrs.Add(new NvrSettings
+            {
+                Id = n.Id,
+                Name = n.Name,
+                Ip = n.Ip,
+                Port = n.Port,
+                User = n.User,
+                Password = n.Password,
+            });
+        }
 
         _cameras.Clear();
         foreach (var c in settings.Cameras)
@@ -53,6 +68,7 @@ public partial class SetupWindow : Window
             _cameras.Add(new CameraSlotSettings
             {
                 Slot = c.Slot,
+                NvrId = c.NvrId,
                 CameraIndex = c.CameraIndex,
                 StreamId = c.StreamId,
                 Label = c.Label,
@@ -211,9 +227,12 @@ public partial class SetupWindow : Window
     private void OnAddCameraRow(object sender, RoutedEventArgs e)
     {
         int nextSlot = _cameras.Count == 0 ? 0 : _cameras.Max(c => c.Slot) + 1;
+        // Default new cameras to the first NVR in the list (Id=0 if migrated).
+        int defaultNvrId = _nvrs.Count > 0 ? _nvrs[0].Id : 0;
         _cameras.Add(new CameraSlotSettings
         {
             Slot = nextSlot,
+            NvrId = defaultNvrId,
             CameraIndex = nextSlot,
             StreamId = 1,
             Label = $"Camera {nextSlot + 1}",
@@ -227,13 +246,91 @@ public partial class SetupWindow : Window
         _cameras.Remove(row);
     }
 
+    // ---- NVR tab -----------------------------------------------------------
+
+    private void OnAddNvrRow(object sender, RoutedEventArgs e)
+    {
+        // Pick a fresh Id one above the current max. Never reuse a deleted Id
+        // so any stale state.json or audit entry referring to that Id stays
+        // unambiguous.
+        int nextId = _nvrs.Count == 0 ? 0 : _nvrs.Max(n => n.Id) + 1;
+        _nvrs.Add(new NvrSettings
+        {
+            Id = nextId,
+            Name = $"NVR {nextId + 1}",
+            Ip = "",
+            Port = 8016,
+            User = "",
+            Password = "",
+        });
+    }
+
+    private void OnDeleteNvrRow(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+        if (btn.DataContext is not NvrSettings row) return;
+        // Block delete when cameras still reference this NVR id; the validation
+        // would catch it on save anyway, but failing fast here is friendlier.
+        if (_cameras.Any(c => c.NvrId == row.Id))
+        {
+            ShowError(string.Format(T.SetupErrNvrInUseFormat, row.Name));
+            return;
+        }
+        _nvrs.Remove(row);
+    }
+
+    /// <summary>
+    /// PasswordBox doesn't support direct two-way binding (passwords aren't
+    /// reflected on the DependencyProperty for security reasons), so we mirror
+    /// the value into the row's Password property whenever it changes. The Tag
+    /// attribute carries the row reference set up by the column template.
+    /// </summary>
+    private void OnNvrPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (sender is not PasswordBox pb) return;
+        if (pb.Tag is not NvrSettings row) return;
+        row.Password = pb.Password;
+    }
+
+    /// <summary>
+    /// Mirror the existing Password into the PasswordBox when the row is first
+    /// rendered. Without this, opening Setup would show empty password fields
+    /// for already-configured NVRs and a save-without-touch would clear them.
+    /// </summary>
+    private void OnNvrPasswordLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not PasswordBox pb) return;
+        if (pb.Tag is not NvrSettings row) return;
+        if (string.IsNullOrEmpty(row.Password)) return;
+        if (pb.Password != row.Password) pb.Password = row.Password;
+    }
+
     // ---- Save / cancel -----------------------------------------------------
 
     private void OnSave(object sender, RoutedEventArgs e)
     {
-        if (!int.TryParse(NvrPort.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port))
+        // Commit any in-flight NVR-grid edits first; otherwise the latest typed
+        // value in Name / Ip / Port etc. wouldn't be observable yet.
+        NvrGrid.CommitEdit(DataGridEditingUnit.Row, true);
+
+        if (_nvrs.Count == 0)
+        {
+            ShowError(T.SetupErrNoNvr);
+            return;
+        }
+
+        // Each NVR's Port field is a string in the bound text column; we round-trip
+        // it through int via the binding, so it's already int. Validate >0.
+        var badPort = _nvrs.FirstOrDefault(n => n.Port <= 0);
+        if (badPort is not null)
         {
             ShowError(T.SetupErrPort);
+            return;
+        }
+        var dupNvrId = _nvrs.GroupBy(n => n.Id).FirstOrDefault(g => g.Count() > 1);
+        if (dupNvrId is not null)
+        {
+            ShowError(string.Format(T.SetupErrDuplicateNvrFormat, dupNvrId.Key));
             return;
         }
         if (!int.TryParse(AutoUnmaskMinutes.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var autoMinutes) || autoMinutes < 0)
@@ -278,22 +375,36 @@ public partial class SetupWindow : Window
             ShowError(string.Format(T.SetupErrDuplicateSlotFormat, dupSlot.Key + 1));
             return;
         }
-        var dupCamera = cameraRows.GroupBy(c => c.CameraIndex).FirstOrDefault(g => g.Count() > 1);
+        var dupCamera = cameraRows.GroupBy(c => (c.NvrId, c.CameraIndex)).FirstOrDefault(g => g.Count() > 1);
         if (dupCamera is not null)
         {
-            ShowError(string.Format(T.SetupErrDuplicateCameraFormat, dupCamera.Key + 1));
+            ShowError(string.Format(T.SetupErrDuplicateCameraFormat, dupCamera.Key.CameraIndex + 1));
+            return;
+        }
+        // Catch cameras whose NvrId no longer corresponds to a configured NVR
+        // (can happen if user deletes an NVR row while cameras still reference it).
+        var validNvrIds = _nvrs.Select(n => n.Id).ToHashSet();
+        var orphan = cameraRows.FirstOrDefault(c => !validNvrIds.Contains(c.NvrId));
+        if (orphan is not null)
+        {
+            ShowError(string.Format(T.SetupErrCameraOrphanFormat, orphan.Slot + 1));
             return;
         }
 
         var settings = new AppSettings
         {
-            Nvr =
-            {
-                Ip = NvrIp.Text.Trim(),
-                Port = port,
-                User = NvrUser.Text.Trim(),
-                Password = NvrPassword.Password,
-            },
+            Nvrs = _nvrs
+                .OrderBy(n => n.Id)
+                .Select(n => new NvrSettings
+                {
+                    Id = n.Id,
+                    Name = string.IsNullOrWhiteSpace(n.Name) ? $"NVR {n.Id + 1}" : n.Name.Trim(),
+                    Ip = (n.Ip ?? "").Trim(),
+                    Port = n.Port,
+                    User = (n.User ?? "").Trim(),
+                    Password = n.Password ?? "",
+                })
+                .ToList(),
             Grid = { Rows = gridRows, Columns = gridRows },
             Privacy =
             {
@@ -307,6 +418,7 @@ public partial class SetupWindow : Window
                 .Select(c => new CameraSlotSettings
                 {
                     Slot = c.Slot,
+                    NvrId = c.NvrId,
                     CameraIndex = c.CameraIndex,
                     StreamId = c.StreamId,
                     Label = c.Label ?? "",

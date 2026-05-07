@@ -15,20 +15,29 @@ public partial class MainWindow : Window
     private readonly StateStore _stateStore = new();
     private readonly AuditLog _audit = new();
     private readonly ConfigService _configService = new();
-    private readonly Dictionary<int, int> _slotByCameraIndex = new();
+    /// <summary>Per-slot binding to a unique camera identity (NVR + camera index).
+    /// Replaces the old single-NVR <c>_slotByCameraIndex</c> map.</summary>
+    private readonly Dictionary<int, (int NvrId, int CameraIndex)> _bindingsBySlot = new();
+    /// <summary>One <see cref="NvrSession"/> per configured NVR id. Lifetime
+    /// managed alongside the rest of the app: created on load, hot-swapped on
+    /// structural NVR changes, all disposed on Closing.</summary>
+    private readonly Dictionary<int, NvrSession> _sessionsById = new();
+    /// <summary>Per-NVR latest disconnect label. The reconnect banner aggregates
+    /// across all NVRs ("Verbinding met N NVRs verloren — opnieuw...").</summary>
+    private readonly Dictionary<int, string> _disconnectLabelByNvr = new();
+    /// <summary>Per-NVR earliest scheduled reconnect time. The banner shows the
+    /// soonest one so the countdown reflects the next attempt across the fleet.</summary>
+    private readonly Dictionary<int, DateTime> _nextReconnectByNvr = new();
     private readonly DispatcherTimer _timerTick = new() { Interval = TimeSpan.FromSeconds(1) };
 
     private readonly KioskGuard _kioskGuard = new();
     private MaskController? _maskController;
     private IDisposable? _gdkLifetime;
-    private NvrSession? _session;
     private IpcStateBroadcaster? _ipcBroadcaster;
     private PrivacySettings _privacy = new();
     private AuthSettings _auth = new();
     private AppSettings? _lastAppliedSettings;
     private bool _authenticatedExit;
-    private DateTime? _nextReconnectUtc;
-    private string _lastDisconnectLabel = "";
     private SyslogForwarder? _auditForwarder;
     private AuditForwardSettings _auditForward = new();
 
@@ -62,7 +71,7 @@ public partial class MainWindow : Window
         }
 
         var settings = LoadSettings();
-        if (string.IsNullOrWhiteSpace(settings.Nvr.Ip) || string.IsNullOrWhiteSpace(settings.Nvr.Password))
+        if (settings.Nvrs.Count == 0 || settings.Nvrs.All(n => string.IsNullOrWhiteSpace(n.Ip) || string.IsNullOrWhiteSpace(n.Password)))
         {
             _viewModel.StatusLine = Strings.Instance.Current.MainNoConfigLine;
             return;
@@ -88,51 +97,20 @@ public partial class MainWindow : Window
 
         _gdkLifetime = GdkLifetime.Acquire("InteractiveMask.Display");
 
-        _session = new NvrSession();
-        _session.Log += msg => Dispatcher.BeginInvoke(() => _viewModel.StatusLine = msg);
-        _session.Connected += channel =>
+        // Spin up one NvrSession per configured NVR. Each session reconnects
+        // independently; the banner aggregates their state.
+        foreach (var nvr in settings.Nvrs)
         {
-            _audit.Write(AuditEventType.NvrConnected, source: "local", detail: $"channel={channel}");
-            Dispatcher.BeginInvoke(() =>
-            {
-                _nextReconnectUtc = null;
-                _lastDisconnectLabel = "";
-                _viewModel.ConnectionLost = false;
-                _viewModel.ConnectionBanner = "";
-            });
-        };
-        _session.Disconnected += reason =>
-        {
-            var label = DisconnectReasonText.ForUser(reason);
-            _audit.Write(AuditEventType.NvrDisconnected, source: "local", detail: $"{reason} - {label}");
-            Dispatcher.BeginInvoke(() =>
-            {
-                _lastDisconnectLabel = label;
-                foreach (var tile in _viewModel.Tiles)
-                {
-                    if (tile.HasCamera) tile.SetDisconnectDetail(label);
-                }
-                _viewModel.StatusLine = label;
-                _viewModel.ConnectionLost = true;
-                UpdateConnectionBanner();
-            });
-        };
-        _session.ReconnectScheduled += nextAttemptUtc =>
-        {
-            Dispatcher.BeginInvoke(() =>
-            {
-                _nextReconnectUtc = nextAttemptUtc;
-                _viewModel.ConnectionLost = true;
-                UpdateConnectionBanner();
-            });
-        };
+            if (string.IsNullOrWhiteSpace(nvr.Ip) || string.IsNullOrWhiteSpace(nvr.Password)) continue;
+            CreateAndWireSession(nvr);
+        }
 
         // Defensive registration: a corrupted config (or a manual edit) could contain
-        // the same camera index twice or two cameras pointing at the same slot. Either
-        // would have thrown InvalidOperationException out of RegisterTile and crashed
-        // the app on every startup, including after re-install (config.json lives in
-        // ProgramData and survives uninstall by design).
-        var seenCameraIndexes = new HashSet<int>();
+        // the same slot twice or two cameras pointing at the same (NVR, camera) pair.
+        // Either would have thrown InvalidOperationException out of RegisterTile and
+        // crashed the app on every startup, including after re-install (config.json
+        // lives in ProgramData and survives uninstall by design).
+        var seenIdentities = new HashSet<(int nvrId, int cameraIdx)>();
         var seenSlots = new HashSet<int>();
         foreach (var cam in settings.Cameras)
         {
@@ -140,25 +118,31 @@ public partial class MainWindow : Window
             if (!seenSlots.Add(cam.Slot))
             {
                 _audit.Write(AuditEventType.AppStarted, source: "config",
-                    detail: $"duplicate slot {cam.Slot} skipped (camera={cam.CameraIndex})");
+                    detail: $"duplicate slot {cam.Slot} skipped (nvr={cam.NvrId}, camera={cam.CameraIndex})");
                 continue;
             }
-            if (!seenCameraIndexes.Add(cam.CameraIndex))
+            if (!seenIdentities.Add((cam.NvrId, cam.CameraIndex)))
             {
                 _audit.Write(AuditEventType.AppStarted, source: "config",
-                    detail: $"duplicate camera {cam.CameraIndex} skipped (slot={cam.Slot})");
+                    detail: $"duplicate camera nvr={cam.NvrId} idx={cam.CameraIndex} skipped (slot={cam.Slot})");
+                continue;
+            }
+            if (!_sessionsById.TryGetValue(cam.NvrId, out var session))
+            {
+                _audit.Write(AuditEventType.AppStarted, source: "config",
+                    detail: $"camera nvr={cam.NvrId} idx={cam.CameraIndex} skipped: NVR not configured");
                 continue;
             }
             try
             {
-                var camera = _session.RegisterTile(cam.CameraIndex, cam.StreamId, cam.Label);
+                var camera = session.RegisterTile(cam.CameraIndex, cam.StreamId, cam.Label);
                 _viewModel.BindCameraToSlot(cam.Slot, camera);
-                _slotByCameraIndex[cam.CameraIndex] = cam.Slot;
+                _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             }
             catch (Exception ex)
             {
                 _audit.Write(AuditEventType.AppStarted, source: "config",
-                    detail: $"camera {cam.CameraIndex} (slot {cam.Slot}) skipped: {ex.Message}");
+                    detail: $"camera nvr={cam.NvrId} idx={cam.CameraIndex} (slot {cam.Slot}) skipped: {ex.Message}");
             }
         }
 
@@ -167,15 +151,79 @@ public partial class MainWindow : Window
         // Start the IPC broadcaster after the grid is fully wired so the very first
         // Hello snapshot already reflects any restored masks.
         _ipcBroadcaster = new IpcStateBroadcaster(
-            _viewModel, _slotByCameraIndex, _maskController, _pinService, Dispatcher);
+            _viewModel, _bindingsBySlot, _maskController, _pinService, Dispatcher);
         _ipcBroadcaster.Start();
 
-        var conn = new NvrConnectionInfo(settings.Nvr.Ip, settings.Nvr.Port, settings.Nvr.User, settings.Nvr.Password);
-        _session.Start(conn);
-        _timerTick.Start();
+        // Connect every configured NVR. Each session manages its own retry.
+        foreach (var nvr in settings.Nvrs)
+        {
+            if (!_sessionsById.TryGetValue(nvr.Id, out var session)) continue;
+            var conn = new NvrConnectionInfo(nvr.Ip, nvr.Port, nvr.User, nvr.Password);
+            session.Start(conn);
+        }
 
+        _timerTick.Start();
         ApplyKioskMode(settings.Kiosk.Enabled);
         _lastAppliedSettings = settings;
+    }
+
+    /// <summary>
+    /// Build a new <see cref="NvrSession"/> for one configured NVR and wire its
+    /// connect / disconnect / reconnect events into the per-NVR aggregation
+    /// dictionaries. Called on startup and on the live-add path.
+    /// </summary>
+    private NvrSession CreateAndWireSession(NvrSettings nvr)
+    {
+        var session = new NvrSession();
+        int nvrId = nvr.Id;
+        string nvrName = string.IsNullOrEmpty(nvr.Name) ? $"NVR {nvr.Id + 1}" : nvr.Name;
+
+        session.Log += msg => Dispatcher.BeginInvoke(
+            () => _viewModel.StatusLine = $"[{nvrName}] {msg}");
+
+        session.Connected += channel =>
+        {
+            _audit.Write(AuditEventType.NvrConnected, source: $"nvr:{nvrId}", detail: $"channel={channel}");
+            Dispatcher.BeginInvoke(() =>
+            {
+                _disconnectLabelByNvr.Remove(nvrId);
+                _nextReconnectByNvr.Remove(nvrId);
+                UpdateConnectionBanner();
+            });
+        };
+
+        session.Disconnected += reason =>
+        {
+            var label = DisconnectReasonText.ForUser(reason);
+            _audit.Write(AuditEventType.NvrDisconnected, source: $"nvr:{nvrId}", detail: $"{reason} - {label}");
+            Dispatcher.BeginInvoke(() =>
+            {
+                _disconnectLabelByNvr[nvrId] = label;
+                // Mark only tiles bound to THIS NVR as disconnected; tiles on
+                // other NVRs may still be live.
+                foreach (var (slot, identity) in _bindingsBySlot)
+                {
+                    if (identity.NvrId != nvrId) continue;
+                    if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
+                    var tile = _viewModel.Tiles[slot];
+                    if (tile.HasCamera) tile.SetDisconnectDetail(label);
+                }
+                _viewModel.StatusLine = $"[{nvrName}] {label}";
+                UpdateConnectionBanner();
+            });
+        };
+
+        session.ReconnectScheduled += nextAttemptUtc =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _nextReconnectByNvr[nvrId] = nextAttemptUtc;
+                UpdateConnectionBanner();
+            });
+        };
+
+        _sessionsById[nvrId] = session;
+        return session;
     }
 
     /// <summary>
@@ -241,19 +289,35 @@ public partial class MainWindow : Window
     private void UpdateConnectionBanner()
     {
         var s = Strings.Instance.Current;
-        if (_nextReconnectUtc is null)
+        // Aggregate across all NVRs: any disconnect → banner on. The countdown
+        // tracks the soonest scheduled reconnect across the fleet so the user
+        // sees a sensible single timer.
+        bool anyDisconnected = _disconnectLabelByNvr.Count > 0 || _nextReconnectByNvr.Count > 0;
+        if (!anyDisconnected)
+        {
+            _viewModel.ConnectionLost = false;
+            _viewModel.ConnectionBanner = "";
+            return;
+        }
+        _viewModel.ConnectionLost = true;
+
+        DateTime? nextAttempt = _nextReconnectByNvr.Values.Count > 0 ? _nextReconnectByNvr.Values.Min() : (DateTime?)null;
+        if (nextAttempt is null)
         {
             _viewModel.ConnectionBanner = s.ConnectionAttempting;
             return;
         }
-        var remaining = _nextReconnectUtc.Value - DateTime.UtcNow;
+        var remaining = nextAttempt.Value - DateTime.UtcNow;
         if (remaining <= TimeSpan.Zero)
         {
             _viewModel.ConnectionBanner = s.ConnectionAttempting;
             return;
         }
         int seconds = (int)Math.Ceiling(remaining.TotalSeconds);
-        var reason = string.IsNullOrEmpty(_lastDisconnectLabel) ? s.ConnectionLost : _lastDisconnectLabel;
+        // Pick the most-recent disconnect label as a representative reason; with
+        // multiple NVRs offline at once we show one of them rather than a
+        // running list (the per-tile status bar shows the per-NVR detail).
+        string reason = _disconnectLabelByNvr.Values.LastOrDefault() ?? s.ConnectionLost;
         _viewModel.ConnectionBanner = string.Format(s.ConnectionLostFormat, reason, seconds);
     }
 
@@ -375,69 +439,79 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Reconcile the running session against a new camera list without a restart.
-    /// Three cases per camera:
-    ///   - Removed: detach the tile from its old slot and tell the session to drop it
-    ///   - Added: register with the GDK and bind to its target slot
-    ///   - Moved or stream/label changed: detach from old slot, push new state to the
-    ///     existing CameraTile, rebind to (possibly new) slot
+    /// Reconcile the running sessions against a new camera list without a restart.
+    /// With multi-NVR, the per-NVR target list determines what each session ends
+    /// up subscribing to; bindings are slot-keyed so a camera moved between
+    /// NVRs detaches from one session and attaches via another.
     /// </summary>
     private void ApplyCameraChangesLive(List<CameraSlotSettings> newCameras)
     {
-        if (_session is null) return;
+        if (_sessionsById.Count == 0) return;
 
-        var newByCameraIdx = newCameras
-            .GroupBy(c => c.CameraIndex)
+        // Step 1 — detach tiles whose binding (NvrId, CameraIndex) changed or
+        // whose slot moved. The post-step 3 loop reattaches them at the new slot.
+        var newBySlot = newCameras
+            .Where(c => c.Slot >= 0)
+            .GroupBy(c => c.Slot)
             .ToDictionary(g => g.Key, g => g.First());
 
-        // Detach tiles whose camera was removed OR whose slot moved. We always
-        // detach when the slot changed and re-attach in step 3 so the
-        // ViewModel state matches the new config exactly.
-        var oldEntries = _slotByCameraIndex.ToList();
-        foreach (var (cameraIdx, oldSlot) in oldEntries)
+        var oldEntries = _bindingsBySlot.ToList();
+        foreach (var (oldSlot, identity) in oldEntries)
         {
-            bool stillPresent = newByCameraIdx.TryGetValue(cameraIdx, out var newCam);
-            bool slotMoved = stillPresent && newCam!.Slot != oldSlot;
-            if (!stillPresent || slotMoved)
+            bool keep = newBySlot.TryGetValue(oldSlot, out var newCam)
+                        && newCam!.NvrId == identity.NvrId
+                        && newCam.CameraIndex == identity.CameraIndex;
+            if (!keep)
             {
                 if (oldSlot >= 0 && oldSlot < _viewModel.Tiles.Count)
                 {
                     _viewModel.Tiles[oldSlot].Detach();
                 }
-                _slotByCameraIndex.Remove(cameraIdx);
+                _bindingsBySlot.Remove(oldSlot);
             }
         }
 
-        // Tell the GDK which cameras we now want subscribed to (and at which streams).
-        var diff = _session.UpdateCameras(
-            newCameras.Select(c => (c.CameraIndex, c.StreamId, c.Label)));
+        // Step 2 — recompute the per-NVR target list and ask each session to
+        // reconcile. Cameras in the new list that point at an unknown NVR id
+        // are silently skipped (the user never reaches that state via Setup;
+        // it would only happen with a hand-edited config).
+        var grouped = newCameras
+            .Where(c => _sessionsById.ContainsKey(c.NvrId))
+            .GroupBy(c => c.NvrId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        int totalAdded = 0, totalRemoved = 0;
+        foreach (var (nvrId, session) in _sessionsById)
+        {
+            grouped.TryGetValue(nvrId, out var camsForThisNvr);
+            var diff = session.UpdateCameras(
+                (camsForThisNvr ?? new()).Select(c => (c.CameraIndex, c.StreamId, c.Label)));
+            totalAdded += diff.Added.Count;
+            totalRemoved += diff.Removed.Count;
+        }
 
         _audit.Write(AuditEventType.AppStarted, source: "config",
-            detail: $"camera list updated: +{diff.Added.Count} / -{diff.Removed.Count}");
+            detail: $"camera list updated: +{totalAdded} / -{totalRemoved}");
 
-        // Bind every camera in the new list to its target slot. Skipping the ones
-        // already bound at the right slot avoids unnecessary churn for unchanged
-        // cameras (their image stays live throughout the apply).
+        // Step 3 — bind every camera in the new list to its slot. Cameras that
+        // were already bound at the right slot are skipped so the live image
+        // stays uninterrupted.
         foreach (var cam in newCameras)
         {
             if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
-            if (_slotByCameraIndex.ContainsKey(cam.CameraIndex)) continue;
+            if (_bindingsBySlot.ContainsKey(cam.Slot)) continue;
+            if (!_sessionsById.TryGetValue(cam.NvrId, out var session)) continue;
+            if (!session.Tiles.TryGetValue(cam.CameraIndex, out var cameraTile)) continue;
 
-            if (_session.Tiles.TryGetValue(cam.CameraIndex, out var cameraTile))
-            {
-                _viewModel.BindCameraToSlot(cam.Slot, cameraTile);
-                _slotByCameraIndex[cam.CameraIndex] = cam.Slot;
-            }
+            _viewModel.BindCameraToSlot(cam.Slot, cameraTile);
+            _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
         }
 
-        // Refresh labels for cameras that may have only had their label changed
-        // (covered by Detach+Attach above only if slot moved; for unchanged slot
-        // with label-only change, push the label directly).
+        // Step 4 — refresh labels for cameras whose only change was the label.
         foreach (var cam in newCameras)
         {
-            if (!_slotByCameraIndex.TryGetValue(cam.CameraIndex, out var slot)) continue;
-            if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
-            _viewModel.Tiles[slot].UpdateLabel(cam.Label);
+            if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
+            _viewModel.Tiles[cam.Slot].UpdateLabel(cam.Label);
         }
     }
 
@@ -457,13 +531,25 @@ public partial class MainWindow : Window
     /// </summary>
     private bool HasStructuralChange(AppSettings updated)
     {
-        var oldNvr = _session is null ? null : _lastAppliedSettings?.Nvr;
-        if (oldNvr is null) return true;
-        if (oldNvr.Ip != updated.Nvr.Ip ||
-            oldNvr.Port != updated.Nvr.Port ||
-            oldNvr.User != updated.Nvr.User ||
-            oldNvr.Password != updated.Nvr.Password)
-            return true;
+        if (_lastAppliedSettings is null || _sessionsById.Count == 0) return true;
+
+        // Any change to the NVR fleet (added, removed, or any connection field
+        // changed for an existing NVR) is structural. We could in theory live-add
+        // or live-remove a session, but doing it transactionally with the camera
+        // bindings is fiddly enough that a clean restart is the safer default.
+        var oldById = _lastAppliedSettings.Nvrs.ToDictionary(n => n.Id);
+        var newById = updated.Nvrs.ToDictionary(n => n.Id);
+        if (oldById.Count != newById.Count) return true;
+        foreach (var (id, oldNvr) in oldById)
+        {
+            if (!newById.TryGetValue(id, out var newNvr)) return true;
+            if (oldNvr.Ip != newNvr.Ip ||
+                oldNvr.Port != newNvr.Port ||
+                oldNvr.User != newNvr.User ||
+                oldNvr.Password != newNvr.Password ||
+                oldNvr.Name != newNvr.Name)
+                return true;
+        }
 
         if (_viewModel.Rows != updated.Grid.Rows || _viewModel.Columns != updated.Grid.Columns)
             return true;
@@ -521,8 +607,8 @@ public partial class MainWindow : Window
         _stateStore.Flush();
         _ipcBroadcaster?.Dispose();
         _ipcBroadcaster = null;
-        _session?.Dispose();
-        _session = null;
+        foreach (var session in _sessionsById.Values) session.Dispose();
+        _sessionsById.Clear();
         _gdkLifetime?.Dispose();
         _gdkLifetime = null;
         _audit.Write(AuditEventType.AppStopped, source: "local");
@@ -543,11 +629,10 @@ public partial class MainWindow : Window
         foreach (var tile in _viewModel.Tiles)
         {
             if (!tile.HasCamera) continue;
-            // Find the camera index this tile is bound to via the inverse map.
             int cameraIndex = -1;
-            foreach (var kv in _slotByCameraIndex)
+            if (_bindingsBySlot.TryGetValue(tile.SlotIndex, out var identity))
             {
-                if (kv.Value == tile.SlotIndex) { cameraIndex = kv.Key; break; }
+                cameraIndex = identity.CameraIndex;
             }
             tiles.Add(new PersistedTile(
                 Slot: tile.SlotIndex,
@@ -564,8 +649,9 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// On startup, replay the persisted mask state. Tiles are matched by camera index;
-    /// if a previously-masked camera is no longer in the config the entry is dropped.
+    /// On startup, replay the persisted mask state. Tiles are matched by slot
+    /// (the user-facing position); if the slot no longer exists in the new
+    /// config or the camera moved, the entry is dropped.
     /// </summary>
     private void RestoreState()
     {
@@ -575,7 +661,11 @@ public partial class MainWindow : Window
         int restoredMasked = 0;
         foreach (var pt in state.Tiles)
         {
-            if (!_slotByCameraIndex.TryGetValue(pt.CameraIndex, out var slot)) continue;
+            int slot = pt.Slot;
+            if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
+            // Only restore if the slot is currently bound to a camera at all;
+            // a re-config that emptied the slot drops the persisted mask.
+            if (!_bindingsBySlot.ContainsKey(slot)) continue;
             if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
             var tile = _viewModel.Tiles[slot];
             if (pt.IsMasked)

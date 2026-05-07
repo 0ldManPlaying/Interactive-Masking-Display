@@ -2,7 +2,17 @@ namespace InteractiveMask.Display;
 
 public sealed class AppSettings
 {
+    /// <summary>List of all NVRs the kiosk talks to. Each entry has a stable Id
+    /// referenced from <see cref="CameraSlotSettings.NvrId"/>. The legacy single
+    /// <see cref="Nvr"/> field is migrated into <c>Nvrs[0]</c> by ConfigService
+    /// the first time an old config is loaded.</summary>
+    public List<NvrSettings> Nvrs { get; set; } = new();
+
+    /// <summary>Legacy single-NVR field. Kept on the type so existing code paths
+    /// that only consult one NVR still compile during the multi-NVR migration;
+    /// new code should iterate <see cref="Nvrs"/>.</summary>
     public NvrSettings Nvr { get; set; } = new();
+
     public GridSettings Grid { get; set; } = new();
     public List<CameraSlotSettings> Cameras { get; set; } = new();
     public PrivacySettings Privacy { get; set; } = new();
@@ -106,6 +116,13 @@ public sealed class PrivacySettings
 
 public sealed class NvrSettings
 {
+    /// <summary>Stable identifier referenced from <see cref="CameraSlotSettings.NvrId"/>.
+    /// Assigned by Setup when a new NVR row is added; never reused after delete.</summary>
+    public int Id { get; set; }
+
+    /// <summary>User-facing label, shown in the NVR dropdown of the Cameras tab.</summary>
+    public string Name { get; set; } = "";
+
     public string Ip { get; set; } = "";
     public int Port { get; set; } = 8016;
     public string User { get; set; } = "";
@@ -121,6 +138,11 @@ public sealed class GridSettings
 public sealed class CameraSlotSettings
 {
     public int Slot { get; set; }
+    /// <summary>Identifies which NVR (by <see cref="NvrSettings.Id"/>) this binding
+    /// belongs to. Defaults to 0 so legacy single-NVR configs migrate cleanly:
+    /// the migrated single NVR ends up as Id=0 and existing camera entries keep
+    /// pointing at it without any explicit field set.</summary>
+    public int NvrId { get; set; }
     public int CameraIndex { get; set; }
     public int StreamId { get; set; } = 1;
     public string Label { get; set; } = "";

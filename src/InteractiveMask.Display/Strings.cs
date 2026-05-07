@@ -98,6 +98,10 @@ public sealed class StringsTable
     public string NvrFieldUser { get; init; } = "";
     public string NvrFieldPassword { get; init; } = "";
     public string NvrPasswordHint { get; init; } = "";
+    public string NvrAddRow { get; init; } = "";
+    public string NvrDeleteRowTooltip { get; init; } = "";
+    public string NvrHeaderName { get; init; } = "";
+    public string NvrMultiHint { get; init; } = "";
 
     // Cameras tab
     public string CamerasPageTitle { get; init; } = "";
@@ -110,6 +114,7 @@ public sealed class StringsTable
     public string StreamDefault { get; init; } = "";
     public string StreamLow { get; init; } = "";
     public string CamerasHeaderSlot { get; init; } = "";
+    public string CamerasHeaderNvr { get; init; } = "";
     public string CamerasHeaderCameraIndex { get; init; } = "";
     public string CamerasHeaderStream { get; init; } = "";
     public string CamerasHeaderLabel { get; init; } = "";
@@ -215,6 +220,10 @@ public sealed class StringsTable
     public string SetupErrHttpsPort { get; init; } = "";
     public string SetupErrDuplicateSlotFormat { get; init; } = "";
     public string SetupErrDuplicateCameraFormat { get; init; } = "";
+    public string SetupErrDuplicateNvrFormat { get; init; } = "";
+    public string SetupErrCameraOrphanFormat { get; init; } = "";
+    public string SetupErrNvrInUseFormat { get; init; } = "";
+    public string SetupErrNoNvr { get; init; } = "";
     public string SetupErrSaveFailedFormat { get; init; } = "";
     public string SetupCertCreatedFormat { get; init; } = "";
     public string SetupCertCreateFailedFormat { get; init; } = "";
@@ -285,25 +294,30 @@ public sealed class StringsTable
         NavAudit                  = "Audit-log",
         NavAdmin                  = "Beheerder",
 
-        NvrPageTitle              = "NVR-verbinding",
-        NvrPageSubtitle           = "Direct LAN, IDIS-protocol op poort 8016.",
-        NvrCardConnection         = "Verbinding",
+        NvrPageTitle              = "NVR-verbindingen",
+        NvrPageSubtitle           = "Een of meerdere NVRs. Camera's in de Cameras-tab kunnen elke NVR uit deze lijst kiezen.",
+        NvrCardConnection         = "NVR-lijst",
         NvrFieldIp                = "IP-adres",
         NvrFieldPort              = "Poort",
         NvrFieldUser              = "Gebruiker",
         NvrFieldPassword          = "Wachtwoord",
         NvrPasswordHint           = "Het wachtwoord wordt versleuteld opgeslagen via Windows DPAPI (machine-scope).",
+        NvrAddRow                 = "NVR toevoegen",
+        NvrDeleteRowTooltip       = "NVR verwijderen",
+        NvrHeaderName             = "NAAM",
+        NvrMultiHint              = "Voeg meerdere NVRs toe als je een grid wilt opbouwen met camera's uit verschillende recorders. Iedere camera in de Cameras-tab kiest welke NVR via de NVR-kolom.",
 
         CamerasPageTitle          = "Cameras",
         CamerasPageSubtitle       = "Welke camera's worden in welk slot van het grid getoond.",
         CamerasCardBindings       = "Slot-bindingen",
         CamerasAddRow             = "Rij toevoegen",
-        CamerasHelpText           = "Slot = positie in het grid (1..N, links-naar-rechts, boven-naar-onder). Camera # = camerakanaal op de NVR (begint bij 1). Kies bij Stream Normaal voor live multi-camera weergave; Hoog kost meer bandbreedte.",
+        CamerasHelpText           = "Slot = positie in het grid (1..N). Kies bij NVR uit welke recorder deze camera komt. Camera # = camerakanaal op die NVR (begint bij 1). Stream Normaal voor live multi-camera weergave; Hoog kost meer bandbreedte.",
         CamerasDeleteRowTooltip   = "Rij verwijderen",
         StreamHigh                = "Hoog",
         StreamDefault             = "Normaal",
         StreamLow                 = "Laag",
         CamerasHeaderSlot         = "SLOT",
+        CamerasHeaderNvr          = "NVR",
         CamerasHeaderCameraIndex  = "CAMERA #",
         CamerasHeaderStream       = "STREAM",
         CamerasHeaderLabel        = "LABEL",
@@ -401,6 +415,10 @@ public sealed class StringsTable
         SetupErrHttpsPort         = "HTTPS-poort moet een positief getal zijn (of leeg voor uit).",
         SetupErrDuplicateSlotFormat   = "Slot {0} is meer dan één keer gebruikt. Iedere positie mag maar één camera hebben.",
         SetupErrDuplicateCameraFormat = "Camera {0} staat meer dan één keer in de lijst. Iedere camera mag maar op één positie staan.",
+        SetupErrDuplicateNvrFormat    = "NVR-id {0} komt meer dan één keer voor. Iedere NVR moet een uniek id hebben.",
+        SetupErrCameraOrphanFormat    = "Slot {0} verwijst naar een NVR die niet (meer) in de lijst staat. Selecteer een geldige NVR.",
+        SetupErrNvrInUseFormat        = "NVR \"{0}\" is in gebruik door een of meer cameras. Verplaats die cameras eerst naar een andere NVR voordat je deze NVR verwijdert.",
+        SetupErrNoNvr                 = "Voeg minstens één NVR toe voordat je opslaat.",
         SetupErrSaveFailedFormat  = "Opslaan mislukt: {0}",
         SetupCertCreatedFormat    = "Self-signed certificaat aangemaakt: {0}",
         SetupCertCreateFailedFormat = "Kon certificaat niet aanmaken: {0}",
@@ -470,25 +488,30 @@ public sealed class StringsTable
         NavAudit                  = "Audit log",
         NavAdmin                  = "Administrator",
 
-        NvrPageTitle              = "NVR connection",
-        NvrPageSubtitle           = "Direct LAN, IDIS protocol on port 8016.",
-        NvrCardConnection         = "Connection",
+        NvrPageTitle              = "NVR connections",
+        NvrPageSubtitle           = "One or multiple NVRs. Cameras on the Cameras tab can pick any NVR from this list.",
+        NvrCardConnection         = "NVR list",
         NvrFieldIp                = "IP address",
         NvrFieldPort              = "Port",
         NvrFieldUser              = "Username",
         NvrFieldPassword          = "Password",
         NvrPasswordHint           = "The password is stored encrypted via Windows DPAPI (machine scope).",
+        NvrAddRow                 = "Add NVR",
+        NvrDeleteRowTooltip       = "Delete NVR",
+        NvrHeaderName             = "NAME",
+        NvrMultiHint              = "Add multiple NVRs to build a grid with cameras from different recorders. Each camera on the Cameras tab picks its NVR via the NVR column.",
 
         CamerasPageTitle          = "Cameras",
         CamerasPageSubtitle       = "Which cameras are shown in which slot of the grid.",
         CamerasCardBindings       = "Slot bindings",
         CamerasAddRow             = "Add row",
-        CamerasHelpText           = "Slot = position in the grid (1..N, left-to-right, top-to-bottom). Camera # = camera channel on the NVR (starts at 1). Pick Default at Stream for live multi-camera viewing; High costs more bandwidth.",
+        CamerasHelpText           = "Slot = position in the grid (1..N). Pick at NVR which recorder this camera comes from. Camera # = camera channel on that NVR (starts at 1). Pick Default at Stream for live multi-camera viewing; High costs more bandwidth.",
         CamerasDeleteRowTooltip   = "Delete row",
         StreamHigh                = "High",
         StreamDefault             = "Default",
         StreamLow                 = "Low",
         CamerasHeaderSlot         = "SLOT",
+        CamerasHeaderNvr          = "NVR",
         CamerasHeaderCameraIndex  = "CAMERA #",
         CamerasHeaderStream       = "STREAM",
         CamerasHeaderLabel        = "LABEL",
@@ -586,6 +609,10 @@ public sealed class StringsTable
         SetupErrHttpsPort         = "HTTPS port must be a positive number (or empty for off).",
         SetupErrDuplicateSlotFormat   = "Slot {0} is used more than once. Each grid position can hold only one camera.",
         SetupErrDuplicateCameraFormat = "Camera {0} appears more than once. Each camera can be placed on only one position.",
+        SetupErrDuplicateNvrFormat    = "NVR id {0} appears more than once. Each NVR must have a unique id.",
+        SetupErrCameraOrphanFormat    = "Slot {0} references an NVR that is no longer in the list. Pick a valid NVR.",
+        SetupErrNvrInUseFormat        = "NVR \"{0}\" is in use by one or more cameras. Move those cameras to another NVR before deleting this one.",
+        SetupErrNoNvr                 = "Add at least one NVR before saving.",
         SetupErrSaveFailedFormat  = "Save failed: {0}",
         SetupCertCreatedFormat    = "Self-signed certificate created: {0}",
         SetupCertCreateFailedFormat = "Could not create certificate: {0}",

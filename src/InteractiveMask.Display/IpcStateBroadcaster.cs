@@ -27,20 +27,20 @@ public sealed class IpcStateBroadcaster : IDisposable
 
     private readonly DisplayViewModel _viewModel;
     private readonly IpcServer _server;
-    private readonly Dictionary<int, int> _slotToCameraIndex;
+    private readonly Dictionary<int, (int NvrId, int CameraIndex)> _bindingsBySlot;
     private readonly MaskController _maskController;
     private readonly BlurPinService _pinService;
     private readonly Dispatcher _dispatcher;
 
     public IpcStateBroadcaster(
         DisplayViewModel viewModel,
-        Dictionary<int, int> slotToCameraIndex,
+        Dictionary<int, (int NvrId, int CameraIndex)> bindingsBySlot,
         MaskController maskController,
         BlurPinService pinService,
         Dispatcher dispatcher)
     {
         _viewModel = viewModel;
-        _slotToCameraIndex = slotToCameraIndex;
+        _bindingsBySlot = bindingsBySlot;
         _maskController = maskController;
         _pinService = pinService;
         _dispatcher = dispatcher;
@@ -200,11 +200,9 @@ public sealed class IpcStateBroadcaster : IDisposable
 
     private TileStateDto ToDto(TileViewModel tile)
     {
-        int cameraIndex = -1;
-        foreach (var kv in _slotToCameraIndex)
-        {
-            if (kv.Value == tile.SlotIndex) { cameraIndex = kv.Key; break; }
-        }
+        int cameraIndex = _bindingsBySlot.TryGetValue(tile.SlotIndex, out var identity)
+            ? identity.CameraIndex
+            : -1;
         return new TileStateDto(
             Slot: tile.SlotIndex,
             CameraIndex: cameraIndex,

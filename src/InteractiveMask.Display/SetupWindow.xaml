@@ -594,42 +594,77 @@
 
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
-                                        <TextBlock Text="{local:Loc NvrCardConnection}" Style="{StaticResource SectionHeader}" />
                                         <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="20" />
-                                                <ColumnDefinition Width="160" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="14" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <StackPanel Grid.Row="0" Grid.Column="0">
-                                                <TextBlock Text="{local:Loc NvrFieldIp}" Style="{StaticResource FieldLabel}" />
-                                                <TextBox x:Name="NvrIp" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Row="0" Grid.Column="2">
-                                                <TextBlock Text="{local:Loc NvrFieldPort}" Style="{StaticResource FieldLabel}" />
-                                                <TextBox x:Name="NvrPort" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Row="2" Grid.Column="0">
-                                                <TextBlock Text="{local:Loc NvrFieldUser}" Style="{StaticResource FieldLabel}" />
-                                                <TextBox x:Name="NvrUser" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Row="2" Grid.Column="2">
-                                                <TextBlock Text="{local:Loc NvrFieldPassword}" Style="{StaticResource FieldLabel}" />
-                                                <PasswordBox x:Name="NvrPassword" />
+                                            <TextBlock Text="{local:Loc NvrCardConnection}" Style="{StaticResource SectionHeader}" />
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button Content="{local:Loc NvrAddRow}" Style="{StaticResource BtnGhost}" Click="OnAddNvrRow" />
                                             </StackPanel>
                                         </Grid>
+                                        <DataGrid x:Name="NvrGrid"
+                                                  AutoGenerateColumns="False"
+                                                  CanUserAddRows="False"
+                                                  CanUserDeleteRows="False"
+                                                  SelectionMode="Single"
+                                                  HeadersVisibility="Column"
+                                                  Height="240"
+                                                  Margin="0,4,0,0">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Binding="{Binding Name}" Width="160">
+                                                    <DataGridTextColumn.Header><TextBlock Text="{local:Loc NvrHeaderName}" /></DataGridTextColumn.Header>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Binding="{Binding Ip}" Width="160">
+                                                    <DataGridTextColumn.Header><TextBlock Text="{local:Loc NvrFieldIp}" /></DataGridTextColumn.Header>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Binding="{Binding Port}" Width="80">
+                                                    <DataGridTextColumn.Header><TextBlock Text="{local:Loc NvrFieldPort}" /></DataGridTextColumn.Header>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Binding="{Binding User}" Width="120">
+                                                    <DataGridTextColumn.Header><TextBlock Text="{local:Loc NvrFieldUser}" /></DataGridTextColumn.Header>
+                                                </DataGridTextColumn>
+                                                <DataGridTemplateColumn Width="*" CanUserSort="False">
+                                                    <DataGridTemplateColumn.Header>
+                                                        <TextBlock Text="{local:Loc NvrFieldPassword}" />
+                                                    </DataGridTemplateColumn.Header>
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <PasswordBox Loaded="OnNvrPasswordLoaded"
+                                                                         PasswordChanged="OnNvrPasswordChanged"
+                                                                         Tag="{Binding}"
+                                                                         BorderThickness="0"
+                                                                         Background="Transparent"
+                                                                         Padding="6,0" />
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTemplateColumn Width="44" CanUserSort="False" CanUserResize="False" CanUserReorder="False">
+                                                    <DataGridTemplateColumn.Header><TextBlock Text="" /></DataGridTemplateColumn.Header>
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Button Click="OnDeleteNvrRow"
+                                                                    Background="Transparent"
+                                                                    BorderThickness="0"
+                                                                    Foreground="{StaticResource text.muted}"
+                                                                    FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                                                    FontSize="14"
+                                                                    Cursor="Hand"
+                                                                    Padding="0"
+                                                                    Width="28" Height="28"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    ToolTip="{local:Loc NvrDeleteRowTooltip}"
+                                                                    Content="&#xE74D;" />
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
                                         <Border Background="#1A2331" BorderBrush="#22324A" BorderThickness="1"
-                                                CornerRadius="6" Padding="12,10" Margin="0,18,0,0">
+                                                CornerRadius="6" Padding="12,10" Margin="0,12,0,0">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
-                                                           Foreground="{StaticResource accent}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                                <TextBlock Foreground="{StaticResource text.muted}" FontSize="12"
-                                                           Text="{local:Loc NvrPasswordHint}" />
+                                                           Foreground="{StaticResource accent}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                                <TextBlock Foreground="{StaticResource text.muted}" FontSize="12" TextWrapping="Wrap"
+                                                           Text="{local:Loc NvrMultiHint}" />
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
@@ -664,6 +699,13 @@
                                                 <DataGridTextColumn Binding="{Binding Slot, Converter={StaticResource OneBased}}" Width="70">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderSlot}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
+                                                <DataGridComboBoxColumn x:Name="NvrColumn"
+                                                                        SelectedValueBinding="{Binding NvrId, UpdateSourceTrigger=PropertyChanged}"
+                                                                        SelectedValuePath="Id"
+                                                                        DisplayMemberPath="Name"
+                                                                        Width="140">
+                                                    <DataGridComboBoxColumn.Header><TextBlock Text="{local:Loc CamerasHeaderNvr}" /></DataGridComboBoxColumn.Header>
+                                                </DataGridComboBoxColumn>
                                                 <DataGridTextColumn Binding="{Binding CameraIndex, Converter={StaticResource OneBased}}" Width="90">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderCameraIndex}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
