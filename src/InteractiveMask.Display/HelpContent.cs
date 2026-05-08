@@ -160,14 +160,14 @@ public sealed class HelpStrings
         NavFaq        = "Veelgestelde vragen",
 
         WelcomeTitle = "Welkom",
-        WelcomeIntro = "Met deze applicatie ziet u live de camerabeelden van de afdeling op één overzicht. " +
+        WelcomeIntro = "Met deze applicatie ziet u live de camerabeelden op één overzicht. " +
                        "Met één klik op een tegel kunt u dat beeld onherkenbaar maken — dat heet een privacy-masker.",
         WelcomeWhoFor = "Voor wie is dit?",
-        WelcomeWhoForBody = "Voor verzorgers en begeleiders. U hoeft geen technische kennis te hebben. " +
+        WelcomeWhoForBody = "Voor operators die toezicht houden op camerabeelden. U hoeft geen technische kennis te hebben. " +
                             "Voor het instellen van camera’s en het netwerk is een aparte beheerderspagina aanwezig (zie “Voor beheerders”).",
         WelcomeWhatIsMaskTitle = "Wat is een privacy-masker?",
-        WelcomeWhatIsMaskBody = "Een privacy-masker legt een waas over één camerategel zodat u het tegel niet meer in detail kunt zien, terwijl de camera blijft opnemen op de NVR-recorder. " +
-                                "Zo blijft de privacy van bewoners gewaarborgd op momenten dat dat nodig is.",
+        WelcomeWhatIsMaskBody = "Een privacy-masker legt een waas over één camerategel zodat de tegel niet meer in detail zichtbaar is, terwijl de camera blijft opnemen op de NVR-recorder. " +
+                                "Zo blijft de privacy van personen in beeld gewaarborgd op momenten dat dat nodig is.",
 
         ScreenTitle = "Het scherm",
         ScreenIntro = "Het hoofdscherm bestaat uit een raster van camerategels. Iedere tegel toont één camera. " +
@@ -218,7 +218,7 @@ public sealed class HelpStrings
                        "Of klik op deze knop in dit help-venster als u al in setup bent.",
         AdminTabs = "Tabs in setup: NVR (recorder-verbinding), Cameras (welke camera op welke positie), Grid (raster-grootte), Privacy (PIN-beleid en auto-uit), Web-UI (poorten en certificaat), Audit-log, en Beheerder (admin-PIN, taal, kiosk-modus).",
         AdminKiosk = "Kiosk-modus blokkeert toetsen zoals Alt+Tab, Win-toets en Alt+F4 zodat de gebruikers niet per ongeluk uit de applicatie raken. De beheerder kan altijd terug via rechter-muisklik en admin-PIN.",
-        AdminAd = "Identiteit verzorgers (AD-modus) wisselt het sessie-PIN-toetsenblok om naar een Windows-aanmelding. Zo legt het audit-log vast wie elk masker heeft uitgezet.",
+        AdminAd = "Identiteit operators (AD-modus) wisselt het sessie-PIN-toetsenblok om naar een Windows-aanmelding. Zo legt het audit-log vast wie elk masker heeft uitgezet.",
         AdminAudit = "Op de Audit-tab ziet u alle mask-acties, PIN-pogingen en NVR-verbindingen met tijdstip, bron en eventuele detail. Met “Export naar CSV…” kunt u een logboek bewaren of doorsturen.",
         AdminTechNote = "Technische opmerking voor de beheerder: het wachtwoord van de NVR en het certificaat worden versleuteld bewaard via Windows DPAPI op machine-niveau. " +
                         "De browser-bediening loopt via een ingebouwde webserver (WebHost) die u op de Web-UI-tab op het LAN kunt openzetten of beperken tot localhost. " +
@@ -304,11 +304,11 @@ public sealed class HelpStrings
         WelcomeIntro = "This application shows the live camera feeds of the ward in a single overview. " +
                        "One click on a tile blurs that feed beyond recognition — we call that a privacy mask.",
         WelcomeWhoFor = "Who is this for?",
-        WelcomeWhoForBody = "Caregivers and assistants. No technical background is required. " +
+        WelcomeWhoForBody = "Operators monitoring camera feeds. No technical background is required. " +
                             "Cameras and network configuration live on a separate administrator page (see “For administrators”).",
         WelcomeWhatIsMaskTitle = "What is a privacy mask?",
         WelcomeWhatIsMaskBody = "A privacy mask covers a single camera tile with a heavy blur so detail can no longer be seen, while the NVR recorder keeps recording in the background. " +
-                                "This protects the privacy of residents at moments when that is needed.",
+                                "This protects the privacy of people in view at moments when that is needed.",
 
         ScreenTitle = "The screen",
         ScreenIntro = "The main screen is a grid of camera tiles. Each tile shows one camera. " +
