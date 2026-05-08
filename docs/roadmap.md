@@ -8,13 +8,17 @@ Onderstaande set is verzameld na de eerste demo-ronde bij prospects en partners 
 
 ### 1. Mass-mask en mass-unmask (noodscenario)
 
-**Aanleiding:** veldfeedback. Bij onderbezetting moet een zorgmedewerker met één handeling het hele scherm kunnen maskeren voordat ze van de zorgpost wegloopt, zodat patiëntprivacy bij een onbemande post gewaarborgd is. Andersom moet er ook met één handeling alles tegelijk vrijgegeven kunnen worden.
+**Aanleiding:** veldfeedback. Bij onderbezetting moet een zorgmedewerker met één handeling het hele scherm kunnen maskeren voordat ze van de zorgpost wegloopt, zodat patiëntprivacy bij een onbemande post gewaarborgd is. Andersom moet er ook met één handeling alles tegelijk vrijgegeven kunnen worden, mits dat veilig kan.
 
 **Functioneel ontwerp:**
 - Twee prominente knoppen in de hoofd-UI, of een keyboard chord (configureerbaar in Setup), of beide.
-- **Mask all:** geen authenticatie nodig (privacy-toepassen is altijd vrij, conform huidige policy). Audit log: één enkel event `mass_mask` met de lijst van geraakte tegel-IDs.
-- **Unmask all:** authenticatie verplicht (PIN of AD), zelfs als individuele tegels normaal geen auth zouden vragen. Reden: één klik die alle privacy opheft is een hoog-risico actie. Audit log: `mass_unmask` met identiteit van de uitvoerder.
-- Optioneel: bevestigingsdialoog vóór de unmask-all, met aftel-timer, te omzeilen met "Niet meer vragen voor deze sessie".
+- **Mask all:** altijd toegestaan, geen authenticatie nodig (privacy-toepassen is altijd vrij, conform huidige policy). Audit log: één enkel event `mass_mask` met de lijst van geraakte tegel-IDs.
+- **Unmask all:** authenticatie verplicht (PIN of AD), zelfs als individuele tegels normaal geen auth zouden vragen. Reden: één klik die alle privacy opheft is een hoog-risico actie.
+- **Belangrijke veiligheidsregel (stakeholder-besluit 8 mei 2026):** mass-unmask werkt alleen als de previous state óók volledig vrij was, dat wil zeggen: alleen wanneer mass-unmask het inverse is van een voorafgaande mass-mask op alle tegels tegelijk. Zodra er individuele masks staan (gemengde state) wordt mass-unmask geweigerd met een nette melding ("Er staan handmatige privacy-masks actief. Hef die individueel op om risico op accidentele privacy-doorbraak te voorkomen."). Dit voorkomt dat een zorgmedewerker per ongeluk een privacy-mask opheft die een collega bewust gezet heeft voor een lopend zorgmoment.
+- Audit log: `mass_unmask` event met identiteit en het aantal geraakte tegels. Geweigerde pogingen worden gelogd als `mass_unmask_blocked` met de reden.
+
+**Configuratie in Setup:**
+- Bevestigingsdialoog vóór de unmask-all is **standaard uit**, in te schakelen via Setup. Stakeholder houdt zich het recht voor om de default later om te draaien op basis van veldfeedback.
 
 **Open vraag voor stakeholder-overleg:** moet "mass mask" tegelijk de auto-unmask timers van die tegels resetten of negeren?
 
@@ -32,27 +36,35 @@ Voor sommige settings (bijvoorbeeld kantoorruimtes, gemeenschappelijke ruimtes m
 
 **Aanleiding:** sales feedback 7 mei 2026, herhaald in demo-feedback. Sterk gewenst voor partnerverhaal naar settings buiten de klassieke zorg-context.
 
-### 3. Drag/drop herordenen van camerategels
+### 3. Drag/drop herordenen in Setup, slot bindings
 
-Mogelijkheid om de positie van camera's in het grid te wijzigen via drag/drop. Nu zit elke camera vast aan een slot dat in Setup bepaald wordt.
+Beheerder kan rijen in de tabel `Cameras > Slot bindings` op- of neerschuiven via drag/drop. Het slotnummer (1-N) volgt de positie in de tabel, dus drag/drop wijzigt direct welke camera op welk grid-slot terechtkomt. Opslaan via dezelfde Save-knop als de rest van Setup.
 
-**Open vragen voor stakeholder-overleg:**
-- Drag/drop in de Setup, of ook in de live-view? (Live-view is krachtiger, vraagt wel auth voor het opslaan.)
-- Wordt de nieuwe volgorde per gebruiker opgeslagen, of globaal voor de installatie?
-- Snap-to-grid bij neerleggen, of vrije plaatsing?
+**Scope (stakeholder-besluit 8 mei 2026):**
+- Alleen in Setup, alleen voor de beheerder.
+- **Niet** in de live-view en **niet** door eindgebruikers, althans niet in v1.3.x. Stakeholder laat zich het recht voor om in een latere release een Setup-toggle "eindgebruikers mogen tegels verplaatsen" toe te voegen.
+- Volgorde wordt globaal opgeslagen voor de installatie (één slot-mapping per machine, zoals nu).
 
-**Status:** wachten op extra context van de stakeholder voor functioneel ontwerp.
+**Implementatie-notes:**
+- WPF DataGrid ondersteunt geen drag/drop out of the box; we gebruiken een vergelijkbare oplossing als bij andere gelijksoortige componenten (eigen drag-adorner, drop-target highlight, slot-nummers automatisch herberekenen).
+- Visuele feedback: rij wordt iets uitgelicht tijdens het slepen, een lijn toont de drop-positie tussen rijen.
 
 ### 4. Talen toevoegen: Duits, Frans, Spaans
 
-Huidige situatie: Nederlands en Engels.
+Huidige situatie: Nederlands en Engels. Marktanalyse stakeholder 8 mei 2026:
+
+| Markt | Talen | Prioriteit |
+|---|---|---|
+| Europa (kernmarkt) | NL, DE, FR, EN | NL en EN aanwezig, **DE en FR toevoegen** |
+| Verenigde Staten | EN, ES | EN aanwezig, **ES toevoegen** |
+
+Implementatievolgorde voorgesteld: **DE eerst** (grootste kwantiteit prospects in pipeline), **FR daarna**, **ES als derde**. Alle drie wel binnen v1.3.x leveren zodat we de releasecycli niet versnipperen.
 
 **Werk:**
-- Strings.cs uitbreiden met `de-DE`, `fr-FR`, `es-ES` woordenboeken.
-- Professionele vertaling, of als minimum een native-speaker review na een eerste machinevertaling.
-- Alle vertalingen tegelijk reviewen om consistentie tussen termen te bewaken (bijvoorbeeld `mask`, `tegel`, `zorgpost`).
-- Live language-switcher in Setup uitbreiden.
-- Help/handleiding-content (8 hoofdstukken) ook vertalen, of bij eerste oplevering alleen UI en handleiding in NL/EN/DE laten staan met een fallback naar EN voor FR/ES.
+- `Strings.cs` uitbreiden met `de-DE`, `fr-FR`, `es-ES` woordenboeken naast de bestaande `nl-NL` en `en-US`.
+- Professionele vertaling, of als minimum een native-speaker review na een eerste machinevertaling. Glossarium voorbereiden voor consistentie tussen termen (`mask`, `tegel`, `zorgpost`, `bewoner`, `tegel`).
+- Live language-switcher in Setup uitbreiden, alle vijf talen.
+- Help/handleiding-content (8 hoofdstukken) idealiter ook vertalen. Bij capaciteitsdruk: minimaal NL/EN/DE compleet, FR/ES initieel via fallback naar EN voor de help-tekst, terwijl de UI wel volledig vertaald is.
 
 ### 5. Taalkeuze tijdens installatie en bij eerste opstart
 
@@ -62,28 +74,29 @@ Huidige situatie: Nederlands en Engels.
 - **Installer:** WiX UI dialog krijgt aan het begin een dropdown met talenkeuze. De keuze wordt weggeschreven naar de app-config (`%PROGRAMDATA%\InteractiveMask\config.json` veld `Language`). De vertaalde labels van de installer zelf vragen WiX-localisatiebestanden per taal.
 - **Eerste opstart:** als er geen taalkeuze in de config staat, valt de app terug op `CultureInfo.CurrentUICulture` van Windows in plaats van een hardcoded Nederlands. Daarna toont de app eenmalig een welkomstscherm met taalkeuze voordat Setup gestart wordt.
 
-### 6. IDIS-logo (grijs) in lege tegels als visuele mask
+### 6. IDIS-logo in lege tegels als visuele mask
 
-Op dit moment zijn lege tegelposities donker. Voorstel: vul ze met een gestyleerd grijs IDIS-logo zodat het grid altijd "af" oogt en de IDIS-merkbeleving consistent is.
+Op dit moment zijn lege tegelposities donker. Voorstel: vul ze met een subtiel IDIS-logo zodat het grid altijd "af" oogt en de IDIS-merkbeleving consistent is.
 
-**Aangeleverd door:** stakeholder zal het logo aanleveren.
+**Stakeholder-besluit 8 mei 2026:**
+- Formaat: **PNG**, aangeleverd door stakeholder.
+- Opacity: **10 procent**. Heel licht zichtbaar, niet dominant.
+- Plaatsing: gecentreerd op de tegel, schaalt mee met de tegelgrootte.
 
-**Voorkeursformaten (in volgorde van wenselijkheid):**
-1. **SVG, monochroom (single path of grouped paths)** is het beste, omdat het naadloos schaalt naar elke tegelgrootte (van 1x1 tot 4x4) zonder pixelvervaging. Vul-kleur kan in code overschreven worden zodat we de exacte grijstint kunnen finetunen.
-2. **PNG met transparante achtergrond, minimaal 1024 x 1024 px**, voorkeur 2048 x 2048 px. Monochroom of grijswaarden.
-3. Als alleen een gekleurde versie beschikbaar is: leveren in de hoogste resolutie die er is, dan converteren wij naar grijs in code.
+**Acceptatiecriteria voor het PNG-bestand:**
+- Transparante achtergrond.
+- Minimaal 1024 x 1024 px, voorkeur 2048 x 2048 px, zodat ook in een 1x1 grid (volledig scherm één tegel) het beeld scherp blijft.
+- Monochroom of grijswaarden, of een volledig gekleurde versie waar wij in code de uiteindelijke kleur en de 10 procent opacity-laag op leggen.
 
-**Visuele richtlijn:** logo gecentreerd op de tegel, met 30 tot 40 procent opacity tegen de donkere tegelachtergrond, zodat het rustig oogt en niet domineert over de live-tegels eromheen. Stakeholder zal extra context geven over de gewenste plaatsing.
+**Status:** wachten op aanlevering van het PNG-bestand. (Stakeholder probeerde het bestand al toe te sturen; de upload kwam aan als wit/leeg beeld. Graag opnieuw aanleveren.)
 
 ---
 
-## Vragen die nog beantwoord moeten worden voor sprint-planning
+## Open punten voor sprint-planning
 
-- Item 1: drempel voor unmask-all (alleen PIN, of altijd AD wanneer beschikbaar?).
-- Item 1: bevestigingsdialoog standaard aan of uit?
-- Item 3: drag/drop in Setup, in live-view, of beide?
-- Item 4: prioriteit van de drie talen (waarschijnlijk DE eerst gezien IDIS Europa-focus, dan FR, dan ES?).
-- Item 6: definitief logo-bestand en gewenste opacity.
+- Item 1: definitieve drempel voor unmask-all-auth: alleen PIN, of altijd AD wanneer AD-mode actief is. **Voorstel:** volg de bestaande mode (AD-mode = AD-credentials vereist, PIN-mode = PIN). Te bevestigen.
+- Item 1: moet "mass mask" tegelijk de auto-unmask timers van die tegels resetten of negeren?
+- Item 6: aanlevering definitief logo-bestand (PNG, transparant, hoge resolutie). Stakeholder werkt hieraan.
 
 ---
 
