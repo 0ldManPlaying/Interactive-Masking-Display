@@ -1,3 +1,4 @@
+using InteractiveMask.Gdk;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -5,6 +6,8 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -319,6 +322,101 @@ public partial class SetupWindow : Window
         if (sender is not Button btn) return;
         if (btn.DataContext is not CameraSlotSettings row) return;
         _cameras.Remove(row);
+    }
+
+    // ---- Cameras: sync names from NVR --------------------------------------
+    //
+    // Connects to each unique NVR referenced by the current camera rows,
+    // requests its G2DEVICE_STATUS, and copies the camera-description strings
+    // back into the Label column. Custom labels (anything that is not the
+    // auto-generated "Camera N" default and not empty) are kept as-is so an
+    // admin who has typed a meaningful name doesn't lose it on a sync.
+
+    private bool _cameraSyncRunning;
+
+    private async void OnSyncCameraNames(object sender, RoutedEventArgs e)
+    {
+        if (_cameraSyncRunning) return;
+        var T = Strings.Instance.Current;
+
+        if (_cameras.Count == 0)
+        {
+            ShowStatus(T.CamerasSyncNamesNoCameras, isError: true);
+            return;
+        }
+
+        _cameraSyncRunning = true;
+        try
+        {
+            ShowStatus(T.CamerasSyncNamesProgress, isError: false);
+
+            // Group rows per NVR so we open at most one fetch session per
+            // recorder, regardless of how many cameras live on it.
+            var byNvr = _cameras.GroupBy(c => c.NvrId).ToList();
+            int updated = 0;
+
+            foreach (var group in byNvr)
+            {
+                var nvr = _nvrs.FirstOrDefault(n => n.Id == group.Key);
+                if (nvr is null || string.IsNullOrWhiteSpace(nvr.Ip)) continue;
+
+                Dictionary<int, string> nvrNames;
+                try
+                {
+                    var conn = new NvrConnectionInfo(nvr.Ip, nvr.Port, nvr.User, nvr.Password);
+                    nvrNames = await NvrCameraNameFetcher
+                        .FetchAsync(conn, TimeSpan.FromSeconds(8))
+                        .ConfigureAwait(true);
+                }
+                catch (Exception ex)
+                {
+                    ShowStatus(string.Format(CultureInfo.CurrentCulture,
+                        T.CamerasSyncNamesFailFormat, $"NVR {nvr.Name}: {ex.Message}"),
+                        isError: true);
+                    return;
+                }
+
+                foreach (var cam in group)
+                {
+                    if (!nvrNames.TryGetValue(cam.CameraIndex, out var nvrName)) continue;
+
+                    if (ShouldOverwriteLabel(cam.Label, cam.CameraIndex))
+                    {
+                        cam.Label = nvrName;
+                        updated++;
+                    }
+                }
+            }
+
+            // Force the Label column to redraw — CameraSlotSettings has no INPC.
+            CameraGrid.Items.Refresh();
+
+            ShowStatus(updated > 0
+                ? string.Format(CultureInfo.CurrentCulture, T.CamerasSyncNamesDoneFormat, updated)
+                : T.CamerasSyncNamesNoneApplied,
+                isError: false);
+        }
+        finally
+        {
+            _cameraSyncRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// True when the current label is "blank" enough that overwriting it with
+    /// an NVR-supplied name is a clear win: empty, whitespace, or the
+    /// auto-generated "Camera N" default produced by OnAddCameraRow.
+    /// Any other label is treated as a deliberate human choice and left
+    /// alone, so a sync is non-destructive against custom names.
+    /// </summary>
+    private static bool ShouldOverwriteLabel(string? current, int cameraIndex)
+    {
+        if (string.IsNullOrWhiteSpace(current)) return true;
+        var trimmed = current.Trim();
+        // OnAddCameraRow seeds new rows with "Camera {n+1}".
+        if (string.Equals(trimmed, $"Camera {cameraIndex + 1}", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
     }
 
     // ---- Cameras: drag/drop reorder ----------------------------------------
@@ -641,6 +739,18 @@ public partial class SetupWindow : Window
         // is. Live-applicable changes (labels, language, privacy timers, session-PIN
         // toggle, admin-PIN) take effect immediately on close.
         Close();
+    }
+
+    private void ShowSuccess(string message)
+    {
+        StatusLine.Foreground = (System.Windows.Media.Brush)FindResource("green");
+        StatusLine.Text = message;
+    }
+
+    private void ShowStatus(string message, bool isError)
+    {
+        if (isError) ShowError(message);
+        else ShowSuccess(message);
     }
 
     private void ShowError(string message)

@@ -156,6 +156,12 @@ public sealed class StringsTable
     public string CamerasHelpText { get; init; } = "";
     public string CamerasDeleteRowTooltip { get; init; } = "";
     public string CamerasReorderTooltip { get; init; } = "";
+    public string CamerasSyncNames { get; init; } = "";
+    public string CamerasSyncNamesProgress { get; init; } = "";
+    public string CamerasSyncNamesDoneFormat { get; init; } = "";
+    public string CamerasSyncNamesNoneApplied { get; init; } = "";
+    public string CamerasSyncNamesFailFormat { get; init; } = "";
+    public string CamerasSyncNamesNoCameras { get; init; } = "";
     public string StreamHigh { get; init; } = "";
     public string StreamDefault { get; init; } = "";
     public string StreamLow { get; init; } = "";
@@ -404,6 +410,12 @@ public sealed class StringsTable
         CamerasHelpText           = "Slot = positie in het grid (1..N). Kies bij NVR uit welke recorder deze camera komt. Camera # = camerakanaal op die NVR (begint bij 1). Stream Normaal voor live multi-camera weergave; Hoog kost meer bandbreedte.",
         CamerasDeleteRowTooltip   = "Rij verwijderen",
         CamerasReorderTooltip     = "Versleep om de volgorde van de tegels te wijzigen",
+        CamerasSyncNames          = "Namen ophalen vanuit NVR",
+        CamerasSyncNamesProgress  = "Bezig met ophalen namen vanuit NVR...",
+        CamerasSyncNamesDoneFormat = "Gesynchroniseerd: {0} namen bijgewerkt vanuit de NVR.",
+        CamerasSyncNamesNoneApplied = "Synchronisatie voltooid: alle labels zijn handmatig aangepast en blijven ongewijzigd.",
+        CamerasSyncNamesFailFormat = "Synchronisatie mislukt: {0}",
+        CamerasSyncNamesNoCameras = "Voeg eerst camera-rijen toe.",
         StreamHigh                = "Hoog",
         StreamDefault             = "Normaal",
         StreamLow                 = "Laag",
@@ -640,6 +652,12 @@ public sealed class StringsTable
         CamerasHelpText           = "Slot = position in the grid (1..N). Pick at NVR which recorder this camera comes from. Camera # = camera channel on that NVR (starts at 1). Pick Default at Stream for live multi-camera viewing; High costs more bandwidth.",
         CamerasDeleteRowTooltip   = "Delete row",
         CamerasReorderTooltip     = "Drag to reorder the tile sequence",
+        CamerasSyncNames          = "Pull names from NVR",
+        CamerasSyncNamesProgress  = "Fetching names from NVR...",
+        CamerasSyncNamesDoneFormat = "Synchronised: {0} names pulled from the NVR.",
+        CamerasSyncNamesNoneApplied = "Sync done: every label is custom and was left as-is.",
+        CamerasSyncNamesFailFormat = "Sync failed: {0}",
+        CamerasSyncNamesNoCameras = "Add camera rows first.",
         StreamHigh                = "High",
         StreamDefault             = "Default",
         StreamLow                 = "Low",
@@ -881,6 +899,12 @@ public sealed class StringsTable
         CamerasHelpText           = "Slot = Position im Raster (1..N). Wählen Sie bei NVR, von welchem Recorder diese Kamera kommt. Kamera # = Kamerakanal auf diesem NVR (beginnt bei 1). Wählen Sie Normal beim Stream für die Live-Mehrkameraansicht; Hoch erfordert mehr Bandbreite.",
         CamerasDeleteRowTooltip   = "Zeile löschen",
         CamerasReorderTooltip     = "Ziehen, um die Reihenfolge der Kacheln zu ändern",
+        CamerasSyncNames          = "Namen vom NVR abrufen",
+        CamerasSyncNamesProgress  = "Namen werden vom NVR abgerufen...",
+        CamerasSyncNamesDoneFormat = "Synchronisiert: {0} Namen vom NVR aktualisiert.",
+        CamerasSyncNamesNoneApplied = "Synchronisierung abgeschlossen: alle Bezeichnungen sind benutzerdefiniert und wurden unverändert gelassen.",
+        CamerasSyncNamesFailFormat = "Synchronisierung fehlgeschlagen: {0}",
+        CamerasSyncNamesNoCameras = "Fügen Sie zuerst Kamera-Zeilen hinzu.",
         StreamHigh                = "Hoch",
         StreamDefault             = "Normal",
         StreamLow                 = "Niedrig",
@@ -1117,6 +1141,12 @@ public sealed class StringsTable
         CamerasHelpText           = "Emplacement = position dans la grille (1..N). Choisissez dans NVR de quel enregistreur provient cette caméra. Caméra # = canal de caméra sur ce NVR (commence à 1). Choisissez Normal pour Stream pour la vue multi-caméras en direct ; Élevé consomme plus de bande passante.",
         CamerasDeleteRowTooltip   = "Supprimer la ligne",
         CamerasReorderTooltip     = "Glisser pour réorganiser l'ordre des tuiles",
+        CamerasSyncNames          = "Récupérer les noms depuis le NVR",
+        CamerasSyncNamesProgress  = "Récupération des noms depuis le NVR...",
+        CamerasSyncNamesDoneFormat = "Synchronisé : {0} noms mis à jour depuis le NVR.",
+        CamerasSyncNamesNoneApplied = "Synchronisation terminée : toutes les étiquettes sont personnalisées et sont restées inchangées.",
+        CamerasSyncNamesFailFormat = "Échec de la synchronisation : {0}",
+        CamerasSyncNamesNoCameras = "Ajoutez d'abord des lignes de caméra.",
         StreamHigh                = "Élevé",
         StreamDefault             = "Normal",
         StreamLow                 = "Bas",
@@ -1353,6 +1383,12 @@ public sealed class StringsTable
         CamerasHelpText           = "Ranura = posición en la cuadrícula (1..N). Elija en NVR de qué grabadora viene esta cámara. Cámara # = canal de cámara en ese NVR (comienza en 1). Elija Normal en Stream para visualización multicámara en directo; Alto consume más ancho de banda.",
         CamerasDeleteRowTooltip   = "Eliminar fila",
         CamerasReorderTooltip     = "Arrastre para reordenar la secuencia de mosaicos",
+        CamerasSyncNames          = "Obtener nombres desde el NVR",
+        CamerasSyncNamesProgress  = "Obteniendo nombres del NVR...",
+        CamerasSyncNamesDoneFormat = "Sincronizado: {0} nombres actualizados desde el NVR.",
+        CamerasSyncNamesNoneApplied = "Sincronización completada: todas las etiquetas son personalizadas y se mantienen sin cambios.",
+        CamerasSyncNamesFailFormat = "Error de sincronización: {0}",
+        CamerasSyncNamesNoCameras = "Añada primero filas de cámara.",
         StreamHigh                = "Alto",
         StreamDefault             = "Normal",
         StreamLow                 = "Bajo",
