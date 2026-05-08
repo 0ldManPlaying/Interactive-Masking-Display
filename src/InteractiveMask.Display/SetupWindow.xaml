@@ -1449,7 +1449,7 @@
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Grid.Column="0" FontSize="13"
-                                                           Text="IDIS GDK 6.6.1 (G2ClientGDK, G2LibavMT, G2FishEye)" />
+                                                           Text="IDIS Direct IP NVR's" />
                                                 <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
                                                            Text="© IDIS Co., Ltd. — proprietary" />
                                             </Grid>
@@ -1546,20 +1546,20 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- ===== Source code ===== -->
+                                <!-- ===== Bug report ===== -->
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
-                                        <TextBlock Text="{local:Loc AboutCardSourceCode}" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock Text="{local:Loc AboutCardBugReport}" Style="{StaticResource SectionHeader}" />
                                         <TextBlock Foreground="{StaticResource text.muted}" FontSize="13" Margin="0,12,0,12"
                                                    TextWrapping="Wrap"
-                                                   Text="{local:Loc AboutSourceCodeIntro}" />
-                                        <Button x:Name="AboutOpenRepoButton"
-                                                Content="{local:Loc AboutOpenRepo}"
+                                                   Text="{local:Loc AboutBugReportIntro}" />
+                                        <Button x:Name="AboutBugReportBtn"
+                                                Content="{local:Loc AboutBugReportButton}"
                                                 Style="{StaticResource BtnGhost}"
-                                                Click="OnAboutOpenRepo"
+                                                Click="OnAboutBugReport"
                                                 HorizontalAlignment="Left" />
                                         <TextBlock Foreground="{StaticResource text.dim}" FontSize="11" Margin="0,8,0,0"
-                                                   Text="https://github.com/0ldManPlaying/Interactive-Masking-Display" />
+                                                   Text="support@idisnederland.nl" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

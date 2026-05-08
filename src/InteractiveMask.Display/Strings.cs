@@ -325,9 +325,9 @@ public sealed class StringsTable
     public string AboutDescription { get; init; } = "";
     public string AboutCardLicensesThird { get; init; } = "";
     public string AboutCardLicensesIntegrations { get; init; } = "";
-    public string AboutCardSourceCode { get; init; } = "";
-    public string AboutSourceCodeIntro { get; init; } = "";
-    public string AboutOpenRepo { get; init; } = "";
+    public string AboutCardBugReport { get; init; } = "";
+    public string AboutBugReportIntro { get; init; } = "";
+    public string AboutBugReportButton { get; init; } = "";
 
     public static readonly StringsTable Nl = new()
     {
@@ -559,9 +559,9 @@ public sealed class StringsTable
         AboutDescription          = "InteractiveMask is een Windows-kiosk-applicatie voor live videomonitoring met privacy-bescherming per camerategel. Geschikt voor kantoorruimtes, recepties, hotels, scholen, zorginstellingen en andere omgevingen waar continu zicht en privacy in balans moeten zijn.",
         AboutCardLicensesThird    = "Open-source componenten",
         AboutCardLicensesIntegrations = "Integraties",
-        AboutCardSourceCode       = "Broncode",
-        AboutSourceCodeIntro      = "Het volledige project staat publiek op GitHub. Bug-rapporten, vertalingsverbeteringen of feature-verzoeken zijn welkom via Issues.",
-        AboutOpenRepo             = "Repository openen",
+        AboutCardBugReport        = "Bug rapporteren",
+        AboutBugReportIntro       = "Loop je tegen een probleem aan? Stuur ons een e-mail met een korte beschrijving en, indien mogelijk, een screenshot. We nemen elke melding serieus en proberen zo snel mogelijk te reageren.",
+        AboutBugReportButton      = "E-mail openen",
     };
 
     public static readonly StringsTable En = new()
@@ -794,9 +794,9 @@ public sealed class StringsTable
         AboutDescription          = "InteractiveMask is a Windows kiosk application for live video monitoring with per-tile privacy protection. Built for office spaces, receptions, hotels, schools, healthcare facilities and other environments where continuous oversight and privacy must coexist.",
         AboutCardLicensesThird    = "Open-source components",
         AboutCardLicensesIntegrations = "Integrations",
-        AboutCardSourceCode       = "Source code",
-        AboutSourceCodeIntro      = "The full project lives publicly on GitHub. Bug reports, translation improvements and feature requests are welcome via Issues.",
-        AboutOpenRepo             = "Open repository",
+        AboutCardBugReport        = "Report a bug",
+        AboutBugReportIntro       = "Run into a problem? Send us an email with a short description and, if possible, a screenshot. Every report is taken seriously and we try to respond as quickly as we can.",
+        AboutBugReportButton      = "Open email client",
     };
 
     // ------------------------------------------------------------------
@@ -1034,9 +1034,9 @@ public sealed class StringsTable
         AboutDescription          = "InteractiveMask ist eine Windows-Kiosk-Anwendung für die Live-Videoüberwachung mit Datenschutz pro Kamerakachel. Geeignet für Büroräume, Empfangsbereiche, Hotels, Schulen, Pflegeeinrichtungen und andere Umgebungen, in denen kontinuierliche Übersicht und Datenschutz im Gleichgewicht stehen müssen.",
         AboutCardLicensesThird    = "Open-Source-Komponenten",
         AboutCardLicensesIntegrations = "Integrationen",
-        AboutCardSourceCode       = "Quellcode",
-        AboutSourceCodeIntro      = "Das gesamte Projekt ist öffentlich auf GitHub verfügbar. Fehlerberichte, Übersetzungsverbesserungen und Funktionsanfragen sind über Issues willkommen.",
-        AboutOpenRepo             = "Repository öffnen",
+        AboutCardBugReport        = "Fehler melden",
+        AboutBugReportIntro       = "Probleme aufgetreten? Senden Sie uns eine E-Mail mit einer kurzen Beschreibung und, wenn möglich, einem Screenshot. Jede Meldung wird ernst genommen und wir versuchen, so schnell wie möglich zu antworten.",
+        AboutBugReportButton      = "E-Mail öffnen",
     };
 
     public static readonly StringsTable Fr = new()
@@ -1269,9 +1269,9 @@ public sealed class StringsTable
         AboutDescription          = "InteractiveMask est une application kiosque Windows pour la surveillance vidéo en direct avec protection de la confidentialité par tuile. Conçue pour les espaces de bureau, les réceptions, les hôtels, les écoles, les établissements de soins et d'autres environnements où la surveillance continue et la confidentialité doivent coexister.",
         AboutCardLicensesThird    = "Composants open source",
         AboutCardLicensesIntegrations = "Intégrations",
-        AboutCardSourceCode       = "Code source",
-        AboutSourceCodeIntro      = "Le projet complet est disponible publiquement sur GitHub. Les rapports de bogues, les améliorations de traduction et les demandes de fonctionnalités sont les bienvenus via Issues.",
-        AboutOpenRepo             = "Ouvrir le dépôt",
+        AboutCardBugReport        = "Signaler un bogue",
+        AboutBugReportIntro       = "Vous rencontrez un problème ? Envoyez-nous un e-mail avec une brève description et, si possible, une capture d'écran. Chaque signalement est pris au sérieux et nous essayons de répondre le plus rapidement possible.",
+        AboutBugReportButton      = "Ouvrir le client de messagerie",
     };
 
     public static readonly StringsTable Es = new()
@@ -1504,8 +1504,8 @@ public sealed class StringsTable
         AboutDescription          = "InteractiveMask es una aplicación de quiosco para Windows destinada a la supervisión de vídeo en directo con protección de privacidad por mosaico. Adecuada para oficinas, recepciones, hoteles, escuelas, centros de atención y otros entornos donde la supervisión continua y la privacidad deben convivir.",
         AboutCardLicensesThird    = "Componentes de código abierto",
         AboutCardLicensesIntegrations = "Integraciones",
-        AboutCardSourceCode       = "Código fuente",
-        AboutSourceCodeIntro      = "El proyecto completo está disponible públicamente en GitHub. Los informes de errores, las mejoras de traducción y las solicitudes de funciones son bienvenidos a través de Issues.",
-        AboutOpenRepo             = "Abrir repositorio",
+        AboutCardBugReport        = "Reportar un error",
+        AboutBugReportIntro       = "¿Encontró un problema? Envíenos un correo electrónico con una breve descripción y, si es posible, una captura de pantalla. Cada informe se toma en serio y tratamos de responder lo más rápido posible.",
+        AboutBugReportButton      = "Abrir cliente de correo",
     };
 }

@@ -50,21 +50,36 @@ public partial class SetupWindow : Window
         Loaded += (_, _) => Populate();
     }
 
-    private void OnAboutOpenRepo(object sender, RoutedEventArgs e)
+    private void OnAboutBugReport(object sender, RoutedEventArgs e)
     {
+        // Open the user's default email client with a pre-filled subject and
+        // a body containing the runtime version + Windows version. Saves the
+        // reporter from having to look that up themselves and gives support
+        // the context to reproduce.
         try
         {
+            var version = typeof(SetupWindow).Assembly.GetName().Version?.ToString(3) ?? "unknown";
+            var os = Environment.OSVersion.VersionString;
+            var subject = Uri.EscapeDataString($"InteractiveMask v{version} - bug report");
+            var body = Uri.EscapeDataString(
+                $"Versie / Version: {version}\r\n" +
+                $"Windows: {os}\r\n" +
+                $"\r\n" +
+                $"--- Beschrijving / Description ---\r\n" +
+                $"\r\n");
+            var mailto = $"mailto:support@idisnederland.nl?subject={subject}&body={body}";
             var psi = new System.Diagnostics.ProcessStartInfo
             {
-                FileName = "https://github.com/0ldManPlaying/Interactive-Masking-Display",
+                FileName = mailto,
                 UseShellExecute = true,
             };
             System.Diagnostics.Process.Start(psi);
         }
         catch
         {
-            // Default browser missing or blocked. Silent fallback: nothing
-            // catastrophic if this click does nothing.
+            // No mail client registered or blocked. Silent fallback; the
+            // address is also visible in the card so the user can copy it
+            // manually.
         }
     }
 
