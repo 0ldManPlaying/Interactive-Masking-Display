@@ -31,12 +31,18 @@
                   Margin="2"
                   MouseLeftButtonUp="OnTileTapped">
 
-                <!-- Live image. The BlurEffect is only attached when IsMasked=true;
-                     leaving an Effect on every tile (even with Radius=0) costs the GPU
-                     an intermediate render target per tile per frame, which is heavy
-                     for 16 tiles at 25 fps. -->
+                <!-- Live image. Stretch=Uniform (fit) preserves the camera's
+                     native aspect ratio. Cameras whose ratio doesn't match the
+                     tile (4:3, 5:4, 1:1 fish-eye, 21:9, etc.) letterbox / pillar-
+                     box against the dark tile background instead of being cropped
+                     by UniformToFill, which silently lost edge content.
+
+                     The BlurEffect is only attached when IsMasked=true; leaving
+                     an Effect on every tile (even with Radius=0) costs the GPU
+                     an intermediate render target per tile per frame, which is
+                     heavy for 16 tiles at 25 fps. -->
                 <Image Source="{Binding Bitmap}"
-                       Stretch="UniformToFill"
+                       Stretch="Uniform"
                        RenderOptions.BitmapScalingMode="LowQuality">
                     <Image.Style>
                         <Style TargetType="Image">
