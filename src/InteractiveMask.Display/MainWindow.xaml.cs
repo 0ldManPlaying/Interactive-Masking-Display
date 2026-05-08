@@ -490,7 +490,21 @@ public partial class MainWindow : Window
         var s = Strings.Instance.Current;
         if (!VerifyAdminPin(s.AdminPinSetupOpenTitle, s.AdminPinSetupOpenSub)) return;
 
-        var setup = new SetupWindow(_configService, _adminPin, _audit) { Owner = this };
+        // Lambda captures _sessionsById so Setup can ask the live, already-
+        // authenticated NvrSession for camera names instead of opening a
+        // second concurrent session against the NVR (which most IDIS NVRs
+        // refuse on the same user).
+        var setup = new SetupWindow(_configService, _adminPin, _audit,
+            cameraNameFetcher: async (nvrId, ct) =>
+            {
+                if (!_sessionsById.TryGetValue(nvrId, out var session))
+                {
+                    throw new InvalidOperationException(
+                        $"NVR id={nvrId} is not currently connected.");
+                }
+                return await session.FetchCameraNamesAsync(TimeSpan.FromSeconds(8), ct).ConfigureAwait(true);
+            })
+        { Owner = this };
         setup.ShowDialog();
         if (!setup.ConfigChanged) return;
 

@@ -25,10 +25,20 @@ public partial class SetupWindow : Window
     private readonly ObservableCollection<AuditViewRow> _auditRows = new();
     private readonly StreamChoices _streamChoices = new();
 
+    /// <summary>
+    /// Optional callback that returns the NVR-side camera names for a given
+    /// NvrId. Wired by MainWindow to its live <see cref="InteractiveMask.Gdk.NvrSession"/>
+    /// so the sync flow reuses the existing connection (avoids second-session
+    /// rejection by NVRs that allow only one login per user).
+    /// </summary>
+    private readonly Func<int, CancellationToken, Task<IReadOnlyDictionary<int, string>>>? _cameraNameFetcher;
+
     public bool ConfigChanged { get; private set; }
 
-    public SetupWindow(ConfigService configService, AdminPinService adminPin, AuditLog audit)
+    public SetupWindow(ConfigService configService, AdminPinService adminPin, AuditLog audit,
+                       Func<int, CancellationToken, Task<IReadOnlyDictionary<int, string>>>? cameraNameFetcher = null)
     {
+        _cameraNameFetcher = cameraNameFetcher;
         InitializeComponent();
         _configService = configService;
         _adminPin = adminPin;
@@ -362,13 +372,26 @@ public partial class SetupWindow : Window
                 var nvr = _nvrs.FirstOrDefault(n => n.Id == group.Key);
                 if (nvr is null || string.IsNullOrWhiteSpace(nvr.Ip)) continue;
 
-                Dictionary<int, string> nvrNames;
+                IReadOnlyDictionary<int, string> nvrNames;
                 try
                 {
-                    var conn = new NvrConnectionInfo(nvr.Ip, nvr.Port, nvr.User, nvr.Password);
-                    nvrNames = await NvrCameraNameFetcher
-                        .FetchAsync(conn, TimeSpan.FromSeconds(8))
-                        .ConfigureAwait(true);
+                    if (_cameraNameFetcher is null)
+                    {
+                        // No live session available (Setup opened in a stand-alone
+                        // context). Fall back to a one-shot fetcher; this only
+                        // works if no other client is already logged in.
+                        var conn = new NvrConnectionInfo(nvr.Ip, nvr.Port, nvr.User, nvr.Password);
+                        nvrNames = await NvrCameraNameFetcher
+                            .FetchAsync(conn, TimeSpan.FromSeconds(8))
+                            .ConfigureAwait(true);
+                    }
+                    else
+                    {
+                        // Reuse the running NvrSession's already-authenticated
+                        // pipe; no second login, no concurrent-session conflict.
+                        nvrNames = await _cameraNameFetcher(nvr.Id, CancellationToken.None)
+                            .ConfigureAwait(true);
+                    }
                 }
                 catch (Exception ex)
                 {

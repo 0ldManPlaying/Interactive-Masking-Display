@@ -40,6 +40,15 @@ public sealed class NvrSession : g2watch_listener, IDisposable
 
     public IReadOnlyDictionary<int, CameraTile> Tiles => _tilesByCamera;
 
+    // Last device-status camera-name set received from the NVR. Populated in
+    // on_g2watch_receive_device_status; consulted by FetchCameraNamesAsync as
+    // an immediate-return optimization. Empty until the NVR has answered at
+    // least one device-status request.
+    private Dictionary<int, string> _lastCameraNames = new();
+    // Single-shot pending request. Used by FetchCameraNamesAsync to wait
+    // for the next device-status callback; cleared once the callback fires.
+    private TaskCompletionSource<Dictionary<int, string>>? _pendingNamesTcs;
+
     public event Action<int>? Connected;
     public event Action<G2DISCONNECT_REASON.TYPE>? Disconnected;
     public event Action<DateTime>? ReconnectScheduled;
@@ -152,6 +161,48 @@ public sealed class NvrSession : g2watch_listener, IDisposable
         _decoder.startup(slots);
 
         ConnectInternal();
+    }
+
+    /// <summary>
+    /// Ask the NVR for its current device-status block and return the camera
+    /// names. Reuses the live <c>g2watch</c> session so we don't open a
+    /// second concurrent connection (which most IDIS NVRs reject).
+    /// Throws if the session isn't connected, or times out.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<int, string>> FetchCameraNamesAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(NvrSession));
+        if (_channel < 0) throw new InvalidOperationException("NVR session is not connected.");
+
+        var tcs = new TaskCompletionSource<Dictionary<int, string>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var prior = Interlocked.Exchange(ref _pendingNamesTcs, tcs);
+        // If a previous request was still in-flight, fail it so its caller
+        // doesn't hang on a callback we just stole.
+        prior?.TrySetCanceled();
+
+        try
+        {
+            _watch.request_device_status(_channel);
+        }
+        catch (Exception ex)
+        {
+            Interlocked.CompareExchange(ref _pendingNamesTcs, null, tcs);
+            tcs.TrySetException(ex);
+            throw;
+        }
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(timeout);
+        await using var registration = timeoutCts.Token.Register(() =>
+        {
+            if (Interlocked.CompareExchange(ref _pendingNamesTcs, null, tcs) == tcs)
+            {
+                tcs.TrySetException(new TimeoutException(
+                    $"NVR device status not received within {timeout.TotalSeconds:0} s."));
+            }
+        });
+
+        return await tcs.Task.ConfigureAwait(false);
     }
 
     public void Dispose()
@@ -287,6 +338,35 @@ public sealed class NvrSession : g2watch_listener, IDisposable
         // status._cameras carries per-camera VIDEOLOSS / NOTCONNECTED flags. We could
         // reflect those into TileStatus here in a future iteration; for now the absence
         // of frames is enough indication.
+        //
+        // We do extract the camera-description strings here and complete any
+        // pending FetchCameraNamesAsync waiters: this is the only place the
+        // GDK delivers them, and Setup needs them without spinning up a
+        // second concurrent session against the NVR (most NVRs allow only
+        // one session per user).
+        var names = new Dictionary<int, string>();
+        try
+        {
+            if (status._camera_desc is not null)
+            {
+                for (int i = 0; i < status._camera_desc.Length; i++)
+                {
+                    var raw = status._camera_desc[i]._string;
+                    if (string.IsNullOrWhiteSpace(raw)) continue;
+                    var trimmed = raw.Trim('\0', ' ', '\t', '\r', '\n');
+                    if (trimmed.Length == 0) continue;
+                    names[i] = trimmed;
+                }
+            }
+        }
+        catch
+        {
+            // Defensive: malformed status struct must not crash the live session.
+        }
+
+        _lastCameraNames = names;
+        var pending = Interlocked.Exchange(ref _pendingNamesTcs, null);
+        pending?.TrySetResult(names);
     }
     void g2watch_listener.on_g2watch_receive_ptz_preset(int handle, int channel, int camera, ref G2LIVE_PTZ_PRESET preset) { }
     void g2watch_listener.on_g2watch_receive_ptz_menu(int handle, int channel, int camera, ref G2LIVE_PTZ_MENU menu) { }
