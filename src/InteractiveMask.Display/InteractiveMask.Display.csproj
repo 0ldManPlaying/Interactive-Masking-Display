@@ -24,6 +24,10 @@
        so per-Window Icon="..." bindings actually resolve at runtime. -->
   <ItemGroup>
     <Resource Include="app.ico" />
+    <!-- IDIS branding mark used as a subtle watermark in empty grid tiles
+         (10% opacity). Linked from the shared repo-level images folder so
+         we keep one source of truth. -->
+    <Resource Include="..\..\images\idis-logo-mask.png" Link="idis-logo-mask.png" />
   </ItemGroup>
 
   <ItemGroup>

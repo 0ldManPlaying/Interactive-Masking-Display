@@ -79,15 +79,15 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Empty tile placeholder when no camera is bound -->
-                <TextBlock Text="{Binding Source={x:Static local:Strings.Instance}, Path=Current.EmptyTile}"
-                           Foreground="#404040"
-                           FontFamily="Segoe UI"
-                           FontSize="14"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
+                <!-- Empty tile placeholder when no camera is bound:
+                     subtle IDIS watermark (10% opacity) plus an "no camera"
+                     label underneath. The whole stack is hidden as soon as a
+                     camera is bound to this slot. -->
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Orientation="Vertical">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding HasCamera}" Value="False">
@@ -95,8 +95,21 @@
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                    </StackPanel.Style>
+                    <Image Source="pack://application:,,,/idis-logo-mask.png"
+                           Opacity="0.10"
+                           Stretch="Uniform"
+                           MaxWidth="240"
+                           MaxHeight="120"
+                           SnapsToDevicePixels="True"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="{Binding Source={x:Static local:Strings.Instance}, Path=Current.EmptyTile}"
+                               Foreground="#404040"
+                               FontFamily="Segoe UI"
+                               FontSize="14"
+                               HorizontalAlignment="Center"
+                               Margin="0,12,0,0" />
+                </StackPanel>
 
                 <!-- Bottom status bar (label + status indicator + countdown) -->
                 <Border VerticalAlignment="Bottom"
