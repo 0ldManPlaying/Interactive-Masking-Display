@@ -842,6 +842,12 @@
                                                     <TextBlock Text="{local:Loc GridChoice16Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
                                                 </StackPanel>
                                             </RadioButton>
+                                            <RadioButton x:Name="Grid5" Style="{StaticResource GridChoice}" GroupName="GridSize">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="5 x 5" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice25Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </RadioButton>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>

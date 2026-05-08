@@ -29,7 +29,9 @@
                  long-press would always toggle the tile under the finger. -->
             <Grid Background="#1A1A1A"
                   Margin="2"
-                  MouseLeftButtonUp="OnTileTapped">
+                  MouseLeftButtonUp="OnTileTapped"
+                  MouseEnter="OnTileMouseEnter"
+                  MouseLeave="OnTileMouseLeave">
 
                 <!-- Live image. The BlurEffect is only attached when IsMasked=true;
                      leaving an Effect on every tile (even with Radius=0) costs the GPU
@@ -198,6 +200,21 @@
                    Margin="8,4"
                    VerticalAlignment="Top"
                    HorizontalAlignment="Left" />
+
+        <!-- Bottom-right hover footer: shows the label of whichever tile the
+             mouse is currently over. Empty string keeps the TextBlock invisible
+             via TextTrimming + transparent background; set on MouseEnter,
+             cleared on MouseLeave by the tile handlers in code-behind. -->
+        <TextBlock x:Name="HoverFooter"
+                   Text="{Binding HoveredCameraLabel}"
+                   Foreground="#CCFFFFFF"
+                   FontFamily="Segoe UI"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Margin="0,0,12,8"
+                   VerticalAlignment="Bottom"
+                   HorizontalAlignment="Right"
+                   IsHitTestVisible="False" />
 
         <!-- Reconnect banner: pulses orange while the NVR session is down, with
              a live-ticking countdown until the next reconnect attempt. Centered

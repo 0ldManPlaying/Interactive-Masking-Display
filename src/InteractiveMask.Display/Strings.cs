@@ -180,6 +180,7 @@ public sealed class StringsTable
     public string GridChoice4Caption { get; init; } = "";
     public string GridChoice9Caption { get; init; } = "";
     public string GridChoice16Caption { get; init; } = "";
+    public string GridChoice25Caption { get; init; } = "";
 
     // Privacy tab
     public string PrivacyPageTitle { get; init; } = "";
@@ -433,6 +434,7 @@ public sealed class StringsTable
         GridChoice4Caption        = "4 tegels",
         GridChoice9Caption        = "9 tegels",
         GridChoice16Caption       = "16 tegels",
+        GridChoice25Caption       = "25 tegels",
 
         PrivacyPageTitle          = "Privacy",
         PrivacyPageSubtitle       = "Sessie-PIN-beleid, auto-uit timer en visuele waarschuwing.",
@@ -675,6 +677,7 @@ public sealed class StringsTable
         GridChoice4Caption        = "4 tiles",
         GridChoice9Caption        = "9 tiles",
         GridChoice16Caption       = "16 tiles",
+        GridChoice25Caption       = "25 tiles",
 
         PrivacyPageTitle          = "Privacy",
         PrivacyPageSubtitle       = "Session-PIN policy, auto-off timer and visual warning.",
@@ -922,6 +925,7 @@ public sealed class StringsTable
         GridChoice4Caption        = "4 Kacheln",
         GridChoice9Caption        = "9 Kacheln",
         GridChoice16Caption       = "16 Kacheln",
+        GridChoice25Caption       = "25 Kacheln",
 
         PrivacyPageTitle          = "Privatsphäre",
         PrivacyPageSubtitle       = "Sitzungs-PIN-Richtlinie, Auto-Aus-Timer und visuelle Warnung.",
@@ -1164,6 +1168,7 @@ public sealed class StringsTable
         GridChoice4Caption        = "4 tuiles",
         GridChoice9Caption        = "9 tuiles",
         GridChoice16Caption       = "16 tuiles",
+        GridChoice25Caption       = "25 tuiles",
 
         PrivacyPageTitle          = "Confidentialité",
         PrivacyPageSubtitle       = "Politique du PIN de session, minuteur d'auto-désactivation et avertissement visuel.",
@@ -1406,6 +1411,7 @@ public sealed class StringsTable
         GridChoice4Caption        = "4 mosaicos",
         GridChoice9Caption        = "9 mosaicos",
         GridChoice16Caption       = "16 mosaicos",
+        GridChoice25Caption       = "25 mosaicos",
 
         PrivacyPageTitle          = "Privacidad",
         PrivacyPageSubtitle       = "Política de PIN de sesión, temporizador de auto-desactivación y advertencia visual.",

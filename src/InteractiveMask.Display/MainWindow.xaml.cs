@@ -271,6 +271,19 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnTileMouseEnter(object sender, MouseEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is TileViewModel tile && tile.HasCamera)
+        {
+            _viewModel.HoveredCameraLabel = tile.Label;
+        }
+    }
+
+    private void OnTileMouseLeave(object sender, MouseEventArgs e)
+    {
+        _viewModel.HoveredCameraLabel = "";
+    }
+
     private void OnTileTapped(object sender, MouseButtonEventArgs e)
     {
         // Long-press already fired the mass action; eat this MouseLeftButtonUp

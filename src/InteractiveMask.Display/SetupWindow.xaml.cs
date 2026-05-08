@@ -231,13 +231,15 @@ public partial class SetupWindow : Window
         Grid1.IsChecked = rows == 1;
         Grid2.IsChecked = rows == 2;
         Grid3.IsChecked = rows == 3;
-        Grid4.IsChecked = rows == 4 || rows < 1 || rows > 4;
+        Grid4.IsChecked = rows == 4 || rows < 1 || rows > 5;
+        Grid5.IsChecked = rows == 5;
     }
 
     private int CurrentGridChoice() =>
         Grid1.IsChecked == true ? 1 :
         Grid2.IsChecked == true ? 2 :
         Grid3.IsChecked == true ? 3 :
+        Grid5.IsChecked == true ? 5 :
         4;
 
     // ---- Window chrome ----------------------------------------------------
