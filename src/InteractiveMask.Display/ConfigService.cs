@@ -137,6 +137,13 @@ public sealed class ConfigService
             settings.Privacy.AutoUnmaskMinutes = stored.Privacy.AutoUnmaskMinutes;
             settings.Privacy.WarningMinutes = stored.Privacy.WarningMinutes;
             settings.Privacy.RequireSessionPin = stored.Privacy.RequireSessionPin;
+            settings.Privacy.ShowMassUnmaskConfirm = stored.Privacy.ShowMassUnmaskConfirm;
+            settings.Privacy.Mode = stored.Privacy.Mode == 1
+                ? PrivacyMode.PrivacyDefault
+                : PrivacyMode.OversightDefault;
+            settings.Privacy.PrivacyDefaultRequireAuthOnReveal = stored.Privacy.PrivacyDefaultRequireAuthOnReveal;
+            settings.Privacy.ShowCameraLabel = stored.Privacy.ShowCameraLabel;
+            settings.Privacy.ShowNvrTitle = stored.Privacy.ShowNvrTitle;
         }
         if (stored.Cameras is not null)
         {
@@ -154,6 +161,7 @@ public sealed class ConfigService
                     CameraIndex = c.CameraIndex,
                     StreamId = c.StreamId,
                     Label = c.Label ?? "",
+                    NvrTitle = c.NvrTitle ?? "",
                 })
                 .ToList();
         }
@@ -230,6 +238,11 @@ public sealed class ConfigService
             AutoUnmaskMinutes = settings.Privacy.AutoUnmaskMinutes,
             WarningMinutes = settings.Privacy.WarningMinutes,
             RequireSessionPin = settings.Privacy.RequireSessionPin,
+            ShowMassUnmaskConfirm = settings.Privacy.ShowMassUnmaskConfirm,
+            Mode = (int)settings.Privacy.Mode,
+            PrivacyDefaultRequireAuthOnReveal = settings.Privacy.PrivacyDefaultRequireAuthOnReveal,
+            ShowCameraLabel = settings.Privacy.ShowCameraLabel,
+            ShowNvrTitle = settings.Privacy.ShowNvrTitle,
         },
         Cameras = settings.Cameras
             .Select(c => new StoredCamera
@@ -239,6 +252,7 @@ public sealed class ConfigService
                 CameraIndex = c.CameraIndex,
                 StreamId = c.StreamId,
                 Label = c.Label,
+                NvrTitle = c.NvrTitle,
             })
             .ToList(),
         Kiosk = new StoredKiosk { Enabled = settings.Kiosk.Enabled },
@@ -371,6 +385,13 @@ public sealed class ConfigService
         public int AutoUnmaskMinutes { get; set; }
         public int WarningMinutes { get; set; } = 2;
         public bool RequireSessionPin { get; set; } = true;
+        // v1.3.0 additions. Stored as int for Mode so the JSON value matches the
+        // PrivacyMode enum's underlying int (0 = OversightDefault, 1 = PrivacyDefault).
+        public bool ShowMassUnmaskConfirm { get; set; }
+        public int Mode { get; set; }
+        public bool PrivacyDefaultRequireAuthOnReveal { get; set; }
+        public bool ShowCameraLabel { get; set; } = true;
+        public bool ShowNvrTitle { get; set; }
     }
 
     private sealed class StoredCamera
@@ -380,5 +401,9 @@ public sealed class ConfigService
         public int CameraIndex { get; set; }
         public int StreamId { get; set; } = 1;
         public string Label { get; set; } = "";
+        // v1.3.0: NVR-side camera title pulled via Setup > Cameras > Pull names.
+        // Persisted so the tile bottom bar can show it from first frame after a
+        // restart, no live device-status round-trip needed.
+        public string NvrTitle { get; set; } = "";
     }
 }
