@@ -65,3 +65,9 @@ Desktop.ini
 
 ## Working asset folder (raw source images, licensed stock, exports)
 overige/
+
+## Per-version build logs from build-installer.ps1
+build-*.log
+
+## Claude Code session state (lockfiles, scheduled-task scratch)
+.claude/
