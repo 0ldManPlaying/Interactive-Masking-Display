@@ -1216,10 +1216,16 @@
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
                                         <TextBlock Text="{local:Loc AdminCardLanguage}" Style="{StaticResource SectionHeader}" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                            <RadioButton x:Name="LangNl" Content="{local:Loc AdminLangNl}" GroupName="Lang" Style="{StaticResource LangRadio}" />
-                                            <RadioButton x:Name="LangEn" Content="{local:Loc AdminLangEn}" GroupName="Lang" Style="{StaticResource LangRadio}" />
-                                        </StackPanel>
+                                        <!-- Display name lives on LanguageChoice and is intentionally
+                                             rendered in the language's own native script (Deutsch,
+                                             Français, Español, ...) so a non-Dutch admin can find
+                                             their own tongue regardless of the current UI language. -->
+                                        <ComboBox x:Name="LanguageBox"
+                                                  DisplayMemberPath="DisplayName"
+                                                  SelectedValuePath="Code"
+                                                  Margin="0,0,0,8"
+                                                  HorizontalAlignment="Left"
+                                                  MinWidth="200" />
                                         <TextBlock Foreground="{StaticResource text.muted}" FontSize="12"
                                                    Text="{local:Loc AdminLanguageHint}" />
                                     </StackPanel>

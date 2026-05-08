@@ -42,6 +42,8 @@ public partial class SetupWindow : Window
         // ObservableCollection that the NVR DataGrid edits, so adding/removing
         // an NVR row updates the cameras dropdown immediately.
         NvrColumn.ItemsSource = _nvrs;
+        // Language picker: 5-language list lives on Strings.Instance.
+        LanguageBox.ItemsSource = Strings.Instance.SupportedLanguages;
         Loaded += (_, _) => Populate();
     }
 
@@ -92,8 +94,15 @@ public partial class SetupWindow : Window
         CertPassword.Password = settings.Web.CertPassword ?? "";
         BindAllInterfaces.IsChecked = settings.Web.BindAllInterfaces;
 
-        LangNl.IsChecked = !string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase);
-        LangEn.IsChecked = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase);
+        // Language picker: pick the persisted code, fall back to "nl" if the
+        // value isn't in the supported set (e.g. an older config from before
+        // we added the language).
+        var savedLang = string.IsNullOrWhiteSpace(settings.Language) ? "nl" : settings.Language!.Trim().ToLowerInvariant();
+        if (!Strings.Instance.SupportedLanguages.Any(l => string.Equals(l.Code, savedLang, StringComparison.OrdinalIgnoreCase)))
+        {
+            savedLang = "nl";
+        }
+        LanguageBox.SelectedValue = savedLang;
 
         KioskEnabled.IsChecked = settings.Kiosk.Enabled;
         UseActiveDirectory.IsChecked = settings.Auth.UseActiveDirectory;
@@ -551,7 +560,7 @@ public partial class SetupWindow : Window
                 },
             },
             AuditForward = ReadAuditForwardFromUi(),
-            Language = (LangEn.IsChecked == true) ? "en" : "nl",
+            Language = LanguageBox.SelectedValue as string ?? "nl",
         };
 
         try

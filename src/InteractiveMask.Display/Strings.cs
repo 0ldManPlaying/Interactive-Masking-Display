@@ -12,7 +12,24 @@ public sealed class Strings : INotifyPropertyChanged
 {
     public static Strings Instance { get; } = new();
 
+    /// <summary>
+    /// Languages this build ships UI strings for. Order = order shown in the
+    /// language picker (Setup admin tab + first-run dialog). DE/FR/ES are
+    /// scaffolded in v1.3.0 item 4a; their strings start out as a copy of
+    /// EN until item 4b lands the proper translations.
+    /// </summary>
+    public IReadOnlyList<LanguageChoice> SupportedLanguages { get; } = new[]
+    {
+        new LanguageChoice("nl", "Nederlands"),
+        new LanguageChoice("en", "English"),
+        new LanguageChoice("de", "Deutsch"),
+        new LanguageChoice("fr", "Français"),
+        new LanguageChoice("es", "Español"),
+    };
+
     private StringsTable _current = StringsTable.Nl;
+    private string _currentCode = "nl";
+
     public StringsTable Current
     {
         get => _current;
@@ -24,16 +41,37 @@ public sealed class Strings : INotifyPropertyChanged
         }
     }
 
-    public string LanguageCode => _current == StringsTable.En ? "en" : "nl";
+    public string LanguageCode => _currentCode;
 
     public void Apply(string? languageCode)
     {
-        Current = string.Equals(languageCode, "en", StringComparison.OrdinalIgnoreCase)
-            ? StringsTable.En
-            : StringsTable.Nl;
+        var code = (languageCode ?? "").Trim().ToLowerInvariant();
+        var (table, normalised) = code switch
+        {
+            "nl"          => (StringsTable.Nl, "nl"),
+            "en"          => (StringsTable.En, "en"),
+            "de"          => (StringsTable.De, "de"),
+            "fr"          => (StringsTable.Fr, "fr"),
+            "es"          => (StringsTable.Es, "es"),
+            _             => (StringsTable.Nl, "nl"),
+        };
+        _currentCode = normalised;
+        Current = table;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+}
+
+/// <summary>
+/// Item shown in the language picker (Setup admin tab and the first-run
+/// language dialog). <see cref="Code"/> matches what is persisted into
+/// <c>AppSettings.Language</c>; <see cref="DisplayName"/> is shown in the
+/// list and is intentionally not localised (the user picks based on the
+/// native name of their own language).
+/// </summary>
+public sealed record LanguageChoice(string Code, string DisplayName)
+{
+    public override string ToString() => DisplayName;
 }
 
 public sealed class StringsTable
@@ -704,4 +742,22 @@ public sealed class StringsTable
         PrivacyShowMassUnmaskConfirmHelp  = "Adds a dialog before a long-press lifts every privacy mask at once. Recommended when authentication is disabled.",
         PrivacyLongPressHelp      = "Hold the mouse button down anywhere on the screen for half a second to mask or unmask every tile at once. Single-tap still toggles tiles individually.",
     };
+
+    // ------------------------------------------------------------------
+    // v1.3.0 item 4a scaffolding for German, French, Spanish.
+    //
+    // These tables intentionally point at the English content for now so
+    // the picker is functional end-to-end (the user can switch to "Deutsch"
+    // in Setup, the install-time picker can persist "de", every UI element
+    // resolves and renders something) while we wait for item 4b to land
+    // the actual native translations.
+    //
+    // When the translation pass lands, replace each `= En;` with a fully
+    // populated `new() { ... }` block that mirrors En's shape, and the
+    // assignment will hot-swap without any other code change.
+    // ------------------------------------------------------------------
+
+    public static readonly StringsTable De = En;
+    public static readonly StringsTable Fr = En;
+    public static readonly StringsTable Es = En;
 }
