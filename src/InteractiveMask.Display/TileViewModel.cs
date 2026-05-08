@@ -24,6 +24,14 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     private TileStatus _status = TileStatus.Empty;
     private DateTime? _maskedAtUtc;
     private int _autoUnmaskMinutes;
+    /// <summary>
+    /// Symmetric counterpart of <see cref="_maskedAtUtc"/> for the privacy-
+    /// default mode: timestamp at which the tile transitioned from masked
+    /// to revealed. Combined with <see cref="_autoReMaskMinutes"/> drives
+    /// the auto-rollback back to masked.
+    /// </summary>
+    private DateTime? _revealedAtUtc;
+    private int _autoReMaskMinutes;
     private bool _isTimerWarning;
     private string _countdownText = "";
 
@@ -115,17 +123,31 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Minutes after MaskedAtUtc at which the auto-unmask fires; 0 = disabled.</summary>
     public int AutoUnmaskMinutes => _autoUnmaskMinutes;
 
-    /// <summary>Apply or remove the privacy mask, optionally arming the auto-unmask timer.</summary>
-    public void SetMasked(bool masked, int autoUnmaskMinutes = 0, DateTime? maskedAtUtc = null)
+    /// <summary>
+    /// Apply or remove the privacy mask. The same auto-timer parameter feeds
+    /// either an auto-unmask (when <paramref name="masked"/> is true, oversight
+    /// default mode) or an auto-re-mask (when <paramref name="masked"/> is false,
+    /// privacy default mode); only one direction is ever live at a time.
+    /// </summary>
+    /// <param name="autoMinutes">Minutes after which the tile auto-transitions back. 0 = no timer.</param>
+    /// <param name="anchorUtc">Optional anchor for the timer. Defaults to UtcNow.</param>
+    public void SetMasked(bool masked, int autoMinutes = 0, DateTime? anchorUtc = null)
     {
         IsMasked = masked;
         if (masked)
         {
-            _autoUnmaskMinutes = Math.Max(0, autoUnmaskMinutes);
-            _maskedAtUtc = _autoUnmaskMinutes > 0 ? (maskedAtUtc ?? DateTime.UtcNow) : null;
+            _autoUnmaskMinutes = Math.Max(0, autoMinutes);
+            _maskedAtUtc = _autoUnmaskMinutes > 0 ? (anchorUtc ?? DateTime.UtcNow) : null;
+            // Clear the inverse-direction timer; only one auto path is ever live.
+            _revealedAtUtc = null;
+            _autoReMaskMinutes = 0;
+            IsTimerWarning = false;
+            CountdownText = "";
         }
         else
         {
+            _autoReMaskMinutes = Math.Max(0, autoMinutes);
+            _revealedAtUtc = _autoReMaskMinutes > 0 ? (anchorUtc ?? DateTime.UtcNow) : null;
             _autoUnmaskMinutes = 0;
             _maskedAtUtc = null;
             IsTimerWarning = false;
@@ -134,9 +156,10 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>
-    /// Called once per second by the global ticker. Updates <see cref="CountdownText"/>
-    /// and <see cref="IsTimerWarning"/>; returns true when the timer has expired and
-    /// the tile should be auto-unmasked (caller must run the unmask logic).
+    /// Called once per second by the global ticker (oversight-default mode).
+    /// Updates <see cref="CountdownText"/> and <see cref="IsTimerWarning"/>;
+    /// returns true when the timer has expired and the tile should be
+    /// auto-unmasked (caller must run the unmask logic).
     /// </summary>
     public bool TickAutoUnmask(int warningMinutes)
     {
@@ -149,6 +172,31 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
 
         var elapsed = DateTime.UtcNow - _maskedAtUtc.Value;
         var total = TimeSpan.FromMinutes(_autoUnmaskMinutes);
+        var remaining = total - elapsed;
+
+        if (remaining <= TimeSpan.Zero) return true;
+
+        IsTimerWarning = remaining <= TimeSpan.FromMinutes(Math.Max(0, warningMinutes));
+        CountdownText = $"{Strings.Instance.Current.AutoOff} {remaining:mm\\:ss}";
+        return false;
+    }
+
+    /// <summary>
+    /// Called once per second by the global ticker (privacy-default mode).
+    /// Mirror of <see cref="TickAutoUnmask"/>: returns true when a revealed
+    /// tile has been visible long enough and should snap back to masked.
+    /// </summary>
+    public bool TickAutoReMask(int warningMinutes)
+    {
+        if (IsMasked || _revealedAtUtc is null || _autoReMaskMinutes <= 0)
+        {
+            if (IsTimerWarning) IsTimerWarning = false;
+            if (CountdownText.Length > 0) CountdownText = "";
+            return false;
+        }
+
+        var elapsed = DateTime.UtcNow - _revealedAtUtc.Value;
+        var total = TimeSpan.FromMinutes(_autoReMaskMinutes);
         var remaining = total - elapsed;
 
         if (remaining <= TimeSpan.Zero) return true;

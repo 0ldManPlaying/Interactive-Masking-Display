@@ -89,6 +89,8 @@ public partial class MainWindow : Window
             autoUnmaskMinutesProvider: () => _privacy.AutoUnmaskMinutes,
             requireSessionPinProvider: () => _privacy.RequireSessionPin,
             authSettingsProvider: () => _auth,
+            privacyModeProvider: () => _privacy.Mode,
+            privacyDefaultRequireAuthProvider: () => _privacy.PrivacyDefaultRequireAuthOnReveal,
             onStateChanged: SaveState);
 
         int rows = Math.Max(1, settings.Grid.Rows);
@@ -146,7 +148,18 @@ public partial class MainWindow : Window
             }
         }
 
-        RestoreState();
+        // In privacy-default mode the grid always boots with everyone blurred,
+        // regardless of what state.json says. Reveals never survive a restart;
+        // that's part of the "privacy is the default" contract. RestoreState
+        // would reapply yesterday's reveal, which would defeat the mode.
+        if (_privacy.Mode == PrivacyMode.PrivacyDefault)
+        {
+            _maskController.PrimePrivacyDefaultState(_viewModel.Tiles);
+        }
+        else
+        {
+            RestoreState();
+        }
 
         // Start the IPC broadcaster after the grid is fully wired so the very first
         // Hello snapshot already reflects any restored masks.
@@ -340,11 +353,28 @@ public partial class MainWindow : Window
         // by one while the caregiver is still away from the post.
         if (!_maskController.IsMassHoldActive)
         {
-            foreach (var tile in _viewModel.Tiles)
+            // Direction of the per-tile auto-timer follows the configured
+            // privacy mode: oversight-default counts down to "auto-unmask"
+            // (mask -> visible), privacy-default counts down to "auto-re-mask"
+            // (visible -> mask). Only one direction is ever live per tile.
+            if (_privacy.Mode == PrivacyMode.OversightDefault)
             {
-                if (tile.TickAutoUnmask(_privacy.WarningMinutes))
+                foreach (var tile in _viewModel.Tiles)
                 {
-                    _maskController.AutoExpireMask(tile);
+                    if (tile.TickAutoUnmask(_privacy.WarningMinutes))
+                    {
+                        _maskController.AutoExpireMask(tile);
+                    }
+                }
+            }
+            else
+            {
+                foreach (var tile in _viewModel.Tiles)
+                {
+                    if (tile.TickAutoReMask(_privacy.WarningMinutes))
+                    {
+                        _maskController.AutoReMaskTile(tile);
+                    }
                 }
             }
         }

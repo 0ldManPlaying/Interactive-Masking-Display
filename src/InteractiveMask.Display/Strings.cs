@@ -147,6 +147,13 @@ public sealed class StringsTable
     public string PrivacyWarningMinutesLabel { get; init; } = "";
     public string PrivacyAutoOffExample { get; init; } = "";
     public string PrivacyCardMassMask { get; init; } = "";
+    public string PrivacyCardMode { get; init; } = "";
+    public string PrivacyModeOversightLabel { get; init; } = "";
+    public string PrivacyModeOversightHelp { get; init; } = "";
+    public string PrivacyModePrivacyLabel { get; init; } = "";
+    public string PrivacyModePrivacyHelp { get; init; } = "";
+    public string PrivacyDefaultRequireAuthOnRevealLabel { get; init; } = "";
+    public string PrivacyDefaultRequireAuthOnRevealHelp { get; init; } = "";
 
     // Web-UI tab
     public string WebPageTitle { get; init; } = "";
@@ -365,6 +372,13 @@ public sealed class StringsTable
         PrivacyWarningMinutesLabel = "Waarschuwing voor auto-uit (minuten)",
         PrivacyAutoOffExample     = "Voorbeeld: bij auto-uit = 5 en waarschuwing = 2 verschijnt op een tegel die om 14:00 wordt gemaskeerd vanaf 14:03 een pulserende oranje rand; om 14:05 wordt het masker automatisch verwijderd.",
         PrivacyCardMassMask       = "Alles maskeren / vrijgeven (long-press)",
+        PrivacyCardMode           = "Standaard zichtbaarheid",
+        PrivacyModeOversightLabel = "Standaard zicht (klassieke zorg)",
+        PrivacyModeOversightHelp  = "Tegels starten zichtbaar. De zorgmedewerker klikt op een tegel om de privacy te beschermen wanneer er zorg geleverd wordt. Een auto-uit timer zorgt dat een masker niet onbedoeld blijft staan.",
+        PrivacyModePrivacyLabel   = "Standaard privé",
+        PrivacyModePrivacyHelp    = "Tegels starten geblurd. De zorgmedewerker tikt om kort te onthullen voor verificatie. Een auto-rollback timer brengt de tegel automatisch weer naar geblurd. Geschikt voor kantoorruimtes, recepties of locaties met striktere privacy-defaults.",
+        PrivacyDefaultRequireAuthOnRevealLabel = "Auth vragen bij elke onthulling",
+        PrivacyDefaultRequireAuthOnRevealHelp  = "Alleen actief in standaard-privé modus. Wanneer aan, vraagt elke tap de PIN of AD-credentials voordat de tegel wordt onthuld. Wanneer uit (aanbevolen), is een onthulling vrij omdat de auto-rollback de privacy snel herstelt.",
 
         WebPageTitle              = "Web-UI",
         WebPageSubtitle           = "Poorten, certificaat en netwerk-zichtbaarheid van de browser-bediening.",
@@ -575,6 +589,13 @@ public sealed class StringsTable
         PrivacyWarningMinutesLabel = "Warning before auto-off (minutes)",
         PrivacyAutoOffExample     = "Example: with auto-off = 5 and warning = 2, a tile masked at 14:00 shows a pulsing orange border from 14:03; the mask is removed automatically at 14:05.",
         PrivacyCardMassMask       = "Mask / unmask everything (long-press)",
+        PrivacyCardMode           = "Default visibility",
+        PrivacyModeOversightLabel = "Oversight default (classic care)",
+        PrivacyModeOversightHelp  = "Tiles start visible. A caregiver taps a tile to apply privacy when delivering care. An auto-off timer makes sure a mask is not left behind by accident.",
+        PrivacyModePrivacyLabel   = "Privacy default",
+        PrivacyModePrivacyHelp    = "Tiles start blurred. A caregiver taps to briefly reveal for verification. An auto-rollback timer takes the tile back to blurred. Fits office spaces, receptions, or sites with stricter privacy defaults.",
+        PrivacyDefaultRequireAuthOnRevealLabel = "Require auth on every reveal",
+        PrivacyDefaultRequireAuthOnRevealHelp  = "Only active in privacy-default mode. When on, every tap goes through the PIN or AD prompt before the tile is revealed. When off (recommended), a reveal is free because the auto-rollback restores privacy quickly.",
 
         WebPageTitle              = "Web UI",
         WebPageSubtitle           = "Ports, certificate and network reachability for browser control.",

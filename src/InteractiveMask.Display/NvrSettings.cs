@@ -98,12 +98,41 @@ public sealed class KioskSettings
     public bool Enabled { get; set; }
 }
 
+/// <summary>
+/// Default visibility model of the live grid. Picked at install time, may be
+/// switched in Setup later. Defines what the tiles do at app start and how
+/// per-tile auto-timers behave.
+/// </summary>
+public enum PrivacyMode
+{
+    /// <summary>
+    /// Caregiver-oversight default: tiles start visible, a tap applies a
+    /// privacy blur, removing the blur runs through the configured auth
+    /// policy. The classic "I look, then click to protect a care moment"
+    /// flow that v1.0..v1.2 always used.
+    /// </summary>
+    OversightDefault = 0,
+
+    /// <summary>
+    /// Privacy-by-default: tiles start blurred, a tap reveals (briefly) for
+    /// verification. After <see cref="PrivacySettings.AutoUnmaskMinutes"/>
+    /// the reveal is automatically rolled back to blurred. Authentication
+    /// on each reveal is opt-in via <see cref="PrivacySettings.PrivacyDefaultRequireAuthOnReveal"/>.
+    /// </summary>
+    PrivacyDefault = 1,
+}
+
 public sealed class PrivacySettings
 {
-    /// <summary>Minutes after which an active mask is automatically removed. 0 = disabled.</summary>
+    /// <summary>
+    /// Minutes after which an active mask is automatically removed in
+    /// <see cref="PrivacyMode.OversightDefault"/>, or after which a reveal
+    /// auto-rolls back to blurred in <see cref="PrivacyMode.PrivacyDefault"/>.
+    /// 0 = disabled.
+    /// </summary>
     public int AutoUnmaskMinutes { get; set; }
 
-    /// <summary>Minutes before auto-unmask at which the warning visual kicks in.</summary>
+    /// <summary>Minutes before the auto timer expires at which the warning visual kicks in.</summary>
     public int WarningMinutes { get; set; } = 2;
 
     /// <summary>
@@ -120,6 +149,20 @@ public sealed class PrivacySettings
     /// installations where the authentication mode is disabled.
     /// </summary>
     public bool ShowMassUnmaskConfirm { get; set; } = false;
+
+    /// <summary>
+    /// Default visibility model. See <see cref="InteractiveMask.Display.PrivacyMode"/>.
+    /// </summary>
+    public PrivacyMode Mode { get; set; } = PrivacyMode.OversightDefault;
+
+    /// <summary>
+    /// Only consulted when <see cref="Mode"/> is <see cref="PrivacyMode.PrivacyDefault"/>.
+    /// When true, every reveal (tile tap) goes through the configured auth
+    /// policy (PIN or AD), like an unmask in OversightDefault. When false
+    /// (the default), reveals are free because the auto-rollback puts the
+    /// privacy state back automatically.
+    /// </summary>
+    public bool PrivacyDefaultRequireAuthOnReveal { get; set; } = false;
 }
 
 public sealed class NvrSettings

@@ -840,6 +840,50 @@
                                 <TextBlock Text="{local:Loc PrivacyPageTitle}" Style="{StaticResource PageTitle}" />
                                 <TextBlock Text="{local:Loc PrivacyPageSubtitle}" Style="{StaticResource PageSubtitle}" />
 
+                                <!-- ===== Default visibility mode ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc PrivacyCardMode}" Style="{StaticResource SectionHeader}" />
+                                        <RadioButton x:Name="ModeOversightRadio" GroupName="PrivacyMode" Margin="0,8,0,4">
+                                            <StackPanel>
+                                                <TextBlock Text="{local:Loc PrivacyModeOversightLabel}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{local:Loc PrivacyModeOversightHelp}"
+                                                           Foreground="{StaticResource text.muted}"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </RadioButton>
+                                        <RadioButton x:Name="ModePrivacyRadio" GroupName="PrivacyMode" Margin="0,12,0,4">
+                                            <StackPanel>
+                                                <TextBlock Text="{local:Loc PrivacyModePrivacyLabel}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{local:Loc PrivacyModePrivacyHelp}"
+                                                           Foreground="{StaticResource text.muted}"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </RadioButton>
+                                        <!-- Auth-on-reveal toggle, only meaningful in PrivacyDefault mode.
+                                             Greyed out and ignored when OversightDefault is selected. -->
+                                        <Grid Margin="0,16,0,0"
+                                              IsEnabled="{Binding IsChecked, ElementName=ModePrivacyRadio}">
+                                            <StackPanel>
+                                                <TextBlock Text="{local:Loc PrivacyDefaultRequireAuthOnRevealLabel}"
+                                                           Style="{StaticResource FieldLabel}" />
+                                                <TextBlock Text="{local:Loc PrivacyDefaultRequireAuthOnRevealHelp}"
+                                                           Foreground="{StaticResource text.muted}"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <CheckBox x:Name="PrivacyDefaultRequireAuthOnReveal"
+                                                      Style="{StaticResource ToggleSwitch}"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Top" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- ===== Sessie-PIN ===== -->
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
