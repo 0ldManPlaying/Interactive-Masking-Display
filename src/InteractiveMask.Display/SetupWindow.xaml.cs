@@ -44,7 +44,28 @@ public partial class SetupWindow : Window
         NvrColumn.ItemsSource = _nvrs;
         // Language picker: 5-language list lives on Strings.Instance.
         LanguageBox.ItemsSource = Strings.Instance.SupportedLanguages;
+        // About tab: show the runtime assembly version so the user can spot
+        // which build is installed without having to open file properties.
+        AboutVersionValue.Text = typeof(SetupWindow).Assembly.GetName().Version?.ToString(3) ?? "";
         Loaded += (_, _) => Populate();
+    }
+
+    private void OnAboutOpenRepo(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://github.com/0ldManPlaying/Interactive-Masking-Display",
+                UseShellExecute = true,
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch
+        {
+            // Default browser missing or blocked. Silent fallback: nothing
+            // catastrophic if this click does nothing.
+        }
     }
 
     private void Populate()
@@ -200,7 +221,7 @@ public partial class SetupWindow : Window
     {
         if (sender is not RadioButton rb || rb.Tag is not string targetName) return;
 
-        foreach (var name in new[] { "NvrPanel", "CamerasPanel", "GridPanel", "PrivacyPanel", "WebPanel", "AuditPanel", "AdminPanel" })
+        foreach (var name in new[] { "NvrPanel", "CamerasPanel", "PrivacyPanel", "WebPanel", "AuditPanel", "AdminPanel", "AboutPanel" })
         {
             if (FindName(name) is FrameworkElement fe)
             {

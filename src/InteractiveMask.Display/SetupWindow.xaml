@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:InteractiveMask.Display"
         Title="InteractiveMask - Setup"
         Icon="pack://application:,,,/app.ico"
-        Width="1180" Height="980"
+        Width="1180" Height="1000"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -660,13 +660,6 @@
                                     <TextBlock Text="{local:Loc NavCameras}" FontSize="13" />
                                 </StackPanel>
                             </RadioButton>
-                            <RadioButton x:Name="NavGrid" Style="{StaticResource NavItem}"
-                                         Tag="GridPanel" Checked="OnNavChecked">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xF246;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" FontSize="16" Margin="0,0,12,0" />
-                                    <TextBlock Text="{local:Loc NavGrid}" FontSize="13" />
-                                </StackPanel>
-                            </RadioButton>
                             <RadioButton x:Name="NavPrivacy" Style="{StaticResource NavItem}"
                                          Tag="PrivacyPanel" Checked="OnNavChecked">
                                 <StackPanel Orientation="Horizontal">
@@ -693,6 +686,13 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE77B;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" FontSize="16" Margin="0,0,12,0" />
                                     <TextBlock Text="{local:Loc NavAdmin}" FontSize="13" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavAbout" Style="{StaticResource NavItem}"
+                                         Tag="AboutPanel" Checked="OnNavChecked">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" FontSize="16" Margin="0,0,12,0" />
+                                    <TextBlock Text="{local:Loc NavAbout}" FontSize="13" />
                                 </StackPanel>
                             </RadioButton>
                         </StackPanel>
@@ -812,6 +812,39 @@
                                         </Border>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- ===== Grid-grootte (samengevoegd in NVR-tab v1.3.0) ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc GridCardSize}" Style="{StaticResource SectionHeader}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                            <RadioButton x:Name="Grid1" Style="{StaticResource GridChoice}" GroupName="GridSize">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="1 x 1" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice1Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </RadioButton>
+                                            <RadioButton x:Name="Grid2" Style="{StaticResource GridChoice}" GroupName="GridSize">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="2 x 2" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice4Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </RadioButton>
+                                            <RadioButton x:Name="Grid3" Style="{StaticResource GridChoice}" GroupName="GridSize">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="3 x 3" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice9Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </RadioButton>
+                                            <RadioButton x:Name="Grid4" Style="{StaticResource GridChoice}" GroupName="GridSize">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="4 x 4" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{local:Loc GridChoice16Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </RadioButton>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ============================ Cameras ============================ -->
@@ -918,44 +951,9 @@
                                 </Border>
                             </StackPanel>
 
-                            <!-- ============================ Grid ============================ -->
-                            <StackPanel x:Name="GridPanel" Visibility="Collapsed">
-                                <TextBlock Text="{local:Loc GridPageTitle}" Style="{StaticResource PageTitle}" />
-                                <TextBlock Text="{local:Loc GridPageSubtitle}" Style="{StaticResource PageSubtitle}" />
-
-                                <Border Style="{StaticResource Card}">
-                                    <StackPanel>
-                                        <TextBlock Text="{local:Loc GridCardSize}" Style="{StaticResource SectionHeader}" />
-                                        <StackPanel Orientation="Horizontal">
-                                            <RadioButton x:Name="Grid1" Style="{StaticResource GridChoice}" GroupName="GridSize">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="1 x 1" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{local:Loc GridChoice1Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </RadioButton>
-                                            <RadioButton x:Name="Grid2" Style="{StaticResource GridChoice}" GroupName="GridSize">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="2 x 2" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{local:Loc GridChoice4Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </RadioButton>
-                                            <RadioButton x:Name="Grid3" Style="{StaticResource GridChoice}" GroupName="GridSize">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="3 x 3" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{local:Loc GridChoice9Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </RadioButton>
-                                            <RadioButton x:Name="Grid4" Style="{StaticResource GridChoice}" GroupName="GridSize">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="4 x 4" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{local:Loc GridChoice16Caption}" Foreground="{StaticResource text.muted}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </RadioButton>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-
+                            <!-- Grid panel removed in v1.3.0 — content moved into NvrPanel
+                                 because the previous tab held a single small card and felt
+                                 like padding. -->
 
                             <!-- ============================ Privacy ============================ -->
                             <StackPanel x:Name="PrivacyPanel" Visibility="Collapsed">
@@ -1399,6 +1397,170 @@
                                                   HorizontalAlignment="Right"
                                                   VerticalAlignment="Top" />
                                     </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ============================ About ============================ -->
+                            <StackPanel x:Name="AboutPanel" Visibility="Collapsed">
+                                <TextBlock Text="{local:Loc AboutPageTitle}" Style="{StaticResource PageTitle}" />
+                                <TextBlock Text="{local:Loc AboutPageSubtitle}" Style="{StaticResource PageSubtitle}" />
+
+                                <!-- ===== Product info ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc AboutCardProduct}" Style="{StaticResource SectionHeader}" />
+                                        <Grid Margin="0,12,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="160" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{local:Loc AboutVersionLabel}"
+                                                       Foreground="{StaticResource text.muted}" FontSize="13" Margin="0,0,0,8" />
+                                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="AboutVersionValue"
+                                                       Text="" FontSize="13" Margin="0,0,0,8" />
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{local:Loc AboutPublisherLabel}"
+                                                       Foreground="{StaticResource text.muted}" FontSize="13" Margin="0,0,0,8" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="IDIS Nederland BV"
+                                                       FontSize="13" Margin="0,0,0,8" />
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{local:Loc AboutCopyrightLabel}"
+                                                       Foreground="{StaticResource text.muted}" FontSize="13" />
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="© 2026 IDIS Nederland BV. All rights reserved."
+                                                       FontSize="13" />
+                                        </Grid>
+                                        <TextBlock Foreground="{StaticResource text.muted}" FontSize="12" Margin="0,16,0,0"
+                                                   TextWrapping="Wrap"
+                                                   Text="{local:Loc AboutDescription}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== Integrations / proprietary deps ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc AboutCardLicensesIntegrations}" Style="{StaticResource SectionHeader}" />
+                                        <StackPanel Margin="0,12,0,0">
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text="IDIS GDK 6.6.1 (G2ClientGDK, G2LibavMT, G2FishEye)" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="© IDIS Co., Ltd. — proprietary" />
+                                            </Grid>
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text="SDL2" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="zlib license — sdl-libsdl.org" />
+                                            </Grid>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text="Authenticode signing certificate" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="Sectigo Public Code Signing CA R36 (EV)" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== Open-source components ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc AboutCardLicensesThird}" Style="{StaticResource SectionHeader}" />
+                                        <StackPanel Margin="0,12,0,0">
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text=".NET 9 (Microsoft.WindowsDesktop.App)" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="MIT — Microsoft" />
+                                            </Grid>
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text="ASP.NET Core 9 (Kestrel + Razor Pages, used by WebHost)" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="MIT — Microsoft" />
+                                            </Grid>
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text="Microsoft.Extensions.Configuration / Hosting / WindowsServices" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="MIT — Microsoft" />
+                                            </Grid>
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text="System.Security.Cryptography.ProtectedData" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="MIT — Microsoft" />
+                                            </Grid>
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text="WiX Toolset 5 (Util, Firewall, UI extensions)" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="MS-RL — WiX Toolset Foundation" />
+                                            </Grid>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" FontSize="13"
+                                                           Text="Segoe Fluent Icons / Segoe MDL2 Assets" />
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           Text="Microsoft — Windows 10/11 system font" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== Source code ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc AboutCardSourceCode}" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock Foreground="{StaticResource text.muted}" FontSize="13" Margin="0,12,0,12"
+                                                   TextWrapping="Wrap"
+                                                   Text="{local:Loc AboutSourceCodeIntro}" />
+                                        <Button x:Name="AboutOpenRepoButton"
+                                                Content="{local:Loc AboutOpenRepo}"
+                                                Style="{StaticResource BtnGhost}"
+                                                Click="OnAboutOpenRepo"
+                                                HorizontalAlignment="Left" />
+                                        <TextBlock Foreground="{StaticResource text.dim}" FontSize="11" Margin="0,8,0,0"
+                                                   Text="https://github.com/0ldManPlaying/Interactive-Masking-Display" />
+                                    </StackPanel>
                                 </Border>
                             </StackPanel>
 
