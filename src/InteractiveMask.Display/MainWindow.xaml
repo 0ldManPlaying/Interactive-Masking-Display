@@ -116,68 +116,54 @@
                                Margin="0,12,0,0" />
                 </StackPanel>
 
-                <!-- Bottom status bar (label + status indicator + countdown).
-                     Operator label and NVR-side title are both rendered on the
-                     left, separated by a thin "|" only when both are visible.
-                     Each one is toggled independently from Setup > Privacy. -->
+                <!-- Bottom status bar.
+                     Left:  status dot + NVR-side camera title + status text.
+                     Right: operator label + privacy badge.
+                     Both texts toggle independently from Setup > Privacy >
+                     Tile overlay. Status dot and privacy badge always show. -->
                 <Border VerticalAlignment="Bottom"
                         HorizontalAlignment="Stretch"
                         Background="#80000000"
                         Padding="6,3"
                         Visibility="{Binding HasCamera, Converter={StaticResource BoolToVis}}">
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="8" Height="8"
-                                 Fill="{Binding StatusBrush}"
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,6,0" />
-                        <TextBlock Text="{Binding Label}"
-                                   Foreground="White"
-                                   FontFamily="Segoe UI"
-                                   FontSize="12"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding IsLabelVisible, Converter={StaticResource BoolToVis}}" />
-                        <TextBlock Text=" | "
-                                   Foreground="#80FFFFFF"
-                                   FontFamily="Segoe UI"
-                                   FontSize="12"
-                                   VerticalAlignment="Center">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsLabelVisible}" Value="True" />
-                                                <Condition Binding="{Binding IsNvrTitleVisible}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <TextBlock Text="{Binding NvrTitle}"
-                                   Foreground="#CCFFFFFF"
-                                   FontFamily="Segoe UI"
-                                   FontSize="12"
-                                   FontStyle="Italic"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding IsNvrTitleVisible, Converter={StaticResource BoolToVis}}" />
-                        <TextBlock Text="{Binding StatusText}"
-                                   Foreground="#FFCC66"
-                                   FontFamily="Segoe UI"
-                                   FontSize="12"
-                                   Margin="8,0,0,0"
-                                   VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding Source={x:Static local:Strings.Instance}, Path=Current.PrivacyBadge}"
-                                   Foreground="#FF7777"
-                                   FontFamily="Segoe UI"
-                                   FontSize="12"
-                                   FontWeight="Bold"
-                                   Margin="8,0,0,0"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding IsMasked, Converter={StaticResource BoolToVis}}" />
-                    </StackPanel>
+                    <Grid>
+                        <!-- Left cluster -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Ellipse Width="8" Height="8"
+                                     Fill="{Binding StatusBrush}"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding NvrTitle}"
+                                       Foreground="White"
+                                       FontFamily="Segoe UI"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding IsNvrTitleVisible, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text="{Binding StatusText}"
+                                       Foreground="#FFCC66"
+                                       FontFamily="Segoe UI"
+                                       FontSize="12"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                        <!-- Right cluster -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding Label}"
+                                       Foreground="White"
+                                       FontFamily="Segoe UI"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding IsLabelVisible, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text="{Binding Source={x:Static local:Strings.Instance}, Path=Current.PrivacyBadge}"
+                                       Foreground="#FF7777"
+                                       FontFamily="Segoe UI"
+                                       FontSize="12"
+                                       FontWeight="Bold"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding IsMasked, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
                 <!-- Warning border: pulses orange in the final WarningMinutes minutes
