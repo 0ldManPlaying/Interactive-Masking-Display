@@ -113,6 +113,7 @@ public sealed class StringsTable
     public string SetupTitle { get; init; } = "";
     public string SetupBrandSub { get; init; } = "";
     public string SetupCancel { get; init; } = "";
+    public string SetupApply { get; init; } = "";
     public string SetupSave { get; init; } = "";
     public string SetupConfigLoaded { get; init; } = "";
     public string SetupChangesApplied { get; init; } = "";
@@ -377,6 +378,7 @@ public sealed class StringsTable
         SetupTitle                = "InteractiveMask — Setup",
         SetupBrandSub             = "Configureer NVR, cameras en privacy.",
         SetupCancel               = "Annuleer",
+        SetupApply                = "Toepassen",
         SetupSave                 = "Opslaan",
         SetupConfigLoaded         = "Configuratie geladen",
         SetupChangesApplied       = "Wijzigingen toegepast.",
@@ -626,6 +628,7 @@ public sealed class StringsTable
         SetupTitle                = "InteractiveMask — Setup",
         SetupBrandSub             = "Configure NVR, cameras and privacy.",
         SetupCancel               = "Cancel",
+        SetupApply                = "Apply",
         SetupSave                 = "Save",
         SetupConfigLoaded         = "Configuration loaded",
         SetupChangesApplied       = "Changes applied.",
@@ -880,6 +883,7 @@ public sealed class StringsTable
         SetupTitle                = "InteractiveMask — Einrichtung",
         SetupBrandSub             = "NVR, Kameras und Privatsphäre konfigurieren.",
         SetupCancel               = "Abbrechen",
+        SetupApply                = "Übernehmen",
         SetupSave                 = "Speichern",
         SetupConfigLoaded         = "Konfiguration geladen",
         SetupChangesApplied       = "Änderungen übernommen.",
@@ -1129,6 +1133,7 @@ public sealed class StringsTable
         SetupTitle                = "InteractiveMask — Configuration",
         SetupBrandSub             = "Configurer NVR, caméras et confidentialité.",
         SetupCancel               = "Annuler",
+        SetupApply                = "Appliquer",
         SetupSave                 = "Enregistrer",
         SetupConfigLoaded         = "Configuration chargée",
         SetupChangesApplied       = "Modifications appliquées.",
@@ -1378,6 +1383,7 @@ public sealed class StringsTable
         SetupTitle                = "InteractiveMask — Configuración",
         SetupBrandSub             = "Configurar NVR, cámaras y privacidad.",
         SetupCancel               = "Cancelar",
+        SetupApply                = "Aplicar",
         SetupSave                 = "Guardar",
         SetupConfigLoaded         = "Configuración cargada",
         SetupChangesApplied       = "Cambios aplicados.",

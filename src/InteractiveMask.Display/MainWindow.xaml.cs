@@ -516,12 +516,16 @@ public partial class MainWindow : Window
                         $"NVR id={nvrId} is not currently connected.");
                 }
                 return await session.FetchCameraNamesAsync(TimeSpan.FromSeconds(8), ct).ConfigureAwait(true);
-            })
+            },
+            // Apply-button path: the dialog stays open but we still want
+            // MainWindow to pick up the new config so the operator can see
+            // their changes live without closing Setup first.
+            onApplied: ApplyChangedSettings)
         { Owner = this };
         setup.ShowDialog();
-        if (!setup.ConfigChanged) return;
-
-        ApplyChangedSettings();
+        // The Save path also fires onApplied (via SaveAndApply), so when the
+        // dialog finally closes the live state is already current. Calling
+        // ApplyChangedSettings again here would be redundant.
     }
 
     /// <summary>

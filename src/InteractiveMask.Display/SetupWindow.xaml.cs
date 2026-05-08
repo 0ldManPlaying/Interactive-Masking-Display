@@ -33,12 +33,21 @@ public partial class SetupWindow : Window
     /// </summary>
     private readonly Func<int, CancellationToken, Task<IReadOnlyDictionary<int, string>>>? _cameraNameFetcher;
 
+    /// <summary>
+    /// Optional callback fired after a successful Apply / Save. Lets MainWindow
+    /// hot-reload the new config without waiting for the dialog to close, so
+    /// the operator can keep tweaking after seeing the change live.
+    /// </summary>
+    private readonly Action? _onApplied;
+
     public bool ConfigChanged { get; private set; }
 
     public SetupWindow(ConfigService configService, AdminPinService adminPin, AuditLog audit,
-                       Func<int, CancellationToken, Task<IReadOnlyDictionary<int, string>>>? cameraNameFetcher = null)
+                       Func<int, CancellationToken, Task<IReadOnlyDictionary<int, string>>>? cameraNameFetcher = null,
+                       Action? onApplied = null)
     {
         _cameraNameFetcher = cameraNameFetcher;
+        _onApplied = onApplied;
         InitializeComponent();
         _configService = configService;
         _adminPin = adminPin;
@@ -145,6 +154,7 @@ public partial class SetupWindow : Window
                 CameraIndex = c.CameraIndex,
                 StreamId = c.StreamId,
                 Label = c.Label,
+                NvrTitle = c.NvrTitle ?? "",
             });
         }
 
@@ -592,11 +602,18 @@ public partial class SetupWindow : Window
 
     // ---- Save / cancel -----------------------------------------------------
 
-    private void OnSave(object sender, RoutedEventArgs e)
+    private void OnSave(object sender, RoutedEventArgs e) => SaveAndApply(closeAfter: true);
+
+    private void OnApply(object sender, RoutedEventArgs e) => SaveAndApply(closeAfter: false);
+
+    private void SaveAndApply(bool closeAfter)
     {
         // Commit any in-flight NVR-grid edits first; otherwise the latest typed
         // value in Name / Ip / Port etc. wouldn't be observable yet.
         NvrGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        // Same goes for the camera grid: a label or NVR-id edit that's still in
+        // edit-mode at the moment of click would otherwise be silently dropped.
+        CameraGrid.CommitEdit(DataGridEditingUnit.Row, true);
 
         if (_nvrs.Count == 0)
         {
@@ -712,6 +729,7 @@ public partial class SetupWindow : Window
                     CameraIndex = c.CameraIndex,
                     StreamId = c.StreamId,
                     Label = c.Label ?? "",
+                    NvrTitle = c.NvrTitle ?? "",
                 })
                 .ToList(),
             Kiosk = { Enabled = KioskEnabled.IsChecked == true },
@@ -750,11 +768,24 @@ public partial class SetupWindow : Window
         }
 
         ConfigChanged = true;
-        // No more "restart required" blocking dialog. The owner (MainWindow) decides
-        // whether the change is structural and prompts the user only when it really
-        // is. Live-applicable changes (labels, language, privacy timers, session-PIN
-        // toggle, admin-PIN) take effect immediately on close.
-        Close();
+        // Live-apply via the callback so MainWindow picks up the new settings
+        // without waiting for the dialog to close. The owner decides whether
+        // the change is structural and prompts the user only when it really is.
+        _onApplied?.Invoke();
+
+        if (closeAfter)
+        {
+            Close();
+        }
+        else
+        {
+            // Stay open so the operator can keep tweaking. Reflect the success
+            // on the status line and reload the form from the freshly-saved
+            // config so any normalisation (trimmed strings, default ports) is
+            // visible.
+            ShowSuccess(T.SetupChangesApplied);
+            Populate();
+        }
     }
 
     private void ShowSuccess(string message)
