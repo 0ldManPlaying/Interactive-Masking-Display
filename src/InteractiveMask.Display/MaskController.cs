@@ -398,10 +398,35 @@ public sealed class MaskController
         int affected = 0;
         foreach (var tile in tiles)
         {
-            if (!tile.IsMasked) affected++;
+            bool wasUnmasked = !tile.IsMasked;
             tile.SetMasked(true, autoMinutes: 0);
+            if (wasUnmasked)
+            {
+                affected++;
+                // Bump the PIN-service counter once per *newly* masked tile
+                // (mirroring the per-tile ApplyMaskLocal flow). Without this
+                // the counter only increments by 1 for the whole batch and a
+                // single later unmask drains it to 0, which clears _activePin
+                // and turns subsequent unmasks into no-auth ops — anyone
+                // walking by could lift every privacy mask.
+                _pinService.OnMaskApplied();
+            }
         }
-        _pinService.OnMaskApplied();
+
+        // Capture a session PIN if the policy demands one and none is active
+        // yet, exactly like the first individual ApplyMaskLocal would. Skipped
+        // in AD-mode (auth happens per unmask there, no session secret).
+        var auth = _authSettingsProvider();
+        if (!auth.UseActiveDirectory && _requireSessionPinProvider() && !_pinService.HasActivePin && affected > 0)
+        {
+            var pin = PinDialog.PromptForNewPin(_owner);
+            if (!string.IsNullOrEmpty(pin))
+            {
+                _pinService.SetSessionPin(pin);
+                _audit.Write(AuditEventType.PinSet, source: SourceLocal);
+            }
+        }
+
         IsMassHoldActive = true;
         _audit.Write(AuditEventType.MassMaskOn, source: SourceLocal,
                      detail: $"tiles={tiles.Count};newlyMasked={affected}");

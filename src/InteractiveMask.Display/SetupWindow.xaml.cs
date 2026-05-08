@@ -70,6 +70,11 @@ public partial class SetupWindow : Window
         // which build is installed without having to open file properties.
         AboutVersionValue.Text = typeof(SetupWindow).Assembly.GetName().Version?.ToString(3) ?? "";
         Loaded += (_, _) => Populate();
+        // Dispose the per-window StreamChoices so its static-event subscription
+        // on Strings.Instance.PropertyChanged is released. Otherwise every
+        // Setup-open accumulates one dead handler on the singleton over the
+        // weeks-long kiosk uptime.
+        Closed += (_, _) => _streamChoices.Dispose();
     }
 
     private void OnAboutOpenLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
@@ -378,6 +383,7 @@ public partial class SetupWindow : Window
             // recorder, regardless of how many cameras live on it.
             var byNvr = _cameras.GroupBy(c => c.NvrId).ToList();
             int updated = 0;
+            var failures = new List<string>();
 
             foreach (var group in byNvr)
             {
@@ -407,10 +413,11 @@ public partial class SetupWindow : Window
                 }
                 catch (Exception ex)
                 {
-                    ShowStatus(string.Format(CultureInfo.CurrentCulture,
-                        T.CamerasSyncNamesFailFormat, $"NVR {nvr.Name}: {ex.Message}"),
-                        isError: true);
-                    return;
+                    // One NVR failing must not abort the sync for the rest;
+                    // collect the error and keep going so the operator gets
+                    // titles for whatever recorders are reachable.
+                    failures.Add($"{nvr.Name}: {ex.Message}");
+                    continue;
                 }
 
                 foreach (var cam in group)
@@ -431,10 +438,32 @@ public partial class SetupWindow : Window
             // Force the NVR-title column to redraw — CameraSlotSettings has no INPC.
             CameraGrid.Items.Refresh();
 
-            ShowStatus(updated > 0
-                ? string.Format(CultureInfo.CurrentCulture, T.CamerasSyncNamesDoneFormat, updated)
-                : T.CamerasSyncNamesNoneApplied,
-                isError: false);
+            string message;
+            bool isError;
+            if (failures.Count > 0)
+            {
+                // Partial success: include both the count of updated rows and
+                // the list of NVRs that didn't answer. Mark as error so the
+                // status line goes red and the operator notices.
+                message = string.Format(CultureInfo.CurrentCulture,
+                    T.CamerasSyncNamesFailFormat,
+                    string.Join("; ", failures))
+                    + (updated > 0
+                        ? " (" + string.Format(CultureInfo.CurrentCulture, T.CamerasSyncNamesDoneFormat, updated) + ")"
+                        : "");
+                isError = true;
+            }
+            else if (updated > 0)
+            {
+                message = string.Format(CultureInfo.CurrentCulture, T.CamerasSyncNamesDoneFormat, updated);
+                isError = false;
+            }
+            else
+            {
+                message = T.CamerasSyncNamesNoneApplied;
+                isError = false;
+            }
+            ShowStatus(message, isError);
         }
         finally
         {
@@ -984,14 +1013,23 @@ public partial class SetupWindow : Window
 /// is friendly. Labels follow the camera-stream convention: 0 = main / highest,
 /// 1 = secondary / default for multi-channel viewing, 2 = third / lowest.
 /// </summary>
-public sealed class StreamChoices : ObservableCollection<StreamChoice>
+public sealed class StreamChoices : ObservableCollection<StreamChoice>, IDisposable
 {
+    // Stored as a field (instead of an inline lambda subscribed at construction)
+    // so Dispose can unsubscribe. Without that, every SetupWindow open leaked
+    // one StreamChoices + its captured 'this' onto the static
+    // Strings.Instance.PropertyChanged event, accumulating over the kiosk's
+    // weeks-long uptime.
+    private readonly System.ComponentModel.PropertyChangedEventHandler _onLanguageChanged;
+    private bool _disposed;
+
     public StreamChoices()
     {
         Add(new StreamChoice { Value = 0, Display = Strings.Instance.Current.StreamHigh });
         Add(new StreamChoice { Value = 1, Display = Strings.Instance.Current.StreamDefault });
         Add(new StreamChoice { Value = 2, Display = Strings.Instance.Current.StreamLow });
-        Strings.Instance.PropertyChanged += (_, _) => Refresh();
+        _onLanguageChanged = (_, _) => Refresh();
+        Strings.Instance.PropertyChanged += _onLanguageChanged;
     }
 
     private void Refresh()
@@ -1001,6 +1039,13 @@ public sealed class StreamChoices : ObservableCollection<StreamChoice>
         this[0] = new StreamChoice { Value = 0, Display = s.StreamHigh };
         this[1] = new StreamChoice { Value = 1, Display = s.StreamDefault };
         this[2] = new StreamChoice { Value = 2, Display = s.StreamLow };
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        Strings.Instance.PropertyChanged -= _onLanguageChanged;
     }
 }
 

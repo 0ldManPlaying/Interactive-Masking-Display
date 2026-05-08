@@ -307,53 +307,57 @@ public partial class MainWindow : Window
     // or releasing before the timer ticks cancels the gesture and falls
     // back to ordinary single-tap behaviour on the tile under the cursor.
 
-    private DispatcherTimer? _longPressTimer;
+    // Single reusable timer instance. Allocating per click leaked when a
+    // mouse-up was missed (modal/UAC/focus loss): a new mouse-down would
+    // overwrite the field before StopLongPressTimer could shut the prior
+    // timer down, leaving an orphan ticking in the background and re-firing
+    // HandleLongPress every 500 ms.
+    private readonly DispatcherTimer _longPressTimer = new(DispatcherPriority.Input)
+    {
+        Interval = TimeSpan.FromMilliseconds(500),
+    };
+    private bool _longPressTimerWired;
     private Point _longPressStart;
     private bool _longPressFired;
 
     private void OnRootMouseDown(object sender, MouseButtonEventArgs e)
     {
+        // Always stop first so a stuck timer from a previously missed
+        // mouse-up doesn't double-fire on the next click.
+        _longPressTimer.Stop();
+        if (!_longPressTimerWired)
+        {
+            _longPressTimer.Tick += OnLongPressTick;
+            _longPressTimerWired = true;
+        }
         _longPressFired = false;
         _longPressStart = e.GetPosition(this);
-        _longPressTimer = new DispatcherTimer(DispatcherPriority.Input)
-        {
-            Interval = TimeSpan.FromMilliseconds(500),
-        };
-        _longPressTimer.Tick += OnLongPressTick;
         _longPressTimer.Start();
     }
 
     private void OnRootMouseMove(object sender, MouseEventArgs e)
     {
-        if (_longPressTimer is null) return;
+        if (!_longPressTimer.IsEnabled) return;
         var pt = e.GetPosition(this);
         if (Math.Abs(pt.X - _longPressStart.X) < SystemParameters.MinimumHorizontalDragDistance
             && Math.Abs(pt.Y - _longPressStart.Y) < SystemParameters.MinimumVerticalDragDistance)
         {
             return;
         }
-        StopLongPressTimer();
+        _longPressTimer.Stop();
     }
 
     private void OnRootMouseUp(object sender, MouseButtonEventArgs e)
     {
-        StopLongPressTimer();
+        _longPressTimer.Stop();
     }
 
     private void OnLongPressTick(object? sender, EventArgs e)
     {
-        StopLongPressTimer();
+        _longPressTimer.Stop();
         if (_maskController is null) return;
         _longPressFired = true;
         _maskController.HandleLongPress(_viewModel.Tiles, _privacy.ShowMassUnmaskConfirm);
-    }
-
-    private void StopLongPressTimer()
-    {
-        if (_longPressTimer is null) return;
-        _longPressTimer.Stop();
-        _longPressTimer.Tick -= OnLongPressTick;
-        _longPressTimer = null;
     }
 
     private void OnTimerTick(object? sender, EventArgs e)
@@ -706,6 +710,13 @@ public partial class MainWindow : Window
         }
 
         if (_viewModel.Rows != updated.Grid.Rows || _viewModel.Columns != updated.Grid.Columns)
+            return true;
+
+        // Privacy mode flip is structural: oversight-default and privacy-default
+        // disagree on what the boot state of every tile is, what auto-timer
+        // direction means, and whether Restored state should be applied. The
+        // safest live-apply for a mode flip is "no live-apply" — restart.
+        if (_lastAppliedSettings.Privacy.Mode != updated.Privacy.Mode)
             return true;
 
         return false;
