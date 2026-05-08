@@ -40,6 +40,14 @@ public sealed class MaskController
     }
 
     /// <summary>
+    /// True when the current overall state is the result of a mass-mask
+    /// gesture. While set, MainWindow's per-tile auto-unmask tick must not
+    /// fire so individual countdown timers do not leak open during the
+    /// "caregiver away" scenario.
+    /// </summary>
+    public bool IsMassHoldActive { get; private set; }
+
+    /// <summary>
     /// User clicked a tile. Apply the mask immediately if it was off, or run the
     /// PIN-verify flow if it was on.
     /// </summary>
@@ -275,5 +283,141 @@ public sealed class MaskController
             _audit.Write(AuditEventType.MaskOff, slot: tile.SlotIndex, label: tile.Label, source: SourceLocal);
             _onStateChanged();
         }
+    }
+
+    // ---- Mass mask / unmask (v1.3.0 item 1) -----------------------------------
+    //
+    // Long-press gesture entry-point. Looks at the current global state and
+    // decides whether to apply a mass-mask (privacy-first, no auth) or to
+    // request a mass-unmask (auth via the existing policy, optional confirm).
+    //
+    // State rules:
+    //   - All tiles already masked  -> mass-unmask path.
+    //   - Anything else (mixed or fully visible) -> mass-mask path. This
+    //     intentionally never reaches the "blocked because of mixed state"
+    //     case the roadmap mentions: in a mixed state we top up to fully
+    //     masked, which is always safe.
+
+    public void HandleLongPress(IEnumerable<TileViewModel> allTiles, bool showUnmaskConfirm)
+    {
+        var withCamera = allTiles.Where(t => t.HasCamera).ToList();
+        if (withCamera.Count == 0) return;
+
+        bool allMasked = withCamera.All(t => t.IsMasked);
+        if (allMasked)
+        {
+            TryRemoveMassMask(withCamera, showUnmaskConfirm);
+        }
+        else
+        {
+            ApplyMassMask(withCamera);
+        }
+    }
+
+    private void ApplyMassMask(List<TileViewModel> tiles)
+    {
+        // Override every tile's auto-unmask timer with 0 (no auto-expire) so
+        // the mass-hold doesn't leak open while the caregiver is away. Tiles
+        // that were already masked also get their timer cleared, intentionally:
+        // the new global intent ("everyone hold, I'm leaving the post") is
+        // stronger than any per-tile timer that was running.
+        int affected = 0;
+        foreach (var tile in tiles)
+        {
+            if (!tile.IsMasked) affected++;
+            tile.SetMasked(true, autoUnmaskMinutes: 0);
+        }
+        _pinService.OnMaskApplied();
+        IsMassHoldActive = true;
+        _audit.Write(AuditEventType.MassMaskOn, source: SourceLocal,
+                     detail: $"tiles={tiles.Count};newlyMasked={affected}");
+        _onStateChanged();
+    }
+
+    private void TryRemoveMassMask(List<TileViewModel> tiles, bool showConfirm)
+    {
+        // State guard: caller already checked that all tiles are masked, but
+        // re-check defensively. If something has changed in the meantime
+        // (race with auto-unmask, or with a remote toggle) drop silently.
+        if (tiles.Any(t => !t.IsMasked)) return;
+
+        var s = Strings.Instance.Current;
+
+        if (showConfirm)
+        {
+            var result = MessageBox.Show(
+                _owner,
+                s.MassUnmaskConfirmBody,
+                s.MassUnmaskConfirmTitle,
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Warning,
+                MessageBoxResult.Cancel);
+            if (result != MessageBoxResult.OK) return;
+        }
+
+        var auth = _authSettingsProvider();
+        bool pinEnabled = _requireSessionPinProvider();
+
+        // Auth mirrors the per-tile flow exactly. AD wins over PIN; PIN-off
+        // means anyone can release.
+        if (auth.UseActiveDirectory)
+        {
+            var (ok, username) = CredentialDialog.Prompt(
+                owner: _owner,
+                title: s.MassUnmaskAuthTitle,
+                subtitle: s.SetupAdLoginSubtitle,
+                verifier: (user, password) =>
+                {
+                    var domain = ExtractDomainOr(auth.Domain);
+                    return WindowsAuth.Authenticate(user, password, domain);
+                });
+            if (!ok) return;
+            ApplyMassUnmaskInternal(tiles, $"user:{username}");
+            return;
+        }
+
+        if (pinEnabled)
+        {
+            if (_pinService.IsLockedOut) return;
+            bool pinOk = PinDialog.PromptToVerify(
+                _owner,
+                verifier: pin =>
+                {
+                    bool valid = _pinService.VerifyAndConsumeForUnmask(pin);
+                    if (!valid)
+                    {
+                        _audit.Write(AuditEventType.PinFail, source: SourceLocal,
+                                     detail: "mass-unmask");
+                        if (_pinService.IsLockedOut)
+                        {
+                            _audit.Write(AuditEventType.PinLockout, source: SourceLocal,
+                                         detail: "mass-unmask");
+                        }
+                    }
+                    return valid;
+                },
+                lockoutCheck: () => _pinService.LockoutRemaining);
+            if (!pinOk) return;
+            ApplyMassUnmaskInternal(tiles, SourceLocal);
+            return;
+        }
+
+        // Auth fully disabled: release immediately.
+        ApplyMassUnmaskInternal(tiles, SourceLocal);
+    }
+
+    private void ApplyMassUnmaskInternal(List<TileViewModel> tiles, string source)
+    {
+        int affected = 0;
+        foreach (var tile in tiles)
+        {
+            if (tile.IsMasked) affected++;
+            tile.SetMasked(false);
+        }
+        _pinService.OnMaskRemovedExternal();
+        IsMassHoldActive = false;
+        _audit.Write(AuditEventType.MassMaskOff, source: source,
+                     detail: $"tiles={tiles.Count};unmasked={affected}");
+        _onStateChanged();
     }
 }

@@ -16,6 +16,17 @@ public enum AuditEventType
     NvrDisconnected,
     AppStarted,
     AppStopped,
+    /// <summary>
+    /// Mass-mask gesture (long-press): every tile transitions to the masked
+    /// state in a single action. Detail carries the count of tiles touched.
+    /// </summary>
+    MassMaskOn,
+    /// <summary>
+    /// Mass-unmask gesture (long-press): every tile is released from the
+    /// masked state at once. Auth follows the existing per-tile policy and
+    /// runs once, before this event is written.
+    /// </summary>
+    MassMaskOff,
 }
 
 /// <summary>One row in the audit log. Serialised as a JSON object on a single line.</summary>

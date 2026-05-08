@@ -146,6 +146,7 @@ public sealed class StringsTable
     public string PrivacyAutoOffMinutesLabel { get; init; } = "";
     public string PrivacyWarningMinutesLabel { get; init; } = "";
     public string PrivacyAutoOffExample { get; init; } = "";
+    public string PrivacyCardMassMask { get; init; } = "";
 
     // Web-UI tab
     public string WebPageTitle { get; init; } = "";
@@ -255,6 +256,14 @@ public sealed class StringsTable
     public string ConnectionLostFormat { get; init; } = "";
     public string ConnectionAttempting { get; init; } = "";
 
+    // Mass mask / unmask (long-press gesture, v1.3.0 item 1)
+    public string MassUnmaskConfirmTitle { get; init; } = "";
+    public string MassUnmaskConfirmBody { get; init; } = "";
+    public string MassUnmaskAuthTitle { get; init; } = "";
+    public string PrivacyShowMassUnmaskConfirmLabel { get; init; } = "";
+    public string PrivacyShowMassUnmaskConfirmHelp { get; init; } = "";
+    public string PrivacyLongPressHelp { get; init; } = "";
+
     public static readonly StringsTable Nl = new()
     {
         PrivacyActive             = "Privacy actief",
@@ -355,6 +364,7 @@ public sealed class StringsTable
         PrivacyAutoOffMinutesLabel = "Auto-uit (minuten, 0 = uit)",
         PrivacyWarningMinutesLabel = "Waarschuwing voor auto-uit (minuten)",
         PrivacyAutoOffExample     = "Voorbeeld: bij auto-uit = 5 en waarschuwing = 2 verschijnt op een tegel die om 14:00 wordt gemaskeerd vanaf 14:03 een pulserende oranje rand; om 14:05 wordt het masker automatisch verwijderd.",
+        PrivacyCardMassMask       = "Alles maskeren / vrijgeven (long-press)",
 
         WebPageTitle              = "Web-UI",
         WebPageSubtitle           = "Poorten, certificaat en netwerk-zichtbaarheid van de browser-bediening.",
@@ -455,6 +465,13 @@ public sealed class StringsTable
         ConnectionLost            = "Verbinding met NVR verloren",
         ConnectionLostFormat      = "{0} — opnieuw verbinden over {1} s...",
         ConnectionAttempting      = "Verbinden met NVR...",
+
+        MassUnmaskConfirmTitle    = "Privacy van alle bewoners opheffen?",
+        MassUnmaskConfirmBody     = "Met deze actie worden alle privacy-maskers tegelijk verwijderd. Druk op OK om door te gaan, of op Annuleren om elke tegel handmatig te beheren.",
+        MassUnmaskAuthTitle       = "Alles vrijgeven",
+        PrivacyShowMassUnmaskConfirmLabel = "Bevestiging tonen voordat alles vrijgegeven wordt",
+        PrivacyShowMassUnmaskConfirmHelp  = "Toont een dialoog voordat een long-press alle privacy-maskers tegelijk opheft. Aanbevolen op installaties waar de auth-modus uit staat.",
+        PrivacyLongPressHelp      = "Houd de muisknop een halve seconde ingedrukt op het scherm om alle tegels in een keer te maskeren of vrij te geven. Single-tap blijft individueel werken.",
     };
 
     public static readonly StringsTable En = new()
@@ -557,6 +574,7 @@ public sealed class StringsTable
         PrivacyAutoOffMinutesLabel = "Auto-off (minutes, 0 = disabled)",
         PrivacyWarningMinutesLabel = "Warning before auto-off (minutes)",
         PrivacyAutoOffExample     = "Example: with auto-off = 5 and warning = 2, a tile masked at 14:00 shows a pulsing orange border from 14:03; the mask is removed automatically at 14:05.",
+        PrivacyCardMassMask       = "Mask / unmask everything (long-press)",
 
         WebPageTitle              = "Web UI",
         WebPageSubtitle           = "Ports, certificate and network reachability for browser control.",
@@ -657,5 +675,12 @@ public sealed class StringsTable
         ConnectionLost            = "NVR connection lost",
         ConnectionLostFormat      = "{0} — reconnecting in {1} s...",
         ConnectionAttempting      = "Connecting to NVR...",
+
+        MassUnmaskConfirmTitle    = "Lift privacy on all residents?",
+        MassUnmaskConfirmBody     = "This action removes every privacy mask at once. Press OK to continue, or Cancel to manage each tile individually.",
+        MassUnmaskAuthTitle       = "Unmask all",
+        PrivacyShowMassUnmaskConfirmLabel = "Show a confirmation before unmasking everyone",
+        PrivacyShowMassUnmaskConfirmHelp  = "Adds a dialog before a long-press lifts every privacy mask at once. Recommended when authentication is disabled.",
+        PrivacyLongPressHelp      = "Hold the mouse button down anywhere on the screen for half a second to mask or unmask every tile at once. Single-tap still toggles tiles individually.",
     };
 }

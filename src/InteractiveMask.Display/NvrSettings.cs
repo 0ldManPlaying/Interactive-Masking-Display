@@ -112,6 +112,14 @@ public sealed class PrivacySettings
     /// admin-PIN remains independent of this setting.
     /// </summary>
     public bool RequireSessionPin { get; set; } = true;
+
+    /// <summary>
+    /// When true, a long-press that triggers a mass-unmask shows a confirmation
+    /// dialog with an OK/Cancel choice before lifting every privacy mask at
+    /// once. Default off so the gesture stays one-step; recommended on for
+    /// installations where the authentication mode is disabled.
+    /// </summary>
+    public bool ShowMassUnmaskConfirm { get; set; } = false;
 }
 
 public sealed class NvrSettings

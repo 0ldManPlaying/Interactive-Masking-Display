@@ -258,8 +258,17 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnTileClicked(object sender, MouseButtonEventArgs e)
+    private void OnTileTapped(object sender, MouseButtonEventArgs e)
     {
+        // Long-press already fired the mass action; eat this MouseLeftButtonUp
+        // so it doesn't double-trigger as a single-tap toggle.
+        if (_longPressFired)
+        {
+            _longPressFired = false;
+            e.Handled = true;
+            return;
+        }
+
         if (sender is FrameworkElement fe && fe.DataContext is TileViewModel tile)
         {
             _maskController?.HandleTileClick(tile);
@@ -267,14 +276,76 @@ public partial class MainWindow : Window
         }
     }
 
+    // ---- Long-press gesture (v1.3.0 item 1) -------------------------------
+    //
+    // 500 ms hold anywhere in the main grid triggers the mass mask/unmask
+    // action via MaskController. Movement beyond the system drag threshold
+    // or releasing before the timer ticks cancels the gesture and falls
+    // back to ordinary single-tap behaviour on the tile under the cursor.
+
+    private DispatcherTimer? _longPressTimer;
+    private Point _longPressStart;
+    private bool _longPressFired;
+
+    private void OnRootMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _longPressFired = false;
+        _longPressStart = e.GetPosition(this);
+        _longPressTimer = new DispatcherTimer(DispatcherPriority.Input)
+        {
+            Interval = TimeSpan.FromMilliseconds(500),
+        };
+        _longPressTimer.Tick += OnLongPressTick;
+        _longPressTimer.Start();
+    }
+
+    private void OnRootMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_longPressTimer is null) return;
+        var pt = e.GetPosition(this);
+        if (Math.Abs(pt.X - _longPressStart.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(pt.Y - _longPressStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+        StopLongPressTimer();
+    }
+
+    private void OnRootMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        StopLongPressTimer();
+    }
+
+    private void OnLongPressTick(object? sender, EventArgs e)
+    {
+        StopLongPressTimer();
+        if (_maskController is null) return;
+        _longPressFired = true;
+        _maskController.HandleLongPress(_viewModel.Tiles, _privacy.ShowMassUnmaskConfirm);
+    }
+
+    private void StopLongPressTimer()
+    {
+        if (_longPressTimer is null) return;
+        _longPressTimer.Stop();
+        _longPressTimer.Tick -= OnLongPressTick;
+        _longPressTimer = null;
+    }
+
     private void OnTimerTick(object? sender, EventArgs e)
     {
         if (_maskController is null) return;
-        foreach (var tile in _viewModel.Tiles)
+        // While a mass-mask hold is active the per-tile auto-unmask timers
+        // must not advance; otherwise individual tiles would pop open one
+        // by one while the caregiver is still away from the post.
+        if (!_maskController.IsMassHoldActive)
         {
-            if (tile.TickAutoUnmask(_privacy.WarningMinutes))
+            foreach (var tile in _viewModel.Tiles)
             {
-                _maskController.AutoExpireMask(tile);
+                if (tile.TickAutoUnmask(_privacy.WarningMinutes))
+                {
+                    _maskController.AutoExpireMask(tile);
+                }
             }
         }
 

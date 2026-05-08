@@ -81,6 +81,7 @@ public partial class SetupWindow : Window
         AutoUnmaskMinutes.Text = settings.Privacy.AutoUnmaskMinutes.ToString(CultureInfo.InvariantCulture);
         WarningMinutes.Text = settings.Privacy.WarningMinutes.ToString(CultureInfo.InvariantCulture);
         RequireSessionPin.IsChecked = settings.Privacy.RequireSessionPin;
+        ShowMassUnmaskConfirm.IsChecked = settings.Privacy.ShowMassUnmaskConfirm;
 
         HttpPort.Text = settings.Web.HttpPort.ToString(CultureInfo.InvariantCulture);
         HttpsPort.Text = settings.Web.HttpsPort?.ToString(CultureInfo.InvariantCulture) ?? "";
@@ -510,6 +511,7 @@ public partial class SetupWindow : Window
                 AutoUnmaskMinutes = autoMinutes,
                 WarningMinutes = warnMinutes,
                 RequireSessionPin = RequireSessionPin.IsChecked == true,
+                ShowMassUnmaskConfirm = ShowMassUnmaskConfirm.IsChecked == true,
             },
             Cameras = _cameras
                 .Where(c => c.Slot >= 0)

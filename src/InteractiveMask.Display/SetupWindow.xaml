@@ -882,6 +882,29 @@
                                                    Text="{local:Loc PrivacyAutoOffExample}" />
                                     </StackPanel>
                                 </Border>
+
+                                <!-- ===== Long-press mass mask / unmask ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc PrivacyCardMassMask}" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock Foreground="{StaticResource text.muted}" FontSize="12" Margin="0,0,0,12"
+                                                   TextWrapping="Wrap"
+                                                   Text="{local:Loc PrivacyLongPressHelp}" />
+                                        <Grid>
+                                            <StackPanel>
+                                                <TextBlock Text="{local:Loc PrivacyShowMassUnmaskConfirmLabel}"
+                                                           Style="{StaticResource FieldLabel}" />
+                                                <TextBlock Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           TextWrapping="Wrap"
+                                                           Text="{local:Loc PrivacyShowMassUnmaskConfirmHelp}" />
+                                            </StackPanel>
+                                            <CheckBox x:Name="ShowMassUnmaskConfirm"
+                                                      Style="{StaticResource ToggleSwitch}"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Top" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ============================ Web-UI ============================ -->

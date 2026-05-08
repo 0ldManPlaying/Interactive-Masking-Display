@@ -23,10 +23,13 @@
 
         <DataTemplate DataType="{x:Type local:TileViewModel}">
             <!-- Background must be solid (not Transparent) for hit-testing to fire
-                 the MouseLeftButtonDown handler reliably across the whole tile. -->
+                 the click handler reliably across the whole tile.
+                 Tap fires on MouseLeftButtonUp (not Down) so the global long-press
+                 gesture in MainWindow can intercept first; without that split a
+                 long-press would always toggle the tile under the finger. -->
             <Grid Background="#1A1A1A"
                   Margin="2"
-                  MouseLeftButtonDown="OnTileClicked">
+                  MouseLeftButtonUp="OnTileTapped">
 
                 <!-- Live image. The BlurEffect is only attached when IsMasked=true;
                      leaving an Effect on every tile (even with Radius=0) costs the GPU
@@ -175,7 +178,10 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid>
+    <Grid Background="Transparent"
+          PreviewMouseLeftButtonDown="OnRootMouseDown"
+          PreviewMouseLeftButtonUp="OnRootMouseUp"
+          PreviewMouseMove="OnRootMouseMove">
         <ItemsControl x:Name="TilesHost" ItemsSource="{Binding Tiles}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
