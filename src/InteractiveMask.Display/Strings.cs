@@ -170,6 +170,7 @@ public sealed class StringsTable
     public string CamerasHeaderCameraIndex { get; init; } = "";
     public string CamerasHeaderStream { get; init; } = "";
     public string CamerasHeaderLabel { get; init; } = "";
+    public string CamerasHeaderNvrTitle { get; init; } = "";
 
     // Grid tab
     public string GridPageTitle { get; init; } = "";
@@ -429,7 +430,8 @@ public sealed class StringsTable
         CamerasHeaderNvr          = "NVR",
         CamerasHeaderCameraIndex  = "CAMERA #",
         CamerasHeaderStream       = "STREAM",
-        CamerasHeaderLabel        = "LABEL",
+        CamerasHeaderNvrTitle     = "NVR-TITEL",
+        CamerasHeaderLabel        = "EIGEN LABEL",
 
         GridPageTitle             = "Grid",
         GridPageSubtitle          = "Hoeveel tegels worden er op het scherm getoond.",
@@ -677,7 +679,8 @@ public sealed class StringsTable
         CamerasHeaderNvr          = "NVR",
         CamerasHeaderCameraIndex  = "CAMERA #",
         CamerasHeaderStream       = "STREAM",
-        CamerasHeaderLabel        = "LABEL",
+        CamerasHeaderNvrTitle     = "NVR TITLE",
+        CamerasHeaderLabel        = "CUSTOM LABEL",
 
         GridPageTitle             = "Grid",
         GridPageSubtitle          = "How many tiles are shown on screen.",
@@ -930,7 +933,8 @@ public sealed class StringsTable
         CamerasHeaderNvr          = "NVR",
         CamerasHeaderCameraIndex  = "KAMERA #",
         CamerasHeaderStream       = "STREAM",
-        CamerasHeaderLabel        = "BESCHRIFTUNG",
+        CamerasHeaderNvrTitle     = "NVR-TITEL",
+        CamerasHeaderLabel        = "EIGENE BEZEICHNUNG",
 
         GridPageTitle             = "Raster",
         GridPageSubtitle          = "Wie viele Kacheln werden auf dem Bildschirm angezeigt.",
@@ -1178,7 +1182,8 @@ public sealed class StringsTable
         CamerasHeaderNvr          = "NVR",
         CamerasHeaderCameraIndex  = "CAMÉRA #",
         CamerasHeaderStream       = "FLUX",
-        CamerasHeaderLabel        = "ÉTIQUETTE",
+        CamerasHeaderNvrTitle     = "TITRE NVR",
+        CamerasHeaderLabel        = "ÉTIQUETTE PERSONNALISÉE",
 
         GridPageTitle             = "Grille",
         GridPageSubtitle          = "Combien de tuiles sont affichées à l'écran.",
@@ -1426,7 +1431,8 @@ public sealed class StringsTable
         CamerasHeaderNvr          = "NVR",
         CamerasHeaderCameraIndex  = "CÁMARA #",
         CamerasHeaderStream       = "STREAM",
-        CamerasHeaderLabel        = "ETIQUETA",
+        CamerasHeaderNvrTitle     = "TÍTULO NVR",
+        CamerasHeaderLabel        = "ETIQUETA PERSONALIZADA",
 
         GridPageTitle             = "Cuadrícula",
         GridPageSubtitle          = "Cuántos mosaicos se muestran en pantalla.",

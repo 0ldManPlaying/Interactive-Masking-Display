@@ -13,7 +13,6 @@ public sealed class DisplayViewModel : INotifyPropertyChanged
     private int _columns;
     private bool _connectionLost;
     private string _connectionBanner = "";
-    private string _hoveredCameraLabel = "";
 
     public ObservableCollection<TileViewModel> Tiles { get; } = new();
 
@@ -33,17 +32,6 @@ public sealed class DisplayViewModel : INotifyPropertyChanged
     {
         get => _statusLine;
         set => Set(ref _statusLine, value);
-    }
-
-    /// <summary>
-    /// Camera name to show in the bottom-right footer. Set when the mouse
-    /// hovers over a tile; cleared on mouse leave. Empty string hides the
-    /// footer text via the binding.
-    /// </summary>
-    public string HoveredCameraLabel
-    {
-        get => _hoveredCameraLabel;
-        set => Set(ref _hoveredCameraLabel, value);
     }
 
     /// <summary>True when the NVR session is not currently connected. Drives the

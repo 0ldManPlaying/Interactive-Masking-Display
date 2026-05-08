@@ -211,5 +211,16 @@ public sealed class CameraSlotSettings
     public int NvrId { get; set; }
     public int CameraIndex { get; set; }
     public int StreamId { get; set; } = 1;
+    /// <summary>
+    /// Operator-typed display name. Free text, fully under admin control;
+    /// the "Pull names" sync never overwrites this field.
+    /// </summary>
     public string Label { get; set; } = "";
+    /// <summary>
+    /// Camera title as configured on the NVR side. Filled by the
+    /// "Pull names from NVR" sync in Setup. Read-only in the camera
+    /// list (the NVR is the source of truth). Empty until a sync has
+    /// run at least once.
+    /// </summary>
+    public string NvrTitle { get; set; } = "";
 }

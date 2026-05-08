@@ -407,15 +407,18 @@ public partial class SetupWindow : Window
                 {
                     if (!nvrNames.TryGetValue(cam.CameraIndex, out var nvrName)) continue;
 
-                    if (ShouldOverwriteLabel(cam.Label, cam.CameraIndex))
+                    // Always overwrite NvrTitle: the NVR is the source of truth
+                    // for that field. The operator's Label is independent and
+                    // never touched here.
+                    if (!string.Equals(cam.NvrTitle, nvrName, StringComparison.Ordinal))
                     {
-                        cam.Label = nvrName;
+                        cam.NvrTitle = nvrName;
                         updated++;
                     }
                 }
             }
 
-            // Force the Label column to redraw — CameraSlotSettings has no INPC.
+            // Force the NVR-title column to redraw — CameraSlotSettings has no INPC.
             CameraGrid.Items.Refresh();
 
             ShowStatus(updated > 0
@@ -429,22 +432,6 @@ public partial class SetupWindow : Window
         }
     }
 
-    /// <summary>
-    /// True when the current label is "blank" enough that overwriting it with
-    /// an NVR-supplied name is a clear win: empty, whitespace, or the
-    /// auto-generated "Camera N" default produced by OnAddCameraRow.
-    /// Any other label is treated as a deliberate human choice and left
-    /// alone, so a sync is non-destructive against custom names.
-    /// </summary>
-    private static bool ShouldOverwriteLabel(string? current, int cameraIndex)
-    {
-        if (string.IsNullOrWhiteSpace(current)) return true;
-        var trimmed = current.Trim();
-        // OnAddCameraRow seeds new rows with "Camera {n+1}".
-        if (string.Equals(trimmed, $"Camera {cameraIndex + 1}", StringComparison.OrdinalIgnoreCase))
-            return true;
-        return false;
-    }
 
     // ---- Cameras: drag/drop reorder ----------------------------------------
     //

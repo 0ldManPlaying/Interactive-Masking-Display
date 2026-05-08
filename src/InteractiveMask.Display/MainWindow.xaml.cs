@@ -139,6 +139,13 @@ public partial class MainWindow : Window
             {
                 var camera = session.RegisterTile(cam.CameraIndex, cam.StreamId, cam.Label);
                 _viewModel.BindCameraToSlot(cam.Slot, camera);
+                // NvrTitle is persisted on CameraSlotSettings (filled by Setup's
+                // Pull-names sync) so the tile shows the recorder-side name from
+                // the first frame, no live device-status round-trip needed.
+                if (cam.Slot >= 0 && cam.Slot < _viewModel.Tiles.Count)
+                {
+                    _viewModel.Tiles[cam.Slot].NvrTitle = cam.NvrTitle ?? "";
+                }
                 _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             }
             catch (Exception ex)
@@ -207,25 +214,6 @@ public partial class MainWindow : Window
                 _nextReconnectByNvr.Remove(nvrId);
                 UpdateConnectionBanner();
             });
-
-            // Pull camera names so the tile bottom bar can show the NVR-side
-            // title alongside the operator label. Fire-and-forget; failures
-            // are non-fatal (the live grid keeps working without them).
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var names = await session.FetchCameraNamesAsync(TimeSpan.FromSeconds(8))
-                                              .ConfigureAwait(true);
-                    _ = Dispatcher.BeginInvoke(() => ApplyNvrTitlesForNvr(nvrId, names));
-                }
-                catch
-                {
-                    // NVR didn't deliver device-status this round; the bottom
-                    // bar simply won't show NVR titles for this nvr until the
-                    // next reconnect or the next manual sync from Setup.
-                }
-            });
         };
 
         session.Disconnected += reason =>
@@ -292,19 +280,6 @@ public partial class MainWindow : Window
             _kioskGuard.Deactivate();
             _audit.Write(AuditEventType.AppStarted, source: "admin", detail: "kiosk mode disabled");
         }
-    }
-
-    private void OnTileMouseEnter(object sender, MouseEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.DataContext is TileViewModel tile && tile.HasCamera)
-        {
-            _viewModel.HoveredCameraLabel = tile.Label;
-        }
-    }
-
-    private void OnTileMouseLeave(object sender, MouseEventArgs e)
-    {
-        _viewModel.HoveredCameraLabel = "";
     }
 
     private void OnTileTapped(object sender, MouseButtonEventArgs e)
@@ -419,23 +394,6 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// <summary>
-    /// Push the latest NVR-side camera-name dictionary onto the tile view-models
-    /// for the slots that are bound to <paramref name="nvrId"/>. Called from the
-    /// connect callback once the device-status arrives.
-    /// </summary>
-    private void ApplyNvrTitlesForNvr(int nvrId, IReadOnlyDictionary<int, string> names)
-    {
-        foreach (var (slot, identity) in _bindingsBySlot)
-        {
-            if (identity.NvrId != nvrId) continue;
-            if (!names.TryGetValue(identity.CameraIndex, out var nvrName)) continue;
-            var tile = _viewModel.Tiles.FirstOrDefault(t => t.SlotIndex == slot);
-            if (tile is null) continue;
-            tile.NvrTitle = nvrName;
-        }
-    }
-
     /// <summary>
     /// Push the current ShowCameraLabel / ShowNvrTitle privacy toggles onto
     /// every tile so the bottom-bar overlay reflects them without restart.
@@ -691,13 +649,19 @@ public partial class MainWindow : Window
 
             _viewModel.BindCameraToSlot(cam.Slot, cameraTile);
             _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
+            if (cam.Slot >= 0 && cam.Slot < _viewModel.Tiles.Count)
+            {
+                _viewModel.Tiles[cam.Slot].NvrTitle = cam.NvrTitle ?? "";
+            }
         }
 
-        // Step 4 — refresh labels for cameras whose only change was the label.
+        // Step 4 — refresh labels and NVR titles for cameras whose only change
+        // was a text field (no rebind needed).
         foreach (var cam in newCameras)
         {
             if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
             _viewModel.Tiles[cam.Slot].UpdateLabel(cam.Label);
+            _viewModel.Tiles[cam.Slot].NvrTitle = cam.NvrTitle ?? "";
         }
     }
 

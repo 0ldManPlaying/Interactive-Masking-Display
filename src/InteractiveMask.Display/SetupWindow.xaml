@@ -919,9 +919,14 @@
                                                                         SelectedValueBinding="{Binding StreamId, UpdateSourceTrigger=PropertyChanged}"
                                                                         SelectedValuePath="Value"
                                                                         DisplayMemberPath="Display"
-                                                                        Width="120">
+                                                                        Width="110">
                                                     <DataGridComboBoxColumn.Header><TextBlock Text="{local:Loc CamerasHeaderStream}" /></DataGridComboBoxColumn.Header>
                                                 </DataGridComboBoxColumn>
+                                                <!-- Read-only: filled by the Pull-names sync. NVR is the source of
+                                                     truth, so editing this here would just be overwritten next sync. -->
+                                                <DataGridTextColumn Binding="{Binding NvrTitle}" Width="*" IsReadOnly="True">
+                                                    <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderNvrTitle}" /></DataGridTextColumn.Header>
+                                                </DataGridTextColumn>
                                                 <DataGridTextColumn Binding="{Binding Label}" Width="*">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderLabel}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
