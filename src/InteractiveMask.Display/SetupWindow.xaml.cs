@@ -50,6 +50,27 @@ public partial class SetupWindow : Window
         Loaded += (_, _) => Populate();
     }
 
+    private void OnAboutOpenLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        // Hyperlink-driven URL open: shell-execute via the default browser.
+        // Used by the website link in the About > Product card.
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = e.Uri.ToString(),
+                UseShellExecute = true,
+            };
+            System.Diagnostics.Process.Start(psi);
+            e.Handled = true;
+        }
+        catch
+        {
+            // Default browser missing or blocked. The URL stays visible in
+            // the card so the user can copy it.
+        }
+    }
+
     private void OnAboutBugReport(object sender, RoutedEventArgs e)
     {
         // Open the user's default email client with a pre-filled subject and
@@ -67,7 +88,7 @@ public partial class SetupWindow : Window
                 $"\r\n" +
                 $"--- Beschrijving / Description ---\r\n" +
                 $"\r\n");
-            var mailto = $"mailto:support@idisnederland.nl?subject={subject}&body={body}";
+            var mailto = $"mailto:support@bnl.idisglobal.com?subject={subject}&body={body}";
             var psi = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = mailto,

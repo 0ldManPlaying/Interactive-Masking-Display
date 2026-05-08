@@ -322,6 +322,7 @@ public sealed class StringsTable
     public string AboutVersionLabel { get; init; } = "";
     public string AboutPublisherLabel { get; init; } = "";
     public string AboutCopyrightLabel { get; init; } = "";
+    public string AboutWebsiteLabel { get; init; } = "";
     public string AboutDescription { get; init; } = "";
     public string AboutCardLicensesThird { get; init; } = "";
     public string AboutCardLicensesIntegrations { get; init; } = "";
@@ -556,6 +557,7 @@ public sealed class StringsTable
         AboutVersionLabel         = "Versie",
         AboutPublisherLabel       = "Uitgever",
         AboutCopyrightLabel       = "Copyright",
+        AboutWebsiteLabel         = "Website",
         AboutDescription          = "InteractiveMask is een Windows-kiosk-applicatie voor live videomonitoring met privacy-bescherming per camerategel. Geschikt voor kantoorruimtes, recepties, hotels, scholen, zorginstellingen en andere omgevingen waar continu zicht en privacy in balans moeten zijn.",
         AboutCardLicensesThird    = "Open-source componenten",
         AboutCardLicensesIntegrations = "Integraties",
@@ -791,6 +793,7 @@ public sealed class StringsTable
         AboutVersionLabel         = "Version",
         AboutPublisherLabel       = "Publisher",
         AboutCopyrightLabel       = "Copyright",
+        AboutWebsiteLabel         = "Website",
         AboutDescription          = "InteractiveMask is a Windows kiosk application for live video monitoring with per-tile privacy protection. Built for office spaces, receptions, hotels, schools, healthcare facilities and other environments where continuous oversight and privacy must coexist.",
         AboutCardLicensesThird    = "Open-source components",
         AboutCardLicensesIntegrations = "Integrations",
@@ -1031,6 +1034,7 @@ public sealed class StringsTable
         AboutVersionLabel         = "Version",
         AboutPublisherLabel       = "Herausgeber",
         AboutCopyrightLabel       = "Copyright",
+        AboutWebsiteLabel         = "Webseite",
         AboutDescription          = "InteractiveMask ist eine Windows-Kiosk-Anwendung für die Live-Videoüberwachung mit Datenschutz pro Kamerakachel. Geeignet für Büroräume, Empfangsbereiche, Hotels, Schulen, Pflegeeinrichtungen und andere Umgebungen, in denen kontinuierliche Übersicht und Datenschutz im Gleichgewicht stehen müssen.",
         AboutCardLicensesThird    = "Open-Source-Komponenten",
         AboutCardLicensesIntegrations = "Integrationen",
@@ -1266,6 +1270,7 @@ public sealed class StringsTable
         AboutVersionLabel         = "Version",
         AboutPublisherLabel       = "Éditeur",
         AboutCopyrightLabel       = "Copyright",
+        AboutWebsiteLabel         = "Site web",
         AboutDescription          = "InteractiveMask est une application kiosque Windows pour la surveillance vidéo en direct avec protection de la confidentialité par tuile. Conçue pour les espaces de bureau, les réceptions, les hôtels, les écoles, les établissements de soins et d'autres environnements où la surveillance continue et la confidentialité doivent coexister.",
         AboutCardLicensesThird    = "Composants open source",
         AboutCardLicensesIntegrations = "Intégrations",
@@ -1501,6 +1506,7 @@ public sealed class StringsTable
         AboutVersionLabel         = "Versión",
         AboutPublisherLabel       = "Editor",
         AboutCopyrightLabel       = "Copyright",
+        AboutWebsiteLabel         = "Sitio web",
         AboutDescription          = "InteractiveMask es una aplicación de quiosco para Windows destinada a la supervisión de vídeo en directo con protección de privacidad por mosaico. Adecuada para oficinas, recepciones, hoteles, escuelas, centros de atención y otros entornos donde la supervisión continua y la privacidad deben convivir.",
         AboutCardLicensesThird    = "Componentes de código abierto",
         AboutCardLicensesIntegrations = "Integraciones",
