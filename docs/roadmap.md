@@ -88,7 +88,9 @@ Op dit moment zijn lege tegelposities donker. Voorstel: vul ze met een subtiel I
 - Minimaal 1024 x 1024 px, voorkeur 2048 x 2048 px, zodat ook in een 1x1 grid (volledig scherm één tegel) het beeld scherp blijft.
 - Monochroom of grijswaarden, of een volledig gekleurde versie waar wij in code de uiteindelijke kleur en de 10 procent opacity-laag op leggen.
 
-**Status:** wachten op aanlevering van het PNG-bestand. (Stakeholder probeerde het bestand al toe te sturen; de upload kwam aan als wit/leeg beeld. Graag opnieuw aanleveren.)
+**Status:** logo aangeleverd. Bron `IDIS_White_Logo.webp` (400 x 200, transparant, wit). Geconverteerd naar PNG en opgenomen in de repo als `images/idis-logo-mask.png` (32-bit ARGB met alpha-kanaal).
+
+**Aandachtspunt resolutie:** 400 x 200 is wat krap voor een 1x1 fullscreen-grid op 4K. Bij 10 procent opacity valt eventuele schaalvaagheid waarschijnlijk weg, maar als er een hogere resolutie beschikbaar is (voorkeur 2048 x 1024 of vector-bron) kunnen we het bestand later vervangen zonder code-wijziging.
 
 ---
 
