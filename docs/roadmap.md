@@ -1,139 +1,136 @@
 # InteractiveMask Roadmap
 
-Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland.
+Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 8 mei 2026, na het taggen van v1.3.0.
 
-## v1.3.x kandidaten
+## Status legend
 
-Onderstaande set is verzameld na de eerste demo-ronde bij prospects en partners (mei 2026). Volgorde is de waarschijnlijke implementatievolgorde, niet de prioriteit.
-
-### 1. Mass-mask en mass-unmask (noodscenario)
-
-**Aanleiding:** veldfeedback. Bij onderbezetting moet een zorgmedewerker met één handeling het hele scherm kunnen maskeren voordat ze van de zorgpost wegloopt, zodat patiëntprivacy bij een onbemande post gewaarborgd is. Andersom moet er ook met één handeling alles tegelijk vrijgegeven kunnen worden, mits dat veilig kan.
-
-**Functioneel ontwerp:**
-- Twee prominente knoppen in de hoofd-UI, of een keyboard chord (configureerbaar in Setup), of beide.
-- **Mask all:** altijd toegestaan, geen authenticatie nodig (privacy-toepassen is altijd vrij, conform huidige policy). Audit log: één enkel event `mass_mask` met de lijst van geraakte tegel-IDs.
-- **Unmask all:** authenticatie verplicht (PIN of AD), zelfs als individuele tegels normaal geen auth zouden vragen. Reden: één klik die alle privacy opheft is een hoog-risico actie.
-- **Belangrijke veiligheidsregel (stakeholder-besluit 8 mei 2026):** mass-unmask werkt alleen als de previous state óók volledig vrij was, dat wil zeggen: alleen wanneer mass-unmask het inverse is van een voorafgaande mass-mask op alle tegels tegelijk. Zodra er individuele masks staan (gemengde state) wordt mass-unmask geweigerd met een nette melding ("Er staan handmatige privacy-masks actief. Hef die individueel op om risico op accidentele privacy-doorbraak te voorkomen."). Dit voorkomt dat een zorgmedewerker per ongeluk een privacy-mask opheft die een collega bewust gezet heeft voor een lopend zorgmoment.
-- Audit log: `mass_unmask` event met identiteit en het aantal geraakte tegels. Geweigerde pogingen worden gelogd als `mass_unmask_blocked` met de reden.
-
-**Configuratie in Setup:**
-- Bevestigingsdialoog vóór de unmask-all is **standaard uit**, in te schakelen via Setup. Stakeholder houdt zich het recht voor om de default later om te draaien op basis van veldfeedback.
-
-**Open vraag voor stakeholder-overleg:** moet "mass mask" tegelijk de auto-unmask timers van die tegels resetten of negeren?
-
-### 2. Privacy-default mode (omgekeerde standaard) als Setup-optie
-
-Op dit moment is het gedragsmodel: tegels zijn standaard zichtbaar, de zorgmedewerker klikt om te blurren op het moment dat er zorg wordt geleverd (waardigheid tijdens omkleden, wassen, toiletbezoek met assistentie). Auto-unmask zorgt dat het beeld vanzelf weer terugkomt.
-
-Voor sommige settings (bijvoorbeeld kantoorruimtes, gemeenschappelijke ruimtes met permanente camerafeed naar een centrale receptie, of instellingen waar de defaults strikter moeten zijn) is een omgekeerd model wenselijk: tegels standaard geblurd, zorgmedewerker klikt om tijdelijk te onthullen voor verificatie. Daarna automatisch terug naar privé.
-
-**Voorgesteld als configuratie-optie, niet als vervanging:**
-- Per-installatie default in Setup: `Mode = OversightDefault | PrivacyDefault`.
-- In `PrivacyDefault` mode worden alle tegels bij opstart geblurd; klik onthult, auto-blur timer brengt het terug.
-- Audit log onderscheidt tussen "zorgmoment-mask" en "tijdelijke vrijgave-voor-verificatie".
-- UI-tekst (banner, knoppen, tooltips) beweegt mee met de gekozen mode.
-
-**Aanleiding:** sales feedback 7 mei 2026, herhaald in demo-feedback. Sterk gewenst voor partnerverhaal naar settings buiten de klassieke zorg-context.
-
-### 3. Drag/drop herordenen in Setup, slot bindings
-
-Beheerder kan rijen in de tabel `Cameras > Slot bindings` op- of neerschuiven via drag/drop. Het slotnummer (1-N) volgt de positie in de tabel, dus drag/drop wijzigt direct welke camera op welk grid-slot terechtkomt. Opslaan via dezelfde Save-knop als de rest van Setup.
-
-**Scope (stakeholder-besluit 8 mei 2026):**
-- Alleen in Setup, alleen voor de beheerder.
-- **Niet** in de live-view en **niet** door eindgebruikers, althans niet in v1.3.x. Stakeholder laat zich het recht voor om in een latere release een Setup-toggle "eindgebruikers mogen tegels verplaatsen" toe te voegen.
-- Volgorde wordt globaal opgeslagen voor de installatie (één slot-mapping per machine, zoals nu).
-
-**Implementatie-notes:**
-- WPF DataGrid ondersteunt geen drag/drop out of the box; we gebruiken een vergelijkbare oplossing als bij andere gelijksoortige componenten (eigen drag-adorner, drop-target highlight, slot-nummers automatisch herberekenen).
-- Visuele feedback: rij wordt iets uitgelicht tijdens het slepen, een lijn toont de drop-positie tussen rijen.
-
-### 4. Talen toevoegen: Duits, Frans, Spaans
-
-Huidige situatie: Nederlands en Engels. Marktanalyse stakeholder 8 mei 2026:
-
-| Markt | Talen | Prioriteit |
-|---|---|---|
-| Europa (kernmarkt) | NL, DE, FR, EN | NL en EN aanwezig, **DE en FR toevoegen** |
-| Verenigde Staten | EN, ES | EN aanwezig, **ES toevoegen** |
-
-Implementatievolgorde voorgesteld: **DE eerst** (grootste kwantiteit prospects in pipeline), **FR daarna**, **ES als derde**. Alle drie wel binnen v1.3.x leveren zodat we de releasecycli niet versnipperen.
-
-**Werk:**
-- `Strings.cs` uitbreiden met `de-DE`, `fr-FR`, `es-ES` woordenboeken naast de bestaande `nl-NL` en `en-US`.
-- Professionele vertaling, of als minimum een native-speaker review na een eerste machinevertaling. Glossarium voorbereiden voor consistentie tussen termen (`mask`, `tegel`, `zorgpost`, `bewoner`, `tegel`).
-- Live language-switcher in Setup uitbreiden, alle vijf talen.
-- Help/handleiding-content (8 hoofdstukken) idealiter ook vertalen. Bij capaciteitsdruk: minimaal NL/EN/DE compleet, FR/ES initieel via fallback naar EN voor de help-tekst, terwijl de UI wel volledig vertaald is.
-
-### 5. Taalkeuze tijdens installatie en bij eerste opstart
-
-**Probleem:** de app start nu standaard in het Nederlands. Voor niet-Nederlandstalige beheerders is de eerste configuratie daardoor moeilijk te navigeren.
-
-**Voorstel, te combineren:**
-- **Installer:** WiX UI dialog krijgt aan het begin een dropdown met talenkeuze. De keuze wordt weggeschreven naar de app-config (`%PROGRAMDATA%\InteractiveMask\config.json` veld `Language`). De vertaalde labels van de installer zelf vragen WiX-localisatiebestanden per taal.
-- **Eerste opstart:** als er geen taalkeuze in de config staat, valt de app terug op `CultureInfo.CurrentUICulture` van Windows in plaats van een hardcoded Nederlands. Daarna toont de app eenmalig een welkomstscherm met taalkeuze voordat Setup gestart wordt.
-
-### 6. IDIS-logo in lege tegels als visuele mask
-
-Op dit moment zijn lege tegelposities donker. Voorstel: vul ze met een subtiel IDIS-logo zodat het grid altijd "af" oogt en de IDIS-merkbeleving consistent is.
-
-**Stakeholder-besluit 8 mei 2026:**
-- Formaat: **PNG**, aangeleverd door stakeholder.
-- Opacity: **10 procent**. Heel licht zichtbaar, niet dominant.
-- Plaatsing: gecentreerd op de tegel, schaalt mee met de tegelgrootte.
-
-**Acceptatiecriteria voor het PNG-bestand:**
-- Transparante achtergrond.
-- Minimaal 1024 x 1024 px, voorkeur 2048 x 2048 px, zodat ook in een 1x1 grid (volledig scherm één tegel) het beeld scherp blijft.
-- Monochroom of grijswaarden, of een volledig gekleurde versie waar wij in code de uiteindelijke kleur en de 10 procent opacity-laag op leggen.
-
-**Status:** logo aangeleverd. Bron `IDIS_White_Logo.webp` (400 x 200, transparant, wit). Geconverteerd naar PNG en opgenomen in de repo als `images/idis-logo-mask.png` (32-bit ARGB met alpha-kanaal).
-
-**Aandachtspunt resolutie:** 400 x 200 is wat krap voor een 1x1 fullscreen-grid op 4K. Bij 10 procent opacity valt eventuele schaalvaagheid waarschijnlijk weg, maar als er een hogere resolutie beschikbaar is (voorkeur 2048 x 1024 of vector-bron) kunnen we het bestand later vervangen zonder code-wijziging.
-
----
-
-## Stakeholder-besluiten 8 mei 2026 (ronde 3)
-
-- **Auth voor mass-mask en mass-unmask:** volgt de bestaande policy van de installatie. Staat PIN aan, dan PIN-prompt. Staat auth uit, dan geen auth. AD-modus is ondersteund maar de verwachting is dat die in dit noodscenario minder gebruikt gaat worden vanwege de tijdsdruk van de actie.
-- **Mass-mask en auto-unmask timers:** mass-mask negeert de individuele auto-unmask timers en houdt alle tegels gemaskeerd tot een actieve handeling (mass-unmask, of klik op een individuele tegel) ze opheft. Past bij het noodscenario van een onbemande zorgpost.
-
-Alle open functionele vragen zijn nu beantwoord. Doelversie: **v1.3.0**.
-
----
-
-## v1.3.0 sprint-plan
-
-| # | Item | Inschatting werk | Externe afhankelijkheid |
-|---|---|---|---|
-| 1 | Mass-mask en mass-unmask, met blokkade bij gemengde state | 3 dagen | nvt |
-| 2 | Privacy-default mode als Setup-toggle | 2 dagen | nvt |
-| 3 | Drag/drop herordenen in Setup `Slot bindings` tabel | 1 tot 2 dagen | nvt |
-| 4a | UI-strings DE, FR, ES toevoegen aan `Strings.cs`, language-switcher uitbreiden | 1 dag | wachten op vertalingen |
-| 4b | Vertalingen DE, FR, ES (UI-strings + helptekst) | 0,5 dag review per taal | externe vertaler, doorlooptijd 1 tot 2 weken |
-| 5 | Taalkeuze in installer (WiX UI loc) en first-run language picker | 2 dagen | nvt |
-| 6 | IDIS-logo render layer in lege tegels, 10 procent opacity | 0,5 dag | logo binnen, klaar |
-
-**Totaal ontwikkelwerk:** ongeveer 10 werkdagen plus 1,5 dag review op de vertalingen.
-
-**Voorgestelde planning** (vandaag is donderdag 8 mei 2026):
-
-| Fase | Periode |
+| Symbool | Betekenis |
 |---|---|
-| Vertaalwerk inkopen + start sprint | week 19 (vanaf 11 mei) |
-| Implementatie items 1, 2, 3, 5, 6 | week 19 en 20 |
-| Items 4a en 4b zodra vertalingen binnen | week 21 |
-| Code review, regressietest, sign-off | week 22 |
-| Build, sign, MSI, release | begin week 23 |
-
-**Release-target: vrijdag 5 juni 2026** (week 23). Inclusief één week buffer voor uitloop op de vertalingen of regressies. Als de vertalingen sneller binnen zijn kan het een week eerder.
-
-**Risico's:**
-- Vertalingen-doorlooptijd is de grootste onzekerheid. Mitigatie: machinevertaling als startpunt, native review erachteraan, parallel uitvoeren voor de drie talen.
-- Drag/drop in WPF DataGrid vraagt een eigen adorner-implementatie omdat de standaard control het niet ondersteunt. Mitigatie: bestaande open-source patroon hergebruiken (er zijn diverse goede MIT-implementaties).
-- Item 1 vraagt zorgvuldige audit-log uitbreiding zodat geweigerde mass-unmask pogingen óók traceerbaar zijn. Mitigatie: nieuwe event-types `mass_mask`, `mass_unmask`, `mass_unmask_blocked` toevoegen aan het audit-schema voor de start van de implementatie.
+| ✅ | Gereleased |
+| 🛠 | In ontwikkeling |
+| 📋 | Ingepland voor de volgende sprint |
+| 💡 | Idee, nog niet ingepland |
+| ⏸ | Uitgesteld of geparkeerd |
 
 ---
 
-(Voor latere overweging, niet noodzakelijk v1.3.x: snapshot-export naar PDF, mobiele begeleidende app, integratie met IDIS NVR PTZ-bediening.)
+## v1.3.0 — gereleased 8 mei 2026 ✅
+
+Major feature release. Volledig gerealiseerd. Zie [`docs/release-notes-1.3.0.md`](release-notes-1.3.0.md) voor de uitgebreide release-notes.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 1 | Mass-mask en mass-unmask via long-press (500 ms) | ✅ | State-guard tegen accidentele privacy-doorbraak. Volgt bestaande auth-policy. |
+| 2 | Privacy-default mode als Setup-toggle | ✅ | OversightDefault (default) en PrivacyDefault keuzes. Mode-flip is structural (vraagt restart). |
+| 3 | Drag/drop herordenen in Setup Slot bindings | ✅ | Grip-icoon links per rij. Slot-nummers herrekenen automatisch. |
+| 4 | Vijf talen (NL, EN, DE, FR, ES) | ✅ | 226 keys per taal, formele zakelijke toon, live language-switching. |
+| 5 | First-run language picker + MSI taal-seed | ✅ | Modaal bij eerste opstart; `INTERACTIVEMASK_LANGUAGE` MSI property voor unattended deployment. |
+| 6 | IDIS-watermerk in lege tegels | ✅ | 10% opacity, 400 x 200 PNG (hogere resolutie staat op v1.3.x lijst). |
+
+### Bonus features die mid-sprint toegevoegd zijn
+
+| Feature | Aanleiding |
+|---|---|
+| **Multi-NVR aware mass-mask** | Werkt cross-NVR; één gesture dekt alle aangesloten recorders. |
+| **NVR camera-naam sync** (Pull names) | Demo-feedback. Aparte NvrTitle-kolom + persisted `NvrTitle` veld op CameraSlotSettings; sync via live NVR-sessie zodat geen tweede login nodig is. |
+| **Per-tile overlay bar** | NVR-titel links, custom label rechts; beide independent togglebaar via Setup → Privacy → Tegel-overlay. |
+| **5×5 grid (25 tegels)** | Naast 1×1 / 2×2 / 3×3 / 4×4. |
+| **Apply-knop** in Setup | Wijzigingen toepassen zonder Setup te sluiten; live iteratie tijdens config. |
+| **About-tab** | Versie, publisher, copyright, integraties, open-source licenties, mailto bug-rapport. |
+| **Aspect-ratio fix** | Stretch=UniformToFill → Uniform, zodat 4:3 / 5:4 / 1:1 / 21:9 camera's volledig in beeld blijven. |
+| **Generieke UI-wording** | "verzorgers / bewoners" → "operators / tegels" door alle vijf talen. |
+
+### Pre-release engineering pass
+
+| ID | Severity | Onderwerp | Status |
+|---|---|---|---|
+| H1 | High | Mass-mask PIN-bookkeeping security regression | ✅ gefixt |
+| H2 | High | Long-press timer leak bij gemiste mouse-up | ✅ gefixt |
+| H3 | High | StreamChoices Strings.PropertyChanged leak | ✅ gefixt |
+| H4 | High | Privacy.Mode flip silent desync | ✅ gefixt (nu structural) |
+| M1 | Medium | Dead `_lastCameraNames` veld in NvrSession | ✅ verwijderd |
+| M6 | Medium | Pull-names abortte op eerste falende NVR | ✅ continue + accumuleer errors |
+| M9 | Medium | Dubbele `CameraGrid.CommitEdit` in save | ✅ verwijderd |
+
+### Kritieke fix tijdens ontwikkeling
+
+ConfigService.StoredCamera + StoredPrivacy waren in v1.2-vorm blijven hangen, waardoor alle nieuwe v1.3 velden silent dropte tijdens de save/load round-trip. Gefixt door uitbreiding van beide DTO's en hun ApplyStored/ToStored mappingen.
+
+---
+
+## v1.3.x patches 📋
+
+Korte-termijn point releases. Geen functionele wijzigingen, alleen polish en cleanup.
+
+### v1.3.1 kandidaten
+
+| Bron | Onderwerp | Inschatting |
+|---|---|---|
+| Pre-release M2/M3/M4 | Dead localized strings (NavGrid, GridPageTitle, AdminLangNl/En, StatusError) opruimen in alle 5 talen | 30 min |
+| Pre-release M5 | PrimePrivacyDefaultState bumpt nu de PIN-counter niet; consistent maken met OnMaskApplied per tegel | 30 min |
+| Pre-release M7 | ApplyCameraChangesLive doet onnodige UpdateLabel + NvrTitle-assign voor onveranderde tegels | 1 uur |
+| Pre-release M8 | FetchCameraNamesAsync gooit altijd TimeoutException, ook bij externe cancellation. Differentiëren met TaskCanceledException | 30 min |
+| Pre-release M10 | Hard-coded Dutch error string in Help-open path. Loc-key toevoegen | 30 min |
+| Pre-release L2 | Per-frame closure-allocation in TileViewModel.OnFrameDecoded (preexisting, niet v1.3-regressie) | 2 uur, alleen bij bewezen GC-pressure |
+| Field feedback | Hogere-resolutie IDIS-logo (2048 x 1024 of vector) zodra aangeleverd | 5 min vervangen |
+
+**Doel:** v1.3.1 binnen 2 weken na v1.3.0 als er een live-deployment incident komt; anders bundelen tot één v1.3.1 over een paar weken.
+
+---
+
+## v1.4.0 doorkijk 💡
+
+Nog niet ingepland. Verzameld uit demo-feedback, klantgesprekken en tijdens v1.3.0 opgekomen ideeën.
+
+### Hoog op de wensenlijst
+
+| Idee | Bron | Score |
+|---|---|---|
+| **Help-content vertalen naar DE / FR / ES** (8 hoofdstukken) | v1.3 vertaalwerk; momenteel fallback naar EN voor die drie talen | Vraagt externe vertaler; ~1 week doorlooptijd |
+| **Long-press duur configureerbaar** in Setup | Sommige users willen 300 ms (sneller) of 750 ms (minder accidental) | Half dag werk |
+| **Drag/drop in live-view voor eindgebruikers** | Admin-toggle in Setup om dit aan te zetten; volgorde wijziging vraagt auth | 1 dag werk |
+| **Audit-log review GUI** | Huidige Audit-tab toont laatste N events; filter op type / NVR / tijdvenster + zoekveld zou helpen | 2 dagen werk |
+| **Snapshot-export naar PDF** | Eerder geïdentificeerd in 2026-05; rapport van actuele tile-states + privacy-status voor dossier | 2-3 dagen |
+| **Vector/SVG logo support** voor scherper renderen op 4K | 1x1 fullscreen-grid op 4K is met 400 x 200 PNG niet ideaal | 1 dag |
+
+### Strategische ideeën
+
+| Idee | Bron | Open vragen |
+|---|---|---|
+| **Microsoft Store / Intune sideload distributie** | Eerder besproken in v1.0 traject; geparkeerd voor multi-NVR | App-package (.msix) builden; signing apart van EV-cert traject |
+| **PTZ-bediening voor PTZ-camera's** | IDIS GDK ondersteunt het, geen integratie in InteractiveMask | UX vraag: hoe past een PTZ-control in een privacy-mask kiosk? |
+| **Mobiele begeleidende app** | Andere lange-termijn idee | iOS / Android, of progressive web app via WebHost? |
+| **Multi-monitor support** | Voor grotere zorgposten met meerdere schermen | Huidige Display is single-monitor; vraagt UI-rework |
+| **Audit-log syslog filtering** | Per event-type besluiten of het naar SIEM gestuurd wordt | Setup uitbreiding + bounded-channel logica |
+| **Custom blur-styles** | Sommige klanten willen pixelate, mozaiek, of zwart-vlak in plaats van Gaussian blur | XAML BlurEffect → custom shader of overlay-rect |
+
+### Geparkeerd ⏸
+
+| Item | Reden |
+|---|---|
+| Custom WiX UI dialog voor taal-keuze tijdens install | Vervangen door registry-seed property + first-run picker (v1.3.0). Kan terug op de roadmap als enterprise-customers hier toch om vragen. |
+| Drag/drop voor eindgebruikers in live-view | Bewust uitgesteld in v1.3 scope-besluit. Komt terug bij v1.4 als admin-toggle. |
+
+---
+
+## Architectuur-evoluties (v2.x denken)
+
+Out-of-scope voor v1.x. Vastgelegd zodat we ze niet vergeten.
+
+### Hot-swappable Display zonder restart
+
+Op dit moment vraagt elke structurele wijziging (NVR-fleet, camera-bindings, grid-grootte, privacy-mode) een Display-restart. Voor 24/7 zorgomgevingen is een restart-vrije live-apply path waardevol. Kost een aanzienlijke refactor van NvrSession-lifecycle en het GDK-decoder slot management.
+
+### Cross-platform overweging
+
+Huidige stack is .NET 9 + WPF + IDIS GDK x64. WPF is Windows-only. Een mogelijke v2.0 zou Avalonia + .NET 9 + IDIS GDK kunnen zijn voor Windows / Linux dekking, mits IDIS GDK een Linux-build levert. Geen concrete vraag op dit moment, alleen genoteerd.
+
+### IPC herzien
+
+Named-pipe + length-prefixed JSON werkt prima single-machine. Voor distributie (één Display, web-clients op andere machines) zou een gRPC of WebSocket transport meer zin maken. Niet nu nodig.
+
+---
+
+## Contact
+
+Voor inhoudelijke roadmap-vragen of nieuwe wensen: support@bnl.idisglobal.com. Voor live-deployment problemen: GitHub Issues op de [project-repo](https://github.com/0ldManPlaying/Interactive-Masking-Display) of dezelfde mail.
