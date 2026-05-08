@@ -8,23 +8,42 @@
 
 > If the player doesn't appear in your viewer, [download the demo here](https://github.com/0ldManPlaying/Interactive-Masking-Display/releases/download/v1.1.1/IPM.mp4) (228 MB, MP4).
 
-
-Windowless C# / .NET 9 / WPF kiosk application that connects to an IDIS NVR and displays a live video grid (up to 16 cameras) with per-tile **privacy blur masks** that can be toggled with a single click. Designed for healthcare facilities (Dutch *zorginstellingen*) where caregivers need to instantly hide a resident's room from on-screen view while still being able to verify the camera is working.
+Windowless C# / .NET 9 / WPF kiosk application that connects to one or more **IDIS NVR** systems and displays a live video grid (1×1 up to 5×5) with per-tile **privacy blur masks** that can be toggled with a single click. Designed for environments where continuous oversight and privacy must coexist — healthcare facilities, office spaces, receptions, hotels, schools, and other sites with stricter privacy defaults.
 
 A companion ASP.NET Core WebHost provides the same functionality over a browser, communicating with the kiosk over a local named-pipe IPC channel.
 
+## What's new in 1.3.0
+
+- **Five UI languages** — NL, EN, DE, FR, ES, with a first-run picker, live language switching, and an MSI command-line seed (`INTERACTIVEMASK_LANGUAGE=de`) for SCCM / Intune mass-rollout.
+- **Long-press mass mask / unmask** — hold anywhere on the screen for 500 ms to mask or unmask every tile at once (state-guarded against accidental privacy breach in mixed states).
+- **Privacy-default mode** — boot with all tiles blurred; tap to briefly reveal for verification, auto-rollback restores privacy. Switchable per installation.
+- **Multi-NVR support** — one screen can show tiles from multiple IDIS recorders side by side; per-tile NVR + camera + stream selection.
+- **NVR camera-name sync** — pull the camera titles configured on the NVR straight into Setup, side-by-side with operator-typed labels (separate fields, never overwritten).
+- **Drag-and-drop tile reorder** — rearrange the slot bindings in Setup with a grip handle; slot numbers renumber automatically.
+- **Apply button** — push changes to the running kiosk without closing the Setup window.
+- **About tab** — version, publisher, copyright, integrations, open-source license attributions, bug-report link.
+- **5×5 grid** option (25 tiles).
+- **Aspect-ratio fix** for non-16:9 cameras (4:3, 5:4, 1:1 fish-eye, 21:9): tiles now letterbox / pillarbox to preserve the full image instead of cropping.
+
+See [`docs/release-notes-1.3.0.md`](docs/release-notes-1.3.0.md) for the full list, including the four pre-release HIGH-severity fixes and the ConfigService persistence repair.
+
 ## Features
 
-- **Live video grid** — 2×2 / 3×3 / 4×4 layouts driven by the IDIS GDK 6.6.1 (H.264 + HEVC), stream-2 (low-res) by default for performance
-- **Privacy blur** — Gaussian blur attached only when masked (perf-friendly). Optional auto-unmask timer per tile
-- **Two authentication modes** — session PIN (single secret per session) **or** Windows Active Directory (per-caregiver identity in audit log)
-- **Kiosk lock** — low-level keyboard hook blocks Win, Alt+F4/Tab/Esc, Ctrl+Esc; topmost window
-- **Full NL/EN i18n** with **live language switching** — no restart required
-- **Encrypted state** — admin PIN, NVR password, web cert password, and session PIN all DPAPI-encrypted (LocalMachine scope)
-- **Audit log** — NDJSON event stream with mask on/off, PIN failures/lockouts, AD authentication
-- **Browser remote control** — ASP.NET Core WebHost (HTTP/HTTPS), same security policy as the desktop click flow
-- **WiX MSI installer** — registers the WebHost as a Windows service and adds the necessary firewall rules
-- **In-app interactive manual** — 8 chapters NL+EN with inline graphics
+- **Live video grid** — 1×1 / 2×2 / 3×3 / 4×4 / 5×5 layouts driven by the IDIS GDK 6.6.1 (H.264 + HEVC), default stream picked per tile (high / normal / low).
+- **Multi-NVR** — single installation can connect to multiple IDIS NVRs simultaneously; each tile picks its own NVR + camera + stream.
+- **Privacy blur** — Gaussian blur attached only when masked (perf-friendly). Optional auto-unmask / auto-rollback timer per tile.
+- **Two privacy modes** — *OversightDefault* (visible by default, tap to apply privacy) or *PrivacyDefault* (blurred by default, tap to reveal briefly).
+- **Mass mask / unmask** — long-press 500 ms anywhere on the kiosk to apply or release privacy across every tile. Useful when the operator briefly leaves an unattended station.
+- **Two authentication modes** — session PIN (single secret per session) **or** Windows Active Directory (per-user identity in audit log).
+- **Kiosk lock** — low-level keyboard hook blocks Win, Alt+F4 / Tab / Esc, Ctrl+Esc; topmost window.
+- **Five-language UI** with **live language switching** — NL, EN, DE, FR, ES, no restart required.
+- **First-run language picker** — first launch shows a small modal asking which language to use, pre-selected on the Windows UI culture.
+- **Encrypted state** — admin PIN, NVR password (per NVR), web cert password, and session PIN all DPAPI-encrypted (LocalMachine scope).
+- **Audit log** — NDJSON event stream with mask on/off, mass actions, PIN failures/lockouts, AD authentication, NVR connect/disconnect, optional syslog forwarding to a SIEM.
+- **Browser remote control** — ASP.NET Core WebHost (HTTP/HTTPS), same security policy as the desktop click flow.
+- **Per-tile overlay bar** — status indicator + NVR-side camera title (left) + operator-typed custom label + privacy badge (right). Each label independently toggleable.
+- **Signed WiX MSI installer** — registers the WebHost as a Windows service, opens firewall rules, optional EV-Authenticode signing.
+- **In-app interactive manual** — 8 chapters in NL + EN with inline graphics.
 
 ## Architecture
 
@@ -34,10 +53,10 @@ A companion ASP.NET Core WebHost provides the same functionality over a browser,
 │  (WPF kiosk, .NET 9)     │ ◄─IPC─► │  (ASP.NET Core, Kestrel) │
 │  - GDK live decode       │  named  │  - Razor Pages UI        │
 │  - Blur + click handling │  pipe   │  - State mirror          │
-│  - Audit log writer      │         │  - Remote toggle          │
+│  - Audit log writer      │         │  - Remote toggle         │
 └──────────────────────────┘         └──────────────────────────┘
             │
-            ▼
+            ▼   (one or more NVRs, multi-recorder support)
 ┌──────────────────────────┐
 │   IDIS NVR (G2 Client)   │
 └──────────────────────────┘
@@ -79,38 +98,56 @@ For a signed MSI (Authenticode — e.g. SafeNet EV-token cert in `CurrentUser\My
 
 `-Sign` first signs every `InteractiveMask.*.exe` / `.dll` (so the cab embedded in the MSI contains signed binaries) and then signs the MSI itself. SHA-256 file digest + SHA-256 timestamp digest. The default timestamp server is DigiCert; override via `-TimestampUrl`.
 
+### Unattended MSI deployment
+
+For SCCM / Intune / mass-rollout scenarios, pre-seed the UI language so end-users don't see the first-run picker:
+
+```
+msiexec /i InteractiveMask-1.3.0.msi /qn INTERACTIVEMASK_LANGUAGE=de
+```
+
+The value is written to `HKLM\Software\InteractiveMask\InitialLanguage`. App.OnStartup picks it up on first run and skips the picker. Supported codes: `nl`, `en`, `de`, `fr`, `es`. Without the property the registry stays untouched and the first-run picker appears as usual.
+
 ## Runtime layout
 
 | Path | Purpose |
 |---|---|
 | `%PROGRAMDATA%\InteractiveMask\admin.dat` | DPAPI-encrypted admin PIN |
-| `%PROGRAMDATA%\InteractiveMask\config.json` | NVR connection, cameras, grid, web settings (passwords DPAPI-encrypted) |
+| `%PROGRAMDATA%\InteractiveMask\config.json` | NVR list, cameras, grid, privacy + web settings (passwords DPAPI-encrypted) |
 | `%PROGRAMDATA%\InteractiveMask\webhost.pfx` | TLS certificate for the WebHost (auto-generated on first run if missing) |
 | `%PROGRAMDATA%\InteractiveMask\audit.log` | NDJSON audit event stream |
 | `%LOCALAPPDATA%\InteractiveMask\state.json` | Session-PIN cache (DPAPI-encrypted) |
+| `HKLM\Software\InteractiveMask\InitialLanguage` | Optional MSI-seeded language for first run |
 
 ## Usage
 
-1. **First run** — the kiosk opens to a "no config" screen. Right-click → *Setup*. The first time, you set an **admin PIN**.
-2. **Setup wizard** — configure the NVR (IP / port / credentials), bind cameras to grid slots, choose grid size, choose authentication mode (PIN / AD / off), enable/disable the WebHost, and set audit-log retention.
-3. **Normal operation** — click any tile to toggle its privacy blur. Auto-unmask timers are configurable per tile.
+1. **First run** — the kiosk opens with a language picker. Pick a language, then right-click → *Setup* and set an **admin PIN**.
+2. **Setup wizard** — configure one or more NVRs (IP / port / credentials), bind cameras to grid slots, choose grid size, choose authentication mode (PIN / AD / off), pick the privacy mode (oversight / privacy-default), enable / disable the WebHost, and configure audit-log retention.
+3. **Normal operation** — click any tile to toggle its privacy blur. Long-press anywhere on the screen for 500 ms to mass-mask or mass-unmask. Auto-unmask / auto-rollback timers are configurable per tile.
 4. **Removing a mask** — prompts for PIN (or Windows credentials in AD mode), unless authentication is fully disabled.
-5. **Kiosk mode** — when enabled, common task-switching key chords are blocked while the window is in focus.
+5. **Pull NVR titles** — Setup → Cameras → *Pull names from NVR* fetches the camera titles configured on the recorder side and fills the read-only NVR-title column. Operator labels are kept untouched.
+6. **Apply / Save** — *Apply* pushes changes to the running kiosk without closing Setup; *Save* does the same and closes.
+7. **Kiosk mode** — when enabled, common task-switching key chords are blocked while the window is in focus.
 
 ## Security model
 
 - Authentication is required to **remove** a mask (privacy-first: applying blur is always free).
 - PIN mode: single per-session secret. Captured on first mask, cleared when no masks remain.
 - AD mode: each unmask requires Windows credentials, and the user identity is written into the audit log (`source: user:<sam>`).
+- Mass-unmask via long-press is gated by the same auth as a per-tile unmask, plus a *state-guard* that refuses to lift privacy when individual masks are active (prevents accidental privacy breach across an unattended post).
 - Lockout: configurable PIN-failure threshold and lockout duration.
 - All persisted secrets are DPAPI-encrypted at the LocalMachine scope, so the data never leaves the host.
+- MSI + every `InteractiveMask.*.exe` / `.dll` are EV-Authenticode signed (Sectigo Public Code Signing CA R36, IDIS Nederland BV) so SmartScreen verifies the publisher.
 
 ## Development notes
 
 - The IDIS GDK is **not thread-safe**: `g2decoder.picture_scale` calls are serialized with a process-wide lock.
 - WPF rendering uses `WriteableBitmap` (Bgra32) updated from the GDK callback thread via `Dispatcher.BeginInvoke`.
 - HEVC requires the V3 decoder + `g2_color_convert_yv12_to_rgb32`; V2 + RGB32 returns `DECODER_NOT_READY`.
-- Live-apply: trivial settings (language, labels, privacy timers, AD toggle) are wired through `Func<>` providers and apply without restart. Structural changes (NVR connection, camera bindings, grid size) prompt for restart.
+- Live-apply: trivial settings (language, labels, privacy timers, AD toggle, tile-overlay toggles, mass-unmask confirm) are wired through `Func<>` providers and apply without restart. Structural changes (NVR connection, camera bindings, grid size, **privacy mode flip**) prompt for restart.
+- Multi-NVR: one `NvrSession` per recorder, each owning its own `g2watch`. Camera-name sync is routed through the live session (`request_device_status` → `on_g2watch_receive_device_status`) so we never open a second concurrent login on the same NVR.
+- Per-tile overlay bar uses a `Grid` with two `StackPanel`s (left / right) so the NVR title and operator label can be toggled independently and each align to their own end of the bar.
+- Implicit `RadioButton` / `CheckBox` styles in `SetupWindow.xaml` set `Foreground` so default `SystemColors.ControlText` (black) doesn't render unreadable on the dark Setup chrome. The full `ComboBox` `ControlTemplate` override is required for the same reason — setter-only styles do not retheme the WPF default ComboBox visuals.
 
 ## License
 
