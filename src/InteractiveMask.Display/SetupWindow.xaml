@@ -198,6 +198,22 @@
             <Setter Property="MinHeight"  Value="36" />
             <Setter Property="CaretBrush" Value="{StaticResource accent}" />
         </Style>
+        <!-- ComboBox: dark surface with light text. Without these the WPF default
+             paints the closed selector white-on-black on a light system theme,
+             which collides with the dark Setup chrome. -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{StaticResource bg.input}" />
+            <Setter Property="Foreground" Value="{StaticResource text}" />
+            <Setter Property="BorderBrush" Value="{StaticResource border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="MinHeight" Value="36" />
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{StaticResource bg.input}" />
+            <Setter Property="Foreground" Value="{StaticResource text}" />
+            <Setter Property="Padding" Value="10,6" />
+        </Style>
         <Style TargetType="RadioButton" x:Key="LangRadio">
             <Setter Property="Foreground" Value="{StaticResource text}" />
             <Setter Property="Margin" Value="0,0,16,0" />
@@ -490,19 +506,9 @@
                 <!-- ============== Sidebar ============== -->
                 <Border Grid.Column="0" Background="{StaticResource bg.sidebar}">
                     <DockPanel>
-                        <Border DockPanel.Dock="Top" Padding="20,8,20,18">
+                        <Border DockPanel.Dock="Top" Padding="20,16,20,18">
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <Border Width="28" Height="28" CornerRadius="6"
-                                            Background="{StaticResource accent}" Margin="0,0,10,0">
-                                        <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
-                                                   FontSize="16" Foreground="#0F1115"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    </Border>
-                                    <TextBlock Text="InteractiveMask" FontSize="14" FontWeight="SemiBold"
-                                               Foreground="{StaticResource text}" VerticalAlignment="Center" />
-                                </StackPanel>
-                                <TextBlock Text="Setup" Margin="0,12,0,0" FontSize="22" FontWeight="SemiBold" />
+                                <TextBlock Text="Setup" FontSize="22" FontWeight="SemiBold" />
                                 <TextBlock Text="{local:Loc SetupBrandSub}"
                                            Foreground="{StaticResource text.muted}" FontSize="12" Margin="0,2,0,0"
                                            TextWrapping="Wrap" />
