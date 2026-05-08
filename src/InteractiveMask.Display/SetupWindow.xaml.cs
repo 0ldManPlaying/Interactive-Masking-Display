@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace InteractiveMask.Display;
 
@@ -244,6 +245,87 @@ public partial class SetupWindow : Window
         if (sender is not Button btn) return;
         if (btn.DataContext is not CameraSlotSettings row) return;
         _cameras.Remove(row);
+    }
+
+    // ---- Cameras: drag/drop reorder ----------------------------------------
+    //
+    // Beheerder kan rijen verslepen via de grip-kolom om de tegelvolgorde aan
+    // te passen. De Slot-waarden worden na elke drop opnieuw genummerd zodat
+    // ze 1-op-1 met de lijstpositie overeenkomen.
+
+    private CameraSlotSettings? _cameraDragRow;
+    private Point _cameraDragStart;
+
+    private void OnCameraGripMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement fe) return;
+        if (fe.DataContext is not CameraSlotSettings row) return;
+        _cameraDragRow = row;
+        _cameraDragStart = e.GetPosition(null);
+    }
+
+    private void OnCameraGripMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_cameraDragRow is null) return;
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (sender is not DependencyObject d) return;
+
+        var pt = e.GetPosition(null);
+        if (Math.Abs(pt.X - _cameraDragStart.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(pt.Y - _cameraDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        // Capture the row to drag, then clear our tracking field. WPF takes
+        // over with its modal drag loop until Drop or Cancel.
+        var dragged = _cameraDragRow;
+        _cameraDragRow = null;
+        DragDrop.DoDragDrop(d, dragged, DragDropEffects.Move);
+    }
+
+    private void OnCameraGridDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(typeof(CameraSlotSettings))
+            ? DragDropEffects.Move
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnCameraGridDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(typeof(CameraSlotSettings)) is not CameraSlotSettings src) return;
+
+        int oldIdx = _cameras.IndexOf(src);
+        if (oldIdx < 0) return;
+
+        // Walk up from the drop target until we find the DataGridRow we are
+        // hovering over. If we drop in empty space below the last row, fall
+        // through to "move to the end".
+        var target = FindCameraRowFromVisual(e.OriginalSource as DependencyObject);
+        int newIdx = target is null ? _cameras.Count - 1 : _cameras.IndexOf(target);
+        if (newIdx < 0 || newIdx == oldIdx) return;
+
+        _cameras.Move(oldIdx, newIdx);
+
+        // Slot is the visual position in the grid. After a reorder we want
+        // slot N to mean "row N", so renumber from the top. The model has no
+        // INotifyPropertyChanged, so trigger a manual refresh on the grid.
+        for (int i = 0; i < _cameras.Count; i++)
+        {
+            _cameras[i].Slot = i;
+        }
+        CameraGrid.Items.Refresh();
+        e.Handled = true;
+    }
+
+    private CameraSlotSettings? FindCameraRowFromVisual(DependencyObject? d)
+    {
+        while (d is not null and not DataGridRow)
+        {
+            d = VisualTreeHelper.GetParent(d);
+        }
+        return (d as DataGridRow)?.DataContext as CameraSlotSettings;
     }
 
     // ---- NVR tab -----------------------------------------------------------

@@ -712,12 +712,35 @@
                                                   SelectionMode="Single"
                                                   HeadersVisibility="Column"
                                                   Height="380"
-                                                  Margin="0,4,0,0">
+                                                  Margin="0,4,0,0"
+                                                  AllowDrop="True"
+                                                  Drop="OnCameraGridDrop"
+                                                  DragOver="OnCameraGridDragOver">
                                             <DataGrid.Resources>
                                                 <local:IntPlusOneConverter x:Key="OneBased" />
                                             </DataGrid.Resources>
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Binding="{Binding Slot, Converter={StaticResource OneBased}}" Width="70">
+                                                <!-- Drag handle column. Grip icon, when held with the left mouse
+                                                     button you can drag the row up or down to reorder. The Slot
+                                                     column auto-renumbers on drop. -->
+                                                <DataGridTemplateColumn Width="32" CanUserSort="False" CanUserResize="False" CanUserReorder="False">
+                                                    <DataGridTemplateColumn.Header><TextBlock Text="" /></DataGridTemplateColumn.Header>
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="&#xE76F;"
+                                                                       FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                                                       FontSize="14"
+                                                                       Foreground="{StaticResource text.muted}"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Cursor="SizeNS"
+                                                                       PreviewMouseLeftButtonDown="OnCameraGripMouseDown"
+                                                                       MouseMove="OnCameraGripMouseMove"
+                                                                       ToolTip="{local:Loc CamerasReorderTooltip}" />
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Binding="{Binding Slot, Converter={StaticResource OneBased}}" Width="70" IsReadOnly="True">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderSlot}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
                                                 <DataGridComboBoxColumn x:Name="NvrColumn"

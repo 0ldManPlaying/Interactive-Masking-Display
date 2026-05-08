@@ -117,6 +117,7 @@ public sealed class StringsTable
     public string CamerasAddRow { get; init; } = "";
     public string CamerasHelpText { get; init; } = "";
     public string CamerasDeleteRowTooltip { get; init; } = "";
+    public string CamerasReorderTooltip { get; init; } = "";
     public string StreamHigh { get; init; } = "";
     public string StreamDefault { get; init; } = "";
     public string StreamLow { get; init; } = "";
@@ -327,6 +328,7 @@ public sealed class StringsTable
         CamerasAddRow             = "Rij toevoegen",
         CamerasHelpText           = "Slot = positie in het grid (1..N). Kies bij NVR uit welke recorder deze camera komt. Camera # = camerakanaal op die NVR (begint bij 1). Stream Normaal voor live multi-camera weergave; Hoog kost meer bandbreedte.",
         CamerasDeleteRowTooltip   = "Rij verwijderen",
+        CamerasReorderTooltip     = "Versleep om de volgorde van de tegels te wijzigen",
         StreamHigh                = "Hoog",
         StreamDefault             = "Normaal",
         StreamLow                 = "Laag",
@@ -528,6 +530,7 @@ public sealed class StringsTable
         CamerasAddRow             = "Add row",
         CamerasHelpText           = "Slot = position in the grid (1..N). Pick at NVR which recorder this camera comes from. Camera # = camera channel on that NVR (starts at 1). Pick Default at Stream for live multi-camera viewing; High costs more bandwidth.",
         CamerasDeleteRowTooltip   = "Delete row",
+        CamerasReorderTooltip     = "Drag to reorder the tile sequence",
         StreamHigh                = "High",
         StreamDefault             = "Default",
         StreamLow                 = "Low",
