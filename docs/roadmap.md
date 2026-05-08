@@ -94,11 +94,45 @@ Op dit moment zijn lege tegelposities donker. Voorstel: vul ze met een subtiel I
 
 ---
 
-## Open punten voor sprint-planning
+## Stakeholder-besluiten 8 mei 2026 (ronde 3)
 
-- Item 1: definitieve drempel voor unmask-all-auth: alleen PIN, of altijd AD wanneer AD-mode actief is. **Voorstel:** volg de bestaande mode (AD-mode = AD-credentials vereist, PIN-mode = PIN). Te bevestigen.
-- Item 1: moet "mass mask" tegelijk de auto-unmask timers van die tegels resetten of negeren?
-- Item 6: aanlevering definitief logo-bestand (PNG, transparant, hoge resolutie). Stakeholder werkt hieraan.
+- **Auth voor mass-mask en mass-unmask:** volgt de bestaande policy van de installatie. Staat PIN aan, dan PIN-prompt. Staat auth uit, dan geen auth. AD-modus is ondersteund maar de verwachting is dat die in dit noodscenario minder gebruikt gaat worden vanwege de tijdsdruk van de actie.
+- **Mass-mask en auto-unmask timers:** mass-mask negeert de individuele auto-unmask timers en houdt alle tegels gemaskeerd tot een actieve handeling (mass-unmask, of klik op een individuele tegel) ze opheft. Past bij het noodscenario van een onbemande zorgpost.
+
+Alle open functionele vragen zijn nu beantwoord. Doelversie: **v1.3.0**.
+
+---
+
+## v1.3.0 sprint-plan
+
+| # | Item | Inschatting werk | Externe afhankelijkheid |
+|---|---|---|---|
+| 1 | Mass-mask en mass-unmask, met blokkade bij gemengde state | 3 dagen | nvt |
+| 2 | Privacy-default mode als Setup-toggle | 2 dagen | nvt |
+| 3 | Drag/drop herordenen in Setup `Slot bindings` tabel | 1 tot 2 dagen | nvt |
+| 4a | UI-strings DE, FR, ES toevoegen aan `Strings.cs`, language-switcher uitbreiden | 1 dag | wachten op vertalingen |
+| 4b | Vertalingen DE, FR, ES (UI-strings + helptekst) | 0,5 dag review per taal | externe vertaler, doorlooptijd 1 tot 2 weken |
+| 5 | Taalkeuze in installer (WiX UI loc) en first-run language picker | 2 dagen | nvt |
+| 6 | IDIS-logo render layer in lege tegels, 10 procent opacity | 0,5 dag | logo binnen, klaar |
+
+**Totaal ontwikkelwerk:** ongeveer 10 werkdagen plus 1,5 dag review op de vertalingen.
+
+**Voorgestelde planning** (vandaag is donderdag 8 mei 2026):
+
+| Fase | Periode |
+|---|---|
+| Vertaalwerk inkopen + start sprint | week 19 (vanaf 11 mei) |
+| Implementatie items 1, 2, 3, 5, 6 | week 19 en 20 |
+| Items 4a en 4b zodra vertalingen binnen | week 21 |
+| Code review, regressietest, sign-off | week 22 |
+| Build, sign, MSI, release | begin week 23 |
+
+**Release-target: vrijdag 5 juni 2026** (week 23). Inclusief één week buffer voor uitloop op de vertalingen of regressies. Als de vertalingen sneller binnen zijn kan het een week eerder.
+
+**Risico's:**
+- Vertalingen-doorlooptijd is de grootste onzekerheid. Mitigatie: machinevertaling als startpunt, native review erachteraan, parallel uitvoeren voor de drie talen.
+- Drag/drop in WPF DataGrid vraagt een eigen adorner-implementatie omdat de standaard control het niet ondersteunt. Mitigatie: bestaande open-source patroon hergebruiken (er zijn diverse goede MIT-implementaties).
+- Item 1 vraagt zorgvuldige audit-log uitbreiding zodat geweigerde mass-unmask pogingen óók traceerbaar zijn. Mitigatie: nieuwe event-types `mass_mask`, `mass_unmask`, `mass_unmask_blocked` toevoegen aan het audit-schema voor de start van de implementatie.
 
 ---
 
