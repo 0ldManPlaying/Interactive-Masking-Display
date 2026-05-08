@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:InteractiveMask.Display"
         Title="InteractiveMask - Setup"
         Icon="pack://application:,,,/app.ico"
-        Width="1180" Height="920"
+        Width="1180" Height="980"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -322,6 +322,17 @@
         <Style TargetType="RadioButton" x:Key="LangRadio">
             <Setter Property="Foreground" Value="{StaticResource text}" />
             <Setter Property="Margin" Value="0,0,16,0" />
+        </Style>
+        <!-- Implicit RadioButton style. WPF default Foreground is
+             SystemColors.ControlText (black), which renders unreadable on
+             the dark Setup chrome. Affects every RadioButton that doesn't
+             pick its own keyed style (e.g. the Privacy mode picker). -->
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource text}" />
+        </Style>
+        <!-- Same reason for CheckBox: default text is system black. -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource text}" />
         </Style>
 
         <!-- ====== Section / labels ====== -->
@@ -822,7 +833,7 @@
                                                   CanUserDeleteRows="True"
                                                   SelectionMode="Single"
                                                   HeadersVisibility="Column"
-                                                  Height="380"
+                                                  Height="600"
                                                   Margin="0,4,0,0"
                                                   AllowDrop="True"
                                                   Drop="OnCameraGridDrop"
