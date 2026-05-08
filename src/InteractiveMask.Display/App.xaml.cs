@@ -26,12 +26,16 @@ public partial class App : Application
         // tree, so static-resource bindings to Strings.Current pick the right
         // table on first render.
         //
-        // First-run rule (v1.3.0 item 5): when no config.json exists yet, ask
-        // the user which language they want before MainWindow is constructed.
-        // For follow-up runs we trust the persisted language; if it's empty
-        // (legacy config from before the language field) we fall back to the
-        // Windows UI culture rather than hardcoded Dutch, so a non-Dutch
-        // operator inheriting an old install isn't stuck.
+        // Resolution order on first run (no config.json yet):
+        //   1. HKLM\Software\InteractiveMask\InitialLanguage. Set by the MSI
+        //      when the admin passes INTERACTIVEMASK_LANGUAGE on the msiexec
+        //      command line (mass-deployment hook). When present, we skip
+        //      the picker entirely and trust the deployment choice.
+        //   2. First-run picker, pre-selected on the Windows UI culture.
+        //
+        // For follow-up runs we trust the persisted Language in config.json;
+        // if it's empty (legacy config) we fall back to the Windows UI
+        // culture rather than hardcoded Dutch.
         string lang = "nl";
         try
         {
@@ -43,9 +47,17 @@ public partial class App : Application
 
             if (firstRun)
             {
-                var picker = new LanguagePickerDialog(LanguagePickerDialog.SuggestFromOsCulture());
-                picker.ShowDialog();
-                lang = picker.SelectedCode;
+                var seeded = ReadInitialLanguageFromRegistry();
+                if (!string.IsNullOrEmpty(seeded))
+                {
+                    lang = seeded;
+                }
+                else
+                {
+                    var picker = new LanguagePickerDialog(LanguagePickerDialog.SuggestFromOsCulture());
+                    picker.ShowDialog();
+                    lang = picker.SelectedCode;
+                }
             }
             else
             {
@@ -60,6 +72,30 @@ public partial class App : Application
             // Fall through to "nl" so a config-load failure never blocks startup.
         }
         Strings.Instance.Apply(lang);
+    }
+
+    /// <summary>
+    /// Reads <c>HKLM\Software\InteractiveMask\InitialLanguage</c>, set by the
+    /// MSI from the optional <c>INTERACTIVEMASK_LANGUAGE</c> property. Returns
+    /// the value if it matches a supported language code; null otherwise.
+    /// </summary>
+    private static string? ReadInitialLanguageFromRegistry()
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"Software\InteractiveMask");
+            if (key?.GetValue("InitialLanguage") is not string raw) return null;
+            var code = raw.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(code)) return null;
+            return Strings.Instance.SupportedLanguages.Any(l =>
+                string.Equals(l.Code, code, StringComparison.OrdinalIgnoreCase))
+                ? code
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private void OnDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)

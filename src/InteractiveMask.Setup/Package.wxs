@@ -129,6 +129,27 @@
                            KeyPath="yes" />
         </Component>
 
+        <!-- ============== Optional language seed for unattended installs ==============
+             Mass-deployment hook (v1.3.0 item 5 part 2). When the admin passes
+             INTERACTIVEMASK_LANGUAGE=de (or nl/en/fr/es) on the msiexec command
+             line, the MSI writes the value into HKLM. The first-run path in
+             App.OnStartup reads it, skips the language picker dialog, and uses
+             that language directly. Without the property the registry stays
+             untouched and the picker takes over. -->
+        <Property Id="INTERACTIVEMASK_LANGUAGE" Secure="yes" />
+
+        <Component Id="InitialLanguageRegistry"
+                   Directory="INSTALLFOLDER"
+                   Guid="9F2B7E1A-5C84-4D9A-A8EB-1D63E2A4C7B5"
+                   Condition="INTERACTIVEMASK_LANGUAGE">
+            <RegistryValue Root="HKLM"
+                           Key="Software\InteractiveMask"
+                           Name="InitialLanguage"
+                           Type="string"
+                           Value="[INTERACTIVEMASK_LANGUAGE]"
+                           KeyPath="yes" />
+        </Component>
+
         <!-- ============== Launch-after-install option ============== -->
         <!-- WixUI_InstallDir gives us a standard install wizard with the optional
              "launch after finish" checkbox slot exposed via WIXUI_EXITDIALOG*
@@ -164,6 +185,7 @@
             <ComponentRef Id="DisplayExeComponent" />
             <ComponentRef Id="DisplayShortcut" />
             <ComponentRef Id="DesktopShortcut" />
+            <ComponentRef Id="InitialLanguageRegistry" />
         </Feature>
 
         <Feature Id="WebHostFeature" Title="WebHost service" Level="1">
