@@ -1076,6 +1076,39 @@
                                         </Grid>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- ===== Tile overlay (custom label + NVR title) ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{local:Loc PrivacyCardTileOverlay}" Style="{StaticResource SectionHeader}" />
+                                        <Grid Margin="0,12,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="{local:Loc PrivacyShowCameraLabel}"
+                                                           Style="{StaticResource FieldLabel}" />
+                                                <TextBlock Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           TextWrapping="Wrap"
+                                                           Text="{local:Loc PrivacyShowCameraLabelHelp}" />
+                                            </StackPanel>
+                                            <CheckBox x:Name="ShowCameraLabel"
+                                                      Style="{StaticResource ToggleSwitch}"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Top" />
+                                        </Grid>
+                                        <Grid Margin="0,16,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="{local:Loc PrivacyShowNvrTitle}"
+                                                           Style="{StaticResource FieldLabel}" />
+                                                <TextBlock Foreground="{StaticResource text.muted}" FontSize="12"
+                                                           TextWrapping="Wrap"
+                                                           Text="{local:Loc PrivacyShowNvrTitleHelp}" />
+                                            </StackPanel>
+                                            <CheckBox x:Name="ShowNvrTitle"
+                                                      Style="{StaticResource ToggleSwitch}"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Top" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ============================ Web-UI ============================ -->

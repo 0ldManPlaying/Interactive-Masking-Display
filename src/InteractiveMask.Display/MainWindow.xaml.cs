@@ -161,6 +161,10 @@ public partial class MainWindow : Window
             RestoreState();
         }
 
+        // Push the current overlay toggles onto the freshly-bound tiles so the
+        // bottom bar reflects the persisted Setup choice from the first frame.
+        ApplyTileOverlayToggles();
+
         // Start the IPC broadcaster after the grid is fully wired so the very first
         // Hello snapshot already reflects any restored masks.
         _ipcBroadcaster = new IpcStateBroadcaster(
@@ -202,6 +206,25 @@ public partial class MainWindow : Window
                 _disconnectLabelByNvr.Remove(nvrId);
                 _nextReconnectByNvr.Remove(nvrId);
                 UpdateConnectionBanner();
+            });
+
+            // Pull camera names so the tile bottom bar can show the NVR-side
+            // title alongside the operator label. Fire-and-forget; failures
+            // are non-fatal (the live grid keeps working without them).
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var names = await session.FetchCameraNamesAsync(TimeSpan.FromSeconds(8))
+                                              .ConfigureAwait(true);
+                    _ = Dispatcher.BeginInvoke(() => ApplyNvrTitlesForNvr(nvrId, names));
+                }
+                catch
+                {
+                    // NVR didn't deliver device-status this round; the bottom
+                    // bar simply won't show NVR titles for this nvr until the
+                    // next reconnect or the next manual sync from Setup.
+                }
             });
         };
 
@@ -396,6 +419,38 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// <summary>
+    /// Push the latest NVR-side camera-name dictionary onto the tile view-models
+    /// for the slots that are bound to <paramref name="nvrId"/>. Called from the
+    /// connect callback once the device-status arrives.
+    /// </summary>
+    private void ApplyNvrTitlesForNvr(int nvrId, IReadOnlyDictionary<int, string> names)
+    {
+        foreach (var (slot, identity) in _bindingsBySlot)
+        {
+            if (identity.NvrId != nvrId) continue;
+            if (!names.TryGetValue(identity.CameraIndex, out var nvrName)) continue;
+            var tile = _viewModel.Tiles.FirstOrDefault(t => t.SlotIndex == slot);
+            if (tile is null) continue;
+            tile.NvrTitle = nvrName;
+        }
+    }
+
+    /// <summary>
+    /// Push the current ShowCameraLabel / ShowNvrTitle privacy toggles onto
+    /// every tile so the bottom-bar overlay reflects them without restart.
+    /// Called on initial load and after a Setup save.
+    /// </summary>
+    private void ApplyTileOverlayToggles()
+    {
+        foreach (var tile in _viewModel.Tiles)
+        {
+            tile.ShowLabel = _privacy.ShowCameraLabel;
+            tile.ShowNvrTitle = _privacy.ShowNvrTitle;
+        }
+    }
+
+    /// <summary>
     /// Refresh the disconnect banner text from current state. Called once on
     /// disconnect/schedule and then every tick while disconnected so the
     /// countdown ticks down.
@@ -530,6 +585,9 @@ public partial class MainWindow : Window
         //    _auth, read lazily by the controller, so just swap the reference.
         _privacy = newSettings.Privacy;
         _auth = newSettings.Auth;
+        // 2a) Tile-overlay toggles (custom label / NVR title visibility) are
+        //     pushed onto every tile so the bottom bar updates without restart.
+        ApplyTileOverlayToggles();
         // 2b) Audit forwarding: hot-swap so a config change reaches the SIEM
         //     without restart. The bounded queue is recreated by SyslogForwarder.
         if (!AuditForwardEqual(_auditForward, newSettings.AuditForward))

@@ -17,6 +17,9 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
 
     private WriteableBitmap? _bitmap;
     private string _label = "";
+    private string _nvrTitle = "";
+    private bool _showLabel = true;
+    private bool _showNvrTitle;
     private string _statusText = "";
     private Brush _statusBrush = Brushes.Gray;
     private bool _hasCamera;
@@ -55,6 +58,62 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         get => _label;
         private set => Set(ref _label, value);
     }
+
+    /// <summary>
+    /// Camera title as configured on the NVR (G2DEVICE_STATUS._camera_desc).
+    /// Updated by MainWindow after each connect/sync; empty until the first
+    /// device-status callback succeeds. Independent of the operator-typed
+    /// <see cref="Label"/>.
+    /// </summary>
+    public string NvrTitle
+    {
+        get => _nvrTitle;
+        set
+        {
+            if (Set(ref _nvrTitle, value ?? ""))
+            {
+                OnPropertyChanged(nameof(IsNvrTitleVisible));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether the operator label is rendered on the tile bottom bar.
+    /// Driven by PrivacySettings.ShowCameraLabel.
+    /// </summary>
+    public bool ShowLabel
+    {
+        get => _showLabel;
+        set
+        {
+            if (Set(ref _showLabel, value))
+            {
+                OnPropertyChanged(nameof(IsLabelVisible));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether the NVR-side camera title is rendered on the tile bottom bar.
+    /// Driven by PrivacySettings.ShowNvrTitle.
+    /// </summary>
+    public bool ShowNvrTitle
+    {
+        get => _showNvrTitle;
+        set
+        {
+            if (Set(ref _showNvrTitle, value))
+            {
+                OnPropertyChanged(nameof(IsNvrTitleVisible));
+            }
+        }
+    }
+
+    /// <summary>True when the operator label should be visible (toggle on AND not empty).</summary>
+    public bool IsLabelVisible => _showLabel && !string.IsNullOrWhiteSpace(_label);
+
+    /// <summary>True when the NVR title should be visible (toggle on AND not empty).</summary>
+    public bool IsNvrTitleVisible => _showNvrTitle && !string.IsNullOrWhiteSpace(_nvrTitle);
 
     public WriteableBitmap? Bitmap
     {
@@ -244,6 +303,7 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     {
         Label = string.IsNullOrWhiteSpace(newLabel) ? Label : newLabel;
         OnPropertyChanged(nameof(MaskOverlayText));
+        OnPropertyChanged(nameof(IsLabelVisible));
     }
 
     /// <summary>

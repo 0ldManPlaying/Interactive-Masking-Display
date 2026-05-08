@@ -199,6 +199,11 @@ public sealed class StringsTable
     public string PrivacyModePrivacyHelp { get; init; } = "";
     public string PrivacyDefaultRequireAuthOnRevealLabel { get; init; } = "";
     public string PrivacyDefaultRequireAuthOnRevealHelp { get; init; } = "";
+    public string PrivacyCardTileOverlay { get; init; } = "";
+    public string PrivacyShowCameraLabel { get; init; } = "";
+    public string PrivacyShowCameraLabelHelp { get; init; } = "";
+    public string PrivacyShowNvrTitle { get; init; } = "";
+    public string PrivacyShowNvrTitleHelp { get; init; } = "";
 
     // Web-UI tab
     public string WebPageTitle { get; init; } = "";
@@ -452,6 +457,11 @@ public sealed class StringsTable
         PrivacyModePrivacyHelp    = "Tegels starten geblurd. De operator tikt om kort te onthullen voor verificatie. Een auto-rollback timer brengt de tegel automatisch weer naar geblurd. Geschikt voor kantoorruimtes, recepties, hotels, scholen, zorginstellingen of elke andere locatie met striktere privacy-defaults.",
         PrivacyDefaultRequireAuthOnRevealLabel = "Auth vragen bij elke onthulling",
         PrivacyDefaultRequireAuthOnRevealHelp  = "Alleen actief in standaard-privé modus. Wanneer aan, vraagt elke tap de PIN of AD-credentials voordat de tegel wordt onthuld. Wanneer uit (aanbevolen), is een onthulling vrij omdat de auto-rollback de privacy snel herstelt.",
+        PrivacyCardTileOverlay    = "Tegel-overlay",
+        PrivacyShowCameraLabel    = "Aangepaste naam tonen",
+        PrivacyShowCameraLabelHelp = "Toont de naam die de beheerder zelf in de Cameras-tab heeft ingevuld, links onderin de tegel.",
+        PrivacyShowNvrTitle       = "NVR-titel tonen",
+        PrivacyShowNvrTitleHelp   = "Toont de oorspronkelijke camera-titel zoals die op de NVR is geconfigureerd, links onderin de tegel. Beide opties kunnen tegelijk aan staan; ze worden dan met een verticale streep gescheiden weergegeven.",
 
         WebPageTitle              = "Web-UI",
         WebPageSubtitle           = "Poorten, certificaat en netwerk-zichtbaarheid van de browser-bediening.",
@@ -695,6 +705,11 @@ public sealed class StringsTable
         PrivacyModePrivacyHelp    = "Tiles start blurred. An operator taps to briefly reveal for verification. An auto-rollback timer takes the tile back to blurred. Fits office spaces, receptions, hotels, schools, healthcare facilities, or any other site with stricter privacy defaults.",
         PrivacyDefaultRequireAuthOnRevealLabel = "Require auth on every reveal",
         PrivacyDefaultRequireAuthOnRevealHelp  = "Only active in privacy-default mode. When on, every tap goes through the PIN or AD prompt before the tile is revealed. When off (recommended), a reveal is free because the auto-rollback restores privacy quickly.",
+        PrivacyCardTileOverlay    = "Tile overlay",
+        PrivacyShowCameraLabel    = "Show custom label",
+        PrivacyShowCameraLabelHelp = "Shows the name the administrator typed in the Cameras tab, in the bottom-left of each tile.",
+        PrivacyShowNvrTitle       = "Show NVR title",
+        PrivacyShowNvrTitleHelp   = "Shows the original camera title as configured on the NVR, in the bottom-left of each tile. Both options can be on at the same time; they are separated by a vertical bar.",
 
         WebPageTitle              = "Web UI",
         WebPageSubtitle           = "Ports, certificate and network reachability for browser control.",
@@ -943,6 +958,11 @@ public sealed class StringsTable
         PrivacyModePrivacyHelp    = "Die Kacheln starten unscharf. Der Bediener tippt, um sie zur Verifizierung kurz aufzudecken. Ein Auto-Rollback-Timer bringt die Kachel automatisch wieder in den unscharfen Zustand. Geeignet für Büroräume, Empfangsbereiche, Hotels, Schulen, Pflegeeinrichtungen oder jeden anderen Standort mit strengeren Datenschutzvorgaben.",
         PrivacyDefaultRequireAuthOnRevealLabel = "Authentifizierung bei jeder Aufdeckung verlangen",
         PrivacyDefaultRequireAuthOnRevealHelp  = "Nur im Standard-Privat-Modus aktiv. Wenn aktiviert, durchläuft jeder Tipp die PIN- oder AD-Abfrage, bevor die Kachel aufgedeckt wird. Wenn deaktiviert (empfohlen), ist eine Aufdeckung frei, weil das Auto-Rollback die Privatsphäre schnell wiederherstellt.",
+        PrivacyCardTileOverlay    = "Kachel-Overlay",
+        PrivacyShowCameraLabel    = "Benutzerdefinierten Namen anzeigen",
+        PrivacyShowCameraLabelHelp = "Zeigt den vom Administrator im Tab Kameras eingegebenen Namen unten links auf jeder Kachel an.",
+        PrivacyShowNvrTitle       = "NVR-Titel anzeigen",
+        PrivacyShowNvrTitleHelp   = "Zeigt den ursprünglichen Kameratitel, wie er auf dem NVR konfiguriert ist, unten links auf jeder Kachel an. Beide Optionen können gleichzeitig aktiv sein; sie werden dann durch einen vertikalen Strich getrennt angezeigt.",
 
         WebPageTitle              = "Web-UI",
         WebPageSubtitle           = "Ports, Zertifikat und Netzwerkerreichbarkeit der Browser-Bedienung.",
@@ -1186,6 +1206,11 @@ public sealed class StringsTable
         PrivacyModePrivacyHelp    = "Les tuiles démarrent floutées. L'opérateur tape pour révéler brièvement à des fins de vérification. Un minuteur d'auto-rollback ramène la tuile au flou. Convient aux espaces de bureau, aux réceptions, aux hôtels, aux écoles, aux établissements de soins ou à tout autre site avec des paramètres de confidentialité plus stricts.",
         PrivacyDefaultRequireAuthOnRevealLabel = "Demander une authentification à chaque révélation",
         PrivacyDefaultRequireAuthOnRevealHelp  = "Actif uniquement en mode confidentialité par défaut. Lorsqu'il est activé, chaque tap passe par l'invite PIN ou AD avant que la tuile ne soit révélée. Lorsqu'il est désactivé (recommandé), une révélation est libre car l'auto-rollback rétablit rapidement la confidentialité.",
+        PrivacyCardTileOverlay    = "Superposition de tuile",
+        PrivacyShowCameraLabel    = "Afficher le nom personnalisé",
+        PrivacyShowCameraLabelHelp = "Affiche le nom saisi par l'administrateur dans l'onglet Caméras, en bas à gauche de chaque tuile.",
+        PrivacyShowNvrTitle       = "Afficher le titre NVR",
+        PrivacyShowNvrTitleHelp   = "Affiche le titre original de la caméra tel qu'il est configuré sur le NVR, en bas à gauche de chaque tuile. Les deux options peuvent être activées simultanément ; elles sont alors séparées par une barre verticale.",
 
         WebPageTitle              = "Interface Web",
         WebPageSubtitle           = "Ports, certificat et accessibilité réseau pour le contrôle par navigateur.",
@@ -1429,6 +1454,11 @@ public sealed class StringsTable
         PrivacyModePrivacyHelp    = "Los mosaicos comienzan difuminados. El operador toca para revelar brevemente para verificación. Un temporizador de auto-restauración devuelve el mosaico a difuminado. Adecuado para oficinas, recepciones, hoteles, escuelas, centros de atención u otros sitios con configuraciones de privacidad más estrictas.",
         PrivacyDefaultRequireAuthOnRevealLabel = "Solicitar autenticación en cada revelación",
         PrivacyDefaultRequireAuthOnRevealHelp  = "Solo activo en modo privacidad predeterminada. Cuando está activado, cada toque pasa por la solicitud de PIN o AD antes de revelar el mosaico. Cuando está desactivado (recomendado), una revelación es libre porque la auto-restauración restablece la privacidad rápidamente.",
+        PrivacyCardTileOverlay    = "Superposición de mosaico",
+        PrivacyShowCameraLabel    = "Mostrar nombre personalizado",
+        PrivacyShowCameraLabelHelp = "Muestra el nombre que el administrador escribió en la pestaña Cámaras, en la parte inferior izquierda de cada mosaico.",
+        PrivacyShowNvrTitle       = "Mostrar título del NVR",
+        PrivacyShowNvrTitleHelp   = "Muestra el título original de la cámara tal como está configurado en el NVR, en la parte inferior izquierda de cada mosaico. Ambas opciones pueden estar activas a la vez; se separan con una barra vertical.",
 
         WebPageTitle              = "Interfaz web",
         WebPageSubtitle           = "Puertos, certificado y accesibilidad de red para el control por navegador.",

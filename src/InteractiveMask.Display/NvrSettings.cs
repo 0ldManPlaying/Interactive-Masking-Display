@@ -163,6 +163,21 @@ public sealed class PrivacySettings
     /// privacy state back automatically.
     /// </summary>
     public bool PrivacyDefaultRequireAuthOnReveal { get; set; } = false;
+
+    /// <summary>
+    /// Show the operator-typed label (CameraSlotSettings.Label) on the
+    /// bottom-left of each tile. Default on; turn off for a cleaner kiosk
+    /// view when the NVR title alone is enough.
+    /// </summary>
+    public bool ShowCameraLabel { get; set; } = true;
+
+    /// <summary>
+    /// Show the camera title as configured on the NVR itself, fetched via
+    /// device-status. Default off so existing installs don't suddenly grow
+    /// a second line of overlay text. Turn on to see the recorder-side
+    /// name alongside (or instead of) the operator label.
+    /// </summary>
+    public bool ShowNvrTitle { get; set; } = false;
 }
 
 public sealed class NvrSettings

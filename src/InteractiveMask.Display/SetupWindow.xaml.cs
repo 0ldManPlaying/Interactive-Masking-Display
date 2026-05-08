@@ -157,6 +157,8 @@ public partial class SetupWindow : Window
         ModeOversightRadio.IsChecked = settings.Privacy.Mode == PrivacyMode.OversightDefault;
         ModePrivacyRadio.IsChecked = settings.Privacy.Mode == PrivacyMode.PrivacyDefault;
         PrivacyDefaultRequireAuthOnReveal.IsChecked = settings.Privacy.PrivacyDefaultRequireAuthOnReveal;
+        ShowCameraLabel.IsChecked = settings.Privacy.ShowCameraLabel;
+        ShowNvrTitle.IsChecked = settings.Privacy.ShowNvrTitle;
 
         HttpPort.Text = settings.Web.HttpPort.ToString(CultureInfo.InvariantCulture);
         HttpsPort.Text = settings.Web.HttpsPort?.ToString(CultureInfo.InvariantCulture) ?? "";
@@ -710,6 +712,8 @@ public partial class SetupWindow : Window
                 ShowMassUnmaskConfirm = ShowMassUnmaskConfirm.IsChecked == true,
                 Mode = ModePrivacyRadio.IsChecked == true ? PrivacyMode.PrivacyDefault : PrivacyMode.OversightDefault,
                 PrivacyDefaultRequireAuthOnReveal = PrivacyDefaultRequireAuthOnReveal.IsChecked == true,
+                ShowCameraLabel = ShowCameraLabel.IsChecked == true,
+                ShowNvrTitle = ShowNvrTitle.IsChecked == true,
             },
             Cameras = _cameras
                 .Where(c => c.Slot >= 0)
