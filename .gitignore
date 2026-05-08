@@ -62,6 +62,7 @@ Desktop.ini
 *.docx
 *.pdf
 !docs/**/*.pdf
+!docs/release-notes-*.docx
 
 ## Working asset folder (raw source images, licensed stock, exports)
 overige/
