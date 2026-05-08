@@ -1,6 +1,6 @@
 # InteractiveMask
 
-**Version 1.2.0**
+**Version 1.3.0**
 
 ## Demo
 
@@ -66,15 +66,15 @@ dotnet build InteractiveMask.sln -c Release -p:Platform=x64
 To produce an MSI:
 
 ```powershell
-.\build-installer.ps1 -Version 1.2.0
+.\build-installer.ps1 -Version 1.3.0
 ```
 
 For a signed MSI (Authenticode — e.g. SafeNet EV-token cert in `CurrentUser\My`):
 
 ```powershell
-.\build-installer.ps1 -Version 1.2.0 -Sign -CertSubject 'IDIS Nederland BV'
+.\build-installer.ps1 -Version 1.3.0 -Sign -CertSubject 'IDIS Nederland BV'
 # or by thumbprint:
-.\build-installer.ps1 -Version 1.2.0 -Sign -CertThumbprint <40-hex>
+.\build-installer.ps1 -Version 1.3.0 -Sign -CertThumbprint <40-hex>
 ```
 
 `-Sign` first signs every `InteractiveMask.*.exe` / `.dll` (so the cab embedded in the MSI contains signed binaries) and then signs the MSI itself. SHA-256 file digest + SHA-256 timestamp digest. The default timestamp server is DigiCert; override via `-TimestampUrl`.
