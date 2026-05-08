@@ -25,15 +25,41 @@ public partial class App : Application
         // Apply the configured UI language before any window builds its visual
         // tree, so static-resource bindings to Strings.Current pick the right
         // table on first render.
+        //
+        // First-run rule (v1.3.0 item 5): when no config.json exists yet, ask
+        // the user which language they want before MainWindow is constructed.
+        // For follow-up runs we trust the persisted language; if it's empty
+        // (legacy config from before the language field) we fall back to the
+        // Windows UI culture rather than hardcoded Dutch, so a non-Dutch
+        // operator inheriting an old install isn't stuck.
+        string lang = "nl";
         try
         {
-            var settings = new ConfigService().Load();
-            Strings.Instance.Apply(settings.Language);
+            var configPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "InteractiveMask",
+                "config.json");
+            bool firstRun = !File.Exists(configPath);
+
+            if (firstRun)
+            {
+                var picker = new LanguagePickerDialog(LanguagePickerDialog.SuggestFromOsCulture());
+                picker.ShowDialog();
+                lang = picker.SelectedCode;
+            }
+            else
+            {
+                var settings = new ConfigService().Load();
+                lang = string.IsNullOrEmpty(settings.Language)
+                    ? LanguagePickerDialog.SuggestFromOsCulture()
+                    : settings.Language;
+            }
         }
         catch
         {
-            Strings.Instance.Apply("nl");
+            // Fall through to "nl" so a config-load failure never blocks startup.
         }
+        Strings.Instance.Apply(lang);
     }
 
     private void OnDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)

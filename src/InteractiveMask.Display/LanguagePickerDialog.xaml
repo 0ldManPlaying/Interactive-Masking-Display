@@ -1,0 +1,87 @@
+<Window x:Class="InteractiveMask.Display.LanguagePickerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:InteractiveMask.Display"
+        Title="Language"
+        Icon="pack://application:,,,/app.ico"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="False"
+        FontFamily="Segoe UI Variable Display, Segoe UI"
+        Foreground="#E6E6E6"
+        KeyDown="OnKeyDown">
+
+    <Border Background="#1A1D24"
+            BorderBrush="#2A2F3A"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="32"
+            MinWidth="420">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="0" Opacity="0.5" />
+        </Border.Effect>
+        <StackPanel>
+            <!-- Title is shown in the language we boot in (Windows current culture
+                 fallback nl) so the very first thing the user sees is at least
+                 in their OS language. The subtitle prints all five labels
+                 separated by slashes so a non-Dutch admin can recognise the
+                 dialog regardless of the current UI language. -->
+            <TextBlock Text="{local:Loc FirstRunLanguageTitle}"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center" />
+            <TextBlock Text="{local:Loc FirstRunLanguageSubtitle}"
+                       Foreground="#8B95A7"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       Margin="0,6,0,22" />
+
+            <ListBox x:Name="LangList"
+                     DisplayMemberPath="DisplayName"
+                     SelectedValuePath="Code"
+                     Background="#232831"
+                     Foreground="#E6E6E6"
+                     BorderBrush="#2A2F3A"
+                     BorderThickness="1"
+                     Padding="4"
+                     MinWidth="320"
+                     MouseDoubleClick="OnListDoubleClick">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="14,10" />
+                        <Setter Property="FontSize" Value="14" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Foreground" Value="#E6E6E6" />
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#2A4F77" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#2A2F3A" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+
+            <Button x:Name="ContinueButton"
+                    Content="{local:Loc FirstRunLanguageContinue}"
+                    Click="OnContinue"
+                    IsDefault="True"
+                    Background="#4DABF7" Foreground="#0F1115"
+                    FontWeight="SemiBold"
+                    BorderThickness="0"
+                    Padding="14,8" Cursor="Hand"
+                    HorizontalAlignment="Right"
+                    Margin="0,18,0,0" />
+        </StackPanel>
+    </Border>
+</Window>

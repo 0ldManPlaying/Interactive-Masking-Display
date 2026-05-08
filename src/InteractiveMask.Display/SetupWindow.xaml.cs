@@ -94,13 +94,17 @@ public partial class SetupWindow : Window
         CertPassword.Password = settings.Web.CertPassword ?? "";
         BindAllInterfaces.IsChecked = settings.Web.BindAllInterfaces;
 
-        // Language picker: pick the persisted code, fall back to "nl" if the
-        // value isn't in the supported set (e.g. an older config from before
-        // we added the language).
-        var savedLang = string.IsNullOrWhiteSpace(settings.Language) ? "nl" : settings.Language!.Trim().ToLowerInvariant();
+        // Language picker: pick the persisted code, fall back to the running
+        // UI language (set by App.OnStartup either from the picker or the OS
+        // culture) if the persisted value is missing or unsupported. Avoids a
+        // jarring switch back to "nl" when the user just chose another
+        // language at first run but hasn't saved Setup yet.
+        var savedLang = string.IsNullOrWhiteSpace(settings.Language)
+            ? Strings.Instance.LanguageCode
+            : settings.Language!.Trim().ToLowerInvariant();
         if (!Strings.Instance.SupportedLanguages.Any(l => string.Equals(l.Code, savedLang, StringComparison.OrdinalIgnoreCase)))
         {
-            savedLang = "nl";
+            savedLang = Strings.Instance.LanguageCode;
         }
         LanguageBox.SelectedValue = savedLang;
 

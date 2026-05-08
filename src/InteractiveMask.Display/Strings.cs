@@ -309,6 +309,11 @@ public sealed class StringsTable
     public string PrivacyShowMassUnmaskConfirmHelp { get; init; } = "";
     public string PrivacyLongPressHelp { get; init; } = "";
 
+    // First-run language picker (v1.3.0 item 5)
+    public string FirstRunLanguageTitle { get; init; } = "";
+    public string FirstRunLanguageSubtitle { get; init; } = "";
+    public string FirstRunLanguageContinue { get; init; } = "";
+
     public static readonly StringsTable Nl = new()
     {
         PrivacyActive             = "Privacy actief",
@@ -524,6 +529,10 @@ public sealed class StringsTable
         PrivacyShowMassUnmaskConfirmLabel = "Bevestiging tonen voordat alles vrijgegeven wordt",
         PrivacyShowMassUnmaskConfirmHelp  = "Toont een dialoog voordat een long-press alle privacy-maskers tegelijk opheft. Aanbevolen op installaties waar de auth-modus uit staat.",
         PrivacyLongPressHelp      = "Houd de muisknop een halve seconde ingedrukt op het scherm om alle tegels in een keer te maskeren of vrij te geven. Single-tap blijft individueel werken.",
+
+        FirstRunLanguageTitle     = "Kies je taal",
+        FirstRunLanguageSubtitle  = "Choose your language / Wähle deine Sprache / Choisissez votre langue / Elige tu idioma",
+        FirstRunLanguageContinue  = "Doorgaan",
     };
 
     public static readonly StringsTable En = new()
@@ -741,6 +750,10 @@ public sealed class StringsTable
         PrivacyShowMassUnmaskConfirmLabel = "Show a confirmation before unmasking everyone",
         PrivacyShowMassUnmaskConfirmHelp  = "Adds a dialog before a long-press lifts every privacy mask at once. Recommended when authentication is disabled.",
         PrivacyLongPressHelp      = "Hold the mouse button down anywhere on the screen for half a second to mask or unmask every tile at once. Single-tap still toggles tiles individually.",
+
+        FirstRunLanguageTitle     = "Pick your language",
+        FirstRunLanguageSubtitle  = "Choose your language / Kies je taal / Wähle deine Sprache / Choisissez votre langue / Elige tu idioma",
+        FirstRunLanguageContinue  = "Continue",
     };
 
     // ------------------------------------------------------------------
