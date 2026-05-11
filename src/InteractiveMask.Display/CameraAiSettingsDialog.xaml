@@ -126,9 +126,12 @@
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <!-- {TemplateBinding} is NOT allowed inside a Trigger.Setter
+                                 (WPF: "Expression type is not a valid Style value").
+                                 Use RelativeSource=TemplatedParent binding instead. -->
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="root" Property="Background" Value="{TemplateBinding Tag}" />
-                                <Setter TargetName="root" Property="BorderBrush" Value="{TemplateBinding Tag}" />
+                                <Setter TargetName="root" Property="Background"  Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}" />
+                                <Setter TargetName="root" Property="BorderBrush" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}" />
                                 <Setter TargetName="label" Property="Foreground" Value="#0F1115" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
