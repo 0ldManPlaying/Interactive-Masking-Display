@@ -95,9 +95,18 @@
 
         <!-- ====== Category chip (pill-style CheckBox with a colour-coded ring) ======
              Unchecked: muted text + muted border, no fill. Checked: solid colour fill,
-             dark text. The colour comes from the per-style override using the
-             class.* brushes - keeps the chip's visual identity in sync with the live
-             detection overlay colour rendered by ObjectClassToBrushConverter. -->
+             dark text. The colour comes from the per-instance Tag property (set on the
+             CheckBox itself) and stays in sync with the live detection overlay colour
+             rendered by ObjectClassToBrushConverter.
+
+             IMPORTANT WPF constraint: bindings / TemplateBinding / RelativeSource are
+             NOT permitted as the Value of a Setter that lives inside a Trigger
+             (WPF: "Expression type is not a valid Style value"). To keep the per-class
+             Tag colour while staying within that constraint we layer two Borders:
+             a "fill" border that is *always* Tag-coloured (using TemplateBinding in
+             the template body, which IS allowed), and an "outline" border on top of
+             it. The IsChecked trigger only manipulates the Opacity of each layer -
+             Opacity is a literal numeric value, fully accepted in trigger setters. -->
         <Style x:Key="CategoryChip" TargetType="CheckBox">
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -107,13 +116,25 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <Border x:Name="root"
-                                CornerRadius="16"
-                                Padding="14,7"
-                                Background="Transparent"
-                                BorderBrush="{StaticResource border.strong}"
-                                BorderThickness="1.5">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Grid>
+                            <!-- Tag-coloured fill. Always laid out, hidden by Opacity=0
+                                 when unchecked. -->
+                            <Border x:Name="fill"
+                                    CornerRadius="16"
+                                    Background="{TemplateBinding Tag}"
+                                    BorderBrush="{TemplateBinding Tag}"
+                                    BorderThickness="1.5"
+                                    Opacity="0" />
+                            <!-- Neutral outline for the unchecked state. -->
+                            <Border x:Name="outline"
+                                    CornerRadius="16"
+                                    Background="Transparent"
+                                    BorderBrush="{StaticResource border.strong}"
+                                    BorderThickness="1.5"
+                                    Opacity="1" />
+                            <StackPanel Orientation="Horizontal"
+                                        VerticalAlignment="Center"
+                                        Margin="14,7">
                                 <Ellipse x:Name="dot"
                                          Width="10" Height="10"
                                          Fill="{TemplateBinding Tag}"
@@ -124,18 +145,15 @@
                                            Foreground="{StaticResource text.muted}"
                                            VerticalAlignment="Center" />
                             </StackPanel>
-                        </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
-                            <!-- {TemplateBinding} is NOT allowed inside a Trigger.Setter
-                                 (WPF: "Expression type is not a valid Style value").
-                                 Use RelativeSource=TemplatedParent binding instead. -->
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="root" Property="Background"  Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}" />
-                                <Setter TargetName="root" Property="BorderBrush" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}" />
-                                <Setter TargetName="label" Property="Foreground" Value="#0F1115" />
+                                <Setter TargetName="fill"    Property="Opacity"    Value="1" />
+                                <Setter TargetName="outline" Property="Opacity"    Value="0" />
+                                <Setter TargetName="label"   Property="Foreground" Value="#0F1115" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="root" Property="Opacity" Value="0.88" />
+                                <Setter Property="Opacity" Value="0.88" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
