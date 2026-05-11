@@ -80,6 +80,40 @@ public sealed class BlurPinService
     public void OnMaskRemovedExternal() => DecrementMaskCount();
 
     /// <summary>
+    /// Non-consuming PIN verify for actions that need auth but must not change
+    /// the masked-tile count or clear the session PIN. Used by the AI-reveal
+    /// flow (v2.0.x F2): suppressing the AI mask on a tile is auth-gated but
+    /// is *not* a privacy-mask unmask, so the regular VerifyAndConsumeForUnmask
+    /// would clear the session PIN once enough reveals have run.
+    /// <para>
+    /// Same lockout + failed-attempts semantics as the consuming variant: a
+    /// wrong PIN ticks the counter; <see cref="MaxFailedAttempts"/> wrong tries
+    /// in a row triggers a <see cref="LockoutDuration"/> cool-down. A correct
+    /// PIN resets the failed-attempts counter. The defensive
+    /// "no PIN ever set, allow" branch is preserved so the very-first action
+    /// in a clean session still works.
+    /// </para>
+    /// </summary>
+    public bool VerifyForReadOnlyAction(string pin)
+    {
+        if (IsLockedOut) return false;
+        if (_activePin is null) return true; // defensive: no PIN ever set, allow
+        if (pin == _activePin)
+        {
+            _failedAttempts = 0;
+            return true;
+        }
+
+        _failedAttempts++;
+        if (_failedAttempts >= MaxFailedAttempts)
+        {
+            _lockoutUntil = DateTime.UtcNow + LockoutDuration;
+            _failedAttempts = 0;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Restore the session PIN + counters from persisted state on app startup.
     /// </summary>
     public void Restore(string? activePin, int maskedCount)

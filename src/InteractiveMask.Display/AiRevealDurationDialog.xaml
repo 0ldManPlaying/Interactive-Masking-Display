@@ -1,0 +1,135 @@
+<Window x:Class="InteractiveMask.Display.AiRevealDurationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:InteractiveMask.Display"
+        Title="AI reveal"
+        Icon="pack://application:,,,/app.ico"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="False"
+        FontFamily="Segoe UI Variable Display, Segoe UI"
+        Foreground="#E6E6E6"
+        KeyDown="OnKeyDown">
+
+    <Window.Resources>
+        <!-- Duration choice as a wide pill button. Hover lifts the border to the
+             accent colour, identical to BtnGhost in CameraAiSettingsDialog so
+             the dark-chrome language stays consistent across the app. -->
+        <Style x:Key="DurationButton" TargetType="Button">
+            <Setter Property="Background" Value="#232831" />
+            <Setter Property="Foreground" Value="#E6E6E6" />
+            <Setter Property="BorderBrush" Value="#374050" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="BorderBrush" Value="#4DABF7" />
+                                <Setter TargetName="b" Property="Background" Value="#2A2F3A" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#1F3A52" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CancelButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#8B95A7" />
+            <Setter Property="BorderBrush" Value="#374050" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="BorderBrush" Value="#4DABF7" />
+                                <Setter Property="Foreground" Value="#E6E6E6" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="#1A1D24"
+            BorderBrush="#2A2F3A"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="28"
+            MinWidth="380">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="0" Opacity="0.5" />
+        </Border.Effect>
+        <StackPanel>
+            <TextBlock Text="{local:Loc AiRevealDialogTitle}"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center" />
+            <TextBlock x:Name="SubtitleText"
+                       Text="{local:Loc AiRevealDialogSubtitle}"
+                       Foreground="#8B95A7"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       Margin="0,6,0,20" />
+
+            <Button Style="{StaticResource DurationButton}"
+                    Content="{local:Loc AiRevealDuration30s}"
+                    Click="On30s" />
+            <Button Style="{StaticResource DurationButton}"
+                    Content="{local:Loc AiRevealDuration1m}"
+                    Click="On1m" />
+            <Button Style="{StaticResource DurationButton}"
+                    Content="{local:Loc AiRevealDuration5m}"
+                    Click="On5m" />
+            <Button Style="{StaticResource DurationButton}"
+                    Content="{local:Loc AiRevealDurationUntilRemask}"
+                    Click="OnUntilRemask" />
+
+            <Button Style="{StaticResource CancelButton}"
+                    Content="{local:Loc SetupCancel}"
+                    Click="OnCancel"
+                    HorizontalAlignment="Right"
+                    Margin="0,12,0,0"
+                    IsCancel="True" />
+        </StackPanel>
+    </Border>
+</Window>

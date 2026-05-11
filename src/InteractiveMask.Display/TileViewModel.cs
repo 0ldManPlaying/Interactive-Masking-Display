@@ -56,9 +56,21 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     /// Per-camera v2.0 AI on/off. When false, OnFrameDecoded bypasses the detector
     /// submission path entirely so cameras pointing at irrelevant scenes (lawns,
     /// walls, ceilings) don't waste GPU. Mirrors CameraSlotSettings.AiEnabled and
-    /// is pushed from MainWindow.BindCameraToSlot at camera-attach time.
+    /// is pushed from MainWindow.BindCameraToSlot at camera-attach time. INPC is
+    /// wired so the AI-icon overlay in the live tile reacts to a Setup → Apply
+    /// that toggles AI on or off without forcing a full grid rebuild.
     /// </summary>
-    public bool AiEnabled { get; set; } = true;
+    public bool AiEnabled
+    {
+        get => _aiEnabled;
+        set
+        {
+            if (_aiEnabled == value) return;
+            _aiEnabled = value;
+            OnPropertyChanged(nameof(AiEnabled));
+        }
+    }
+    private bool _aiEnabled = true;
 
     /// <summary>
     /// Per-camera v2.0 AI category filter. Detections of classes not in this set
@@ -136,6 +148,59 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         }
     }
     private double _aiMaskOpacity = 1.0;
+
+    /// <summary>
+    /// AI-reveal window (v2.0.x F2). When non-null an authorised reviewer has
+    /// suppressed the AI-mask overlay on this tile until the given UTC instant
+    /// (or <see cref="DateTime.MaxValue"/> for "until I re-mask"). The render
+    /// pipeline collapses the per-detection overlay while this is active so
+    /// the camera content is fully visible. Auto-restored by
+    /// <see cref="MaskController"/>'s per-tile timer; can also be force-cleared
+    /// by mass-mask, manual full-tile mask, or a Setup-Apply that rebinds the
+    /// camera. See <see cref="IsAiRevealed"/> for the boolean view used in
+    /// XAML triggers.
+    /// </summary>
+    public DateTime? AiRevealedUntilUtc
+    {
+        get => _aiRevealedUntilUtc;
+        set
+        {
+            if (_aiRevealedUntilUtc == value) return;
+            _aiRevealedUntilUtc = value;
+            OnPropertyChanged(nameof(AiRevealedUntilUtc));
+            OnPropertyChanged(nameof(IsAiRevealed));
+            OnPropertyChanged(nameof(AiRevealRemaining));
+        }
+    }
+    private DateTime? _aiRevealedUntilUtc;
+
+    /// <summary>True while an AI-reveal window is active on this tile.</summary>
+    public bool IsAiRevealed => _aiRevealedUntilUtc.HasValue;
+
+    /// <summary>
+    /// Remaining time on the current reveal window, or <see cref="TimeSpan.Zero"/>
+    /// if no reveal is active or it has already expired. <see cref="TimeSpan.MaxValue"/>
+    /// for the "until I re-mask" choice. Live-bumped by the per-tile 1 Hz tick
+    /// in <see cref="MaskController"/> so the countdown badge updates.
+    /// </summary>
+    public TimeSpan AiRevealRemaining
+    {
+        get
+        {
+            if (_aiRevealedUntilUtc is not { } until) return TimeSpan.Zero;
+            if (until == DateTime.MaxValue) return TimeSpan.MaxValue;
+            var left = until - DateTime.UtcNow;
+            return left > TimeSpan.Zero ? left : TimeSpan.Zero;
+        }
+    }
+
+    /// <summary>
+    /// Force a re-raise of <see cref="AiRevealRemaining"/> change-notification
+    /// without mutating <see cref="AiRevealedUntilUtc"/>. Called once per second
+    /// from the MaskController tick so the countdown badge in the live tile
+    /// updates without producing audit-log spam.
+    /// </summary>
+    public void NotifyAiRevealCountdownTick() => OnPropertyChanged(nameof(AiRevealRemaining));
 
     /// <summary>
     /// Frame-N-minus-1 accepted detections, used by the hysteresis path in

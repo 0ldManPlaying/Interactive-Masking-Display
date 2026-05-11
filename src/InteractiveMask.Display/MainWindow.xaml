@@ -23,6 +23,7 @@
         <local:BoundingBoxToViewboxConverter x:Key="BoxToViewbox" />
         <local:SegmentationMaskToImageBrushConverter x:Key="MaskToBrush" />
         <local:ObjectClassToBrushConverter x:Key="ClassToBrush" />
+        <local:AiRevealBadgeTextConverter x:Key="AiRevealBadgeText" />
 
         <DataTemplate DataType="{x:Type local:TileViewModel}">
             <!-- Background must be solid (not Transparent) for hit-testing to fire
@@ -80,7 +81,18 @@
                         <Style TargetType="Viewbox">
                             <Setter Property="Visibility" Value="Visible" />
                             <Style.Triggers>
+                                <!-- Full-tile manual privacy mask hides the entire image; the
+                                     AI overlay layer is meaningless on top of a blacked-out
+                                     tile so collapse it. -->
                                 <DataTrigger Binding="{Binding IsMasked}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                                <!-- Active AI-reveal window: an authorised reviewer asked
+                                     to see this camera without the AI overlay. Collapse
+                                     the detection layer so the underlying frame is fully
+                                     visible. MaskController auto-restores or accepts a
+                                     manual remask via the on-tile badge. -->
+                                <DataTrigger Binding="{Binding IsAiRevealed}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -243,6 +255,79 @@
                                HorizontalAlignment="Center"
                                Margin="0,12,0,0" />
                 </StackPanel>
+
+                <!-- AI-reveal trigger (v2.0.x F2).
+                     Small "AI" pill in the top-left of the tile. Visible only when
+                     this camera has AI enabled, the tile is not fully manually
+                     masked, and no reveal is already active. Click opens the
+                     auth + duration flow in MaskController.RequestAiReveal. -->
+                <Border x:Name="AiRevealTrigger"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="8"
+                        Padding="8,3"
+                        CornerRadius="10"
+                        Background="#A0000000"
+                        BorderBrush="#4DABF7"
+                        BorderThickness="1"
+                        Cursor="Hand"
+                        MouseLeftButtonUp="OnAiRevealIconClick"
+                        ToolTip="{Binding Source={x:Static local:Strings.Instance}, Path=Current.AiRevealIconTooltip}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding HasCamera}"     Value="True" />
+                                        <Condition Binding="{Binding AiEnabled}"     Value="True" />
+                                        <Condition Binding="{Binding IsMasked}"      Value="False" />
+                                        <Condition Binding="{Binding IsAiRevealed}"  Value="False" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="6" Height="6"
+                                 Fill="#4DABF7"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,5,0" />
+                        <TextBlock Text="AI"
+                                   Foreground="#E6E6E6"
+                                   FontFamily="Segoe UI"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <!-- AI-reveal active badge (v2.0.x F2).
+                     Top-right of the tile while a reveal window is running. Shows
+                     either the countdown ("AI off · 0:23") or the indefinite label
+                     ("AI off"). Click anywhere on the badge force-ends the reveal
+                     via MaskController.CancelAiReveal (audit reason: manual-remask). -->
+                <Border x:Name="AiRevealActiveBadge"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="8"
+                        Padding="10,4"
+                        CornerRadius="12"
+                        Background="#CC1F3A52"
+                        BorderBrush="#4DABF7"
+                        BorderThickness="1"
+                        Cursor="Hand"
+                        MouseLeftButtonUp="OnAiRevealBadgeClick"
+                        ToolTip="{Binding Source={x:Static local:Strings.Instance}, Path=Current.AiRevealBadgeRemask}"
+                        Visibility="{Binding IsAiRevealed, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding AiRevealRemaining, Converter={StaticResource AiRevealBadgeText}}"
+                               Foreground="#E6E6E6"
+                               FontFamily="Segoe UI"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                </Border>
 
                 <!-- Bottom status bar.
                      Left:  status dot + NVR-side camera title + status text.

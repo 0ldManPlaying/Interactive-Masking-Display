@@ -379,6 +379,20 @@ public sealed class StringsTable
     public string AiRenderBlurredSource { get; init; } = "";
     public string AiOpacityHeader { get; init; } = "";
     public string AiOpacityHint { get; init; } = "";
+
+    // AI reveal flow (v2.0.x F2) — operator can suppress the AI mask on one
+    // tile for a bounded duration after auth.
+    public string AiRevealDialogTitle { get; init; } = "";
+    public string AiRevealDialogSubtitle { get; init; } = "";
+    public string AiRevealDuration30s { get; init; } = "";
+    public string AiRevealDuration1m { get; init; } = "";
+    public string AiRevealDuration5m { get; init; } = "";
+    public string AiRevealDurationUntilRemask { get; init; } = "";
+    public string AiRevealBadgeCountdownFormat { get; init; } = "";
+    public string AiRevealBadgeIndefinite { get; init; } = "";
+    public string AiRevealBadgeRemask { get; init; } = "";
+    public string AiRevealIconTooltip { get; init; } = "";
+
     public string AiRoiSection { get; init; } = "";
     public string AiRoiButton { get; init; } = "";
     public string AiRoiHint { get; init; } = "";
@@ -673,6 +687,17 @@ public sealed class StringsTable
         AiRenderBlurredSource     = "Beeld-blur",
         AiOpacityHeader           = "Mask-dekking",
         AiOpacityHint             = "Lager = de mask is doorzichtiger en je ziet meer van de achtergrond. 100% is volledig ondoorzichtig.",
+
+        AiRevealDialogTitle           = "AI-mask tijdelijk uitzetten",
+        AiRevealDialogSubtitle        = "Hoe lang moet het beeld zonder AI-blur zichtbaar blijven?",
+        AiRevealDuration30s           = "30 seconden",
+        AiRevealDuration1m            = "1 minuut",
+        AiRevealDuration5m            = "5 minuten",
+        AiRevealDurationUntilRemask   = "Tot ik 'her-mask' druk",
+        AiRevealBadgeCountdownFormat  = "AI uit · {0}",
+        AiRevealBadgeIndefinite       = "AI uit",
+        AiRevealBadgeRemask           = "Her-masken",
+        AiRevealIconTooltip           = "AI-mask tijdelijk uitzetten…",
         AiRoiSection              = "Region of Interest",
         AiRoiButton               = "ROI tekenen…",
         AiRoiHint                 = "Beperk de detectie tot een polygon-gebied. Detecties buiten het gebied worden niet gemaskeerd.",
@@ -968,6 +993,17 @@ public sealed class StringsTable
         AiRenderBlurredSource     = "Source blur",
         AiOpacityHeader           = "Mask opacity",
         AiOpacityHint             = "Lower = the mask becomes more transparent and the background shows through. 100% is fully opaque.",
+
+        AiRevealDialogTitle           = "Temporarily disable AI mask",
+        AiRevealDialogSubtitle        = "How long should the camera be visible without the AI blur?",
+        AiRevealDuration30s           = "30 seconds",
+        AiRevealDuration1m            = "1 minute",
+        AiRevealDuration5m            = "5 minutes",
+        AiRevealDurationUntilRemask   = "Until I press 'remask'",
+        AiRevealBadgeCountdownFormat  = "AI off · {0}",
+        AiRevealBadgeIndefinite       = "AI off",
+        AiRevealBadgeRemask           = "Remask",
+        AiRevealIconTooltip           = "Temporarily disable AI mask…",
         AiRoiSection              = "Region of Interest",
         AiRoiButton               = "Draw ROI…",
         AiRoiHint                 = "Limit detection to a polygon area. Detections outside the polygon are not masked.",
@@ -1268,6 +1304,17 @@ public sealed class StringsTable
         AiRenderBlurredSource     = "Bild-Unschärfe",
         AiOpacityHeader           = "Maskendeckkraft",
         AiOpacityHint             = "Niedriger = die Maske wird transparenter und der Hintergrund scheint durch. 100 % ist vollständig deckend.",
+
+        AiRevealDialogTitle           = "KI-Maske vorübergehend deaktivieren",
+        AiRevealDialogSubtitle        = "Wie lange soll das Kamerabild ohne KI-Unschärfe sichtbar bleiben?",
+        AiRevealDuration30s           = "30 Sekunden",
+        AiRevealDuration1m            = "1 Minute",
+        AiRevealDuration5m            = "5 Minuten",
+        AiRevealDurationUntilRemask   = "Bis ich „Wieder maskieren“ drücke",
+        AiRevealBadgeCountdownFormat  = "KI aus · {0}",
+        AiRevealBadgeIndefinite       = "KI aus",
+        AiRevealBadgeRemask           = "Wieder maskieren",
+        AiRevealIconTooltip           = "KI-Maske vorübergehend deaktivieren…",
         AiRoiSection              = "Bereich (ROI)",
         AiRoiButton               = "ROI zeichnen…",
         AiRoiHint                 = "Erkennung auf einen Polygon-Bereich beschränken. Erkennungen außerhalb werden nicht maskiert.",
@@ -1563,6 +1610,17 @@ public sealed class StringsTable
         AiRenderBlurredSource     = "Flou de l'image",
         AiOpacityHeader           = "Opacité du masque",
         AiOpacityHint             = "Plus bas = le masque devient plus transparent et l'arrière-plan apparaît. 100 % est entièrement opaque.",
+
+        AiRevealDialogTitle           = "Désactiver temporairement le masque IA",
+        AiRevealDialogSubtitle        = "Pendant combien de temps la caméra doit-elle rester visible sans le flou IA ?",
+        AiRevealDuration30s           = "30 secondes",
+        AiRevealDuration1m            = "1 minute",
+        AiRevealDuration5m            = "5 minutes",
+        AiRevealDurationUntilRemask   = "Jusqu'à ce que je clique sur « re-masquer »",
+        AiRevealBadgeCountdownFormat  = "IA off · {0}",
+        AiRevealBadgeIndefinite       = "IA off",
+        AiRevealBadgeRemask           = "Re-masquer",
+        AiRevealIconTooltip           = "Désactiver temporairement le masque IA…",
         AiRoiSection              = "Zone d'intérêt",
         AiRoiButton               = "Dessiner la zone…",
         AiRoiHint                 = "Limite la détection à une zone polygonale. Les détections hors de la zone ne sont pas masquées.",
@@ -1858,6 +1916,17 @@ public sealed class StringsTable
         AiRenderBlurredSource     = "Desenfoque de imagen",
         AiOpacityHeader           = "Opacidad de la máscara",
         AiOpacityHint             = "Más bajo = la máscara se vuelve más transparente y se ve el fondo. 100 % es totalmente opaca.",
+
+        AiRevealDialogTitle           = "Desactivar temporalmente la máscara IA",
+        AiRevealDialogSubtitle        = "¿Cuánto tiempo debe verse la cámara sin el desenfoque IA?",
+        AiRevealDuration30s           = "30 segundos",
+        AiRevealDuration1m            = "1 minuto",
+        AiRevealDuration5m            = "5 minutos",
+        AiRevealDurationUntilRemask   = "Hasta que pulse «volver a enmascarar»",
+        AiRevealBadgeCountdownFormat  = "IA off · {0}",
+        AiRevealBadgeIndefinite       = "IA off",
+        AiRevealBadgeRemask           = "Volver a enmascarar",
+        AiRevealIconTooltip           = "Desactivar temporalmente la máscara IA…",
         AiRoiSection              = "Región de interés",
         AiRoiButton               = "Dibujar región…",
         AiRoiHint                 = "Limita la detección a un área poligonal. Las detecciones fuera del área no se enmascaran.",

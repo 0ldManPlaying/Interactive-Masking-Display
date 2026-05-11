@@ -45,6 +45,23 @@ public enum AuditEventType
     /// instead of being killed via Task Manager or a crash.
     /// </summary>
     AiDetectorStopped,
+    /// <summary>
+    /// v2.0.x: an authorised reviewer suppressed the AI-mask overlay on one
+    /// tile for a bounded duration. Detail carries the duration in seconds
+    /// (or "indefinite" for the "until I re-mask" choice). Source carries
+    /// the reviewer identity: an AD username when the session is in AD-mode,
+    /// or "session-pin" / "desktop" otherwise. Camera content is fully
+    /// visible during the reveal window; the underlying NVR recording is
+    /// unaffected. Per-detection reveal is intentionally not supported.
+    /// </summary>
+    AiRevealRequested,
+    /// <summary>
+    /// v2.0.x: an active AI-reveal window ended. Detail carries the reason:
+    /// "timer-expired" (auto-restore), "manual-remask" (reviewer pressed the
+    /// remask badge), "mass-mask" (long-press cancelled all reveals), or
+    /// "tile-rebound" (camera binding changed in Setup → Apply).
+    /// </summary>
+    AiRevealExpired,
 }
 
 /// <summary>One row in the audit log. Serialised as a JSON object on a single line.</summary>

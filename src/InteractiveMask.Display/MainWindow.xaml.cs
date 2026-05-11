@@ -326,6 +326,36 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// AI-reveal trigger (v2.0.x F2): click on the small "AI" pill in the top-
+    /// left of a tile. Routes to MaskController which handles auth + duration
+    /// pick + audit. e.Handled=true stops the click from bubbling to
+    /// OnTileTapped (which would otherwise toggle the full-tile mask).
+    /// </summary>
+    private void OnAiRevealIconClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is TileViewModel tile)
+        {
+            _maskController?.RequestAiReveal(tile);
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Manual remask trigger (v2.0.x F2): click on the "AI off · {countdown}"
+    /// badge in the top-right of a revealed tile. Cancels the active reveal
+    /// immediately; audit reason "manual-remask". Same e.Handled rationale
+    /// as OnAiRevealIconClick.
+    /// </summary>
+    private void OnAiRevealBadgeClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is TileViewModel tile)
+        {
+            _maskController?.CancelAiReveal(tile, reason: "manual-remask");
+            e.Handled = true;
+        }
+    }
+
     // ---- Long-press gesture (v1.3.0 item 1) -------------------------------
     //
     // 500 ms hold anywhere in the main grid triggers the mass mask/unmask
@@ -692,7 +722,15 @@ public partial class MainWindow : Window
             {
                 if (oldSlot >= 0 && oldSlot < _viewModel.Tiles.Count)
                 {
-                    _viewModel.Tiles[oldSlot].Detach();
+                    // If the tile being detached has an active AI-reveal, end it
+                    // first so the audit trail records that the reveal window was
+                    // cut by a camera rebinding rather than disappearing silently.
+                    var oldTile = _viewModel.Tiles[oldSlot];
+                    if (oldTile.IsAiRevealed)
+                    {
+                        _maskController?.CancelAiReveal(oldTile, reason: "tile-rebound");
+                    }
+                    oldTile.Detach();
                 }
                 _bindingsBySlot.Remove(oldSlot);
             }
@@ -743,6 +781,15 @@ public partial class MainWindow : Window
                 t.AiConfidencePercent = cam.AiConfidencePercent;
                 t.AiUseSourceBlur = cam.AiUseSourceBlur;
                 t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
+
+                // If the operator just turned AI off on a tile that still had
+                // an active reveal window running, the reveal becomes nonsense
+                // (there's no AI overlay to reveal). End it cleanly so the
+                // badge clears and the audit trail records the supersession.
+                if (!t.AiEnabled && t.IsAiRevealed)
+                {
+                    _maskController?.CancelAiReveal(t, reason: "ai-disabled");
+                }
             }
         }
 
