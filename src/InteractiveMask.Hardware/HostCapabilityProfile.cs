@@ -77,7 +77,10 @@ public sealed record BenchmarkResult(
     double SteadyStateP50Ms,
     double SteadyStateP95Ms,
     double SteadyStateP99Ms,
-    double ThroughputFps);
+    double ThroughputFps,
+    string ExecutionProvider,
+    string ModelFileName,
+    IReadOnlyList<int> InputDimensions);
 
 /// <summary>
 /// Capability tier classifier output. Higher tier means more AI features available.

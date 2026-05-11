@@ -353,6 +353,14 @@ public sealed class StringsTable
     public string AboutCapsAiTier { get; init; } = "";
     public string AboutCapsNone { get; init; } = "";
     public string AboutCapsIntegrated { get; init; } = "";
+    public string AboutCapsBenchmarkRun { get; init; } = "";
+    public string AboutCapsBenchmarkRunning { get; init; } = "";
+    public string AboutCapsBenchmarkNone { get; init; } = "";
+    public string AboutCapsBenchmarkProvider { get; init; } = "";
+    public string AboutCapsBenchmarkColdStart { get; init; } = "";
+    public string AboutCapsBenchmarkP50 { get; init; } = "";
+    public string AboutCapsBenchmarkP95 { get; init; } = "";
+    public string AboutCapsBenchmarkThroughput { get; init; } = "";
 
     public static readonly StringsTable Nl = new()
     {
@@ -612,6 +620,14 @@ public sealed class StringsTable
         AboutCapsAiTier           = "v2.0 AI-maskering tier",
         AboutCapsNone             = "Geen gedetecteerd",
         AboutCapsIntegrated       = "geïntegreerd",
+        AboutCapsBenchmarkRun     = "Benchmark draaien",
+        AboutCapsBenchmarkRunning = "Benchmark loopt...",
+        AboutCapsBenchmarkNone    = "Nog niet uitgevoerd",
+        AboutCapsBenchmarkProvider = "Inference backend",
+        AboutCapsBenchmarkColdStart = "Cold start",
+        AboutCapsBenchmarkP50     = "Latency p50 / p95 / p99",
+        AboutCapsBenchmarkP95     = "Latency p95",
+        AboutCapsBenchmarkThroughput = "Doorvoer",
     };
 
     public static readonly StringsTable En = new()
@@ -872,6 +888,14 @@ public sealed class StringsTable
         AboutCapsAiTier           = "v2.0 AI-masking tier",
         AboutCapsNone             = "None detected",
         AboutCapsIntegrated       = "integrated",
+        AboutCapsBenchmarkRun     = "Run benchmark",
+        AboutCapsBenchmarkRunning = "Benchmark running...",
+        AboutCapsBenchmarkNone    = "Not yet run",
+        AboutCapsBenchmarkProvider = "Inference backend",
+        AboutCapsBenchmarkColdStart = "Cold start",
+        AboutCapsBenchmarkP50     = "Latency p50 / p95 / p99",
+        AboutCapsBenchmarkP95     = "Latency p95",
+        AboutCapsBenchmarkThroughput = "Throughput",
     };
 
     // ------------------------------------------------------------------
@@ -1137,6 +1161,14 @@ public sealed class StringsTable
         AboutCapsAiTier           = "v2.0 KI-Maskierungs-Tier",
         AboutCapsNone             = "Nicht erkannt",
         AboutCapsIntegrated       = "integriert",
+        AboutCapsBenchmarkRun     = "Benchmark starten",
+        AboutCapsBenchmarkRunning = "Benchmark läuft...",
+        AboutCapsBenchmarkNone    = "Noch nicht ausgeführt",
+        AboutCapsBenchmarkProvider = "Inferenz-Backend",
+        AboutCapsBenchmarkColdStart = "Kaltstart",
+        AboutCapsBenchmarkP50     = "Latenz p50 / p95 / p99",
+        AboutCapsBenchmarkP95     = "Latenz p95",
+        AboutCapsBenchmarkThroughput = "Durchsatz",
     };
 
     public static readonly StringsTable Fr = new()
@@ -1397,6 +1429,14 @@ public sealed class StringsTable
         AboutCapsAiTier           = "Niveau de masquage IA v2.0",
         AboutCapsNone             = "Aucun détecté",
         AboutCapsIntegrated       = "intégré",
+        AboutCapsBenchmarkRun     = "Lancer le test",
+        AboutCapsBenchmarkRunning = "Test en cours...",
+        AboutCapsBenchmarkNone    = "Pas encore exécuté",
+        AboutCapsBenchmarkProvider = "Moteur d'inférence",
+        AboutCapsBenchmarkColdStart = "Démarrage à froid",
+        AboutCapsBenchmarkP50     = "Latence p50 / p95 / p99",
+        AboutCapsBenchmarkP95     = "Latence p95",
+        AboutCapsBenchmarkThroughput = "Débit",
     };
 
     public static readonly StringsTable Es = new()
@@ -1657,5 +1697,13 @@ public sealed class StringsTable
         AboutCapsAiTier           = "Nivel de enmascaramiento IA v2.0",
         AboutCapsNone             = "Ninguno detectado",
         AboutCapsIntegrated       = "integrada",
+        AboutCapsBenchmarkRun     = "Ejecutar prueba",
+        AboutCapsBenchmarkRunning = "Prueba en curso...",
+        AboutCapsBenchmarkNone    = "Aún no ejecutada",
+        AboutCapsBenchmarkProvider = "Motor de inferencia",
+        AboutCapsBenchmarkColdStart = "Arranque en frío",
+        AboutCapsBenchmarkP50     = "Latencia p50 / p95 / p99",
+        AboutCapsBenchmarkP95     = "Latencia p95",
+        AboutCapsBenchmarkThroughput = "Rendimiento",
     };
 }

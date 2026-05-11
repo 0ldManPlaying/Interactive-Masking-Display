@@ -1605,11 +1605,17 @@
                                     <StackPanel>
                                         <Grid>
                                             <TextBlock Text="{local:Loc AboutCardSystemCapabilities}" Style="{StaticResource SectionHeader}" />
-                                            <Button x:Name="AboutCapsRefreshBtn"
-                                                    Content="{local:Loc AboutCapsRefreshButton}"
-                                                    Style="{StaticResource BtnGhost}"
-                                                    HorizontalAlignment="Right"
-                                                    Click="OnAboutCapsRefresh" />
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button x:Name="AboutCapsBenchmarkBtn"
+                                                        Content="{local:Loc AboutCapsBenchmarkRun}"
+                                                        Style="{StaticResource BtnGhost}"
+                                                        Margin="0,0,8,0"
+                                                        Click="OnAboutCapsBenchmark" />
+                                                <Button x:Name="AboutCapsRefreshBtn"
+                                                        Content="{local:Loc AboutCapsRefreshButton}"
+                                                        Style="{StaticResource BtnGhost}"
+                                                        Click="OnAboutCapsRefresh" />
+                                            </StackPanel>
                                         </Grid>
                                         <TextBlock x:Name="AboutCapsStatus"
                                                    Foreground="{StaticResource text.muted}" FontSize="13" Margin="0,12,0,8"

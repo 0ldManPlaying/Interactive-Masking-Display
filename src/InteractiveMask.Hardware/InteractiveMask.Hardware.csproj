@@ -10,6 +10,20 @@
   <ItemGroup>
     <!-- WMI access for CPU / GPU / PnP enumeration. -->
     <PackageReference Include="System.Management" Version="9.0.0" />
+    <!-- ONNX Runtime with DirectML EP for the v2.0 benchmark runner.
+         The .DirectML package bundles both CPU and DirectML providers and ships
+         the native DLLs (onnxruntime.dll, DirectML.dll) into the output folder. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.20.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference benchmark model. MobileNetV2 (Apache 2.0, ONNX Model Zoo) gives
+         a workload representative of YOLOv8n-class detection compute. Will be
+         supplemented by the actual plate-detector model in v2.0. -->
+    <None Include="models\mobilenetv2-7.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>models\mobilenetv2-7.onnx</Link>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -151,17 +151,32 @@ public partial class SetupWindow : Window
         _ = RunCapabilityProbeAsync();
     }
 
+    private void OnAboutCapsBenchmark(object sender, RoutedEventArgs e)
+    {
+        _ = RunBenchmarkAsync();
+    }
+
+    private void SetCapsButtonsEnabled(bool enabled)
+    {
+        if (AboutCapsRefreshBtn != null) AboutCapsRefreshBtn.IsEnabled = enabled;
+        if (AboutCapsBenchmarkBtn != null) AboutCapsBenchmarkBtn.IsEnabled = enabled;
+    }
+
     private async Task RunCapabilityProbeAsync()
     {
         var T = Strings.Instance.Current;
-        if (AboutCapsRefreshBtn != null) AboutCapsRefreshBtn.IsEnabled = false;
+        SetCapsButtonsEnabled(false);
         AboutCapsStatus.Text = T.AboutCapsProbing;
         AboutCapsContent.Children.Clear();
 
         try
         {
             // WMI calls block; keep the UI responsive while they run.
-            var profile = await Task.Run(HostCapabilityProbe.Probe);
+            var probed = await Task.Run(HostCapabilityProbe.Probe);
+            // Preserve any benchmark result obtained earlier in the session so the
+            // re-probe does not silently wipe it from view.
+            var preserved = _capabilityProfile?.LastBenchmark;
+            var profile = probed with { LastBenchmark = preserved };
             _capabilityProfile = profile;
             // Persist for support / diagnostics. Best-effort, never throws.
             CapabilityProfileStore.Save(profile);
@@ -173,7 +188,42 @@ public partial class SetupWindow : Window
         }
         finally
         {
-            if (AboutCapsRefreshBtn != null) AboutCapsRefreshBtn.IsEnabled = true;
+            SetCapsButtonsEnabled(true);
+        }
+    }
+
+    private async Task RunBenchmarkAsync()
+    {
+        var T = Strings.Instance.Current;
+        SetCapsButtonsEnabled(false);
+
+        try
+        {
+            using var runner = new BenchmarkRunner();
+            var progress = new Progress<BenchmarkProgress>(p =>
+            {
+                AboutCapsStatus.Text = $"{T.AboutCapsBenchmarkRunning} {p.Completed}/{p.Total}";
+            });
+            AboutCapsStatus.Text = T.AboutCapsBenchmarkRunning;
+
+            var bench = await runner.RunAsync(progress);
+
+            // Merge into current profile. If the user hit Run benchmark before the
+            // hardware probe finished, run that now too so the persisted profile is
+            // complete.
+            var profile = _capabilityProfile ?? await Task.Run(HostCapabilityProbe.Probe);
+            profile = profile with { LastBenchmark = bench };
+            _capabilityProfile = profile;
+            CapabilityProfileStore.Save(profile);
+            RenderCapabilityProfile(profile);
+        }
+        catch (Exception ex)
+        {
+            AboutCapsStatus.Text = $"{T.AboutCapsBenchmarkRunning} {ex.GetType().Name}: {ex.Message}";
+        }
+        finally
+        {
+            SetCapsButtonsEnabled(true);
         }
     }
 
@@ -211,7 +261,32 @@ public partial class SetupWindow : Window
 
         AppendCapsRow(T.AboutCapsAiTier, profile.Tier.ToString());
 
+        if (profile.LastBenchmark is { } bench)
+        {
+            AppendCapsSeparator();
+            AppendCapsRow(
+                T.AboutCapsBenchmarkProvider,
+                $"{bench.ExecutionProvider} · {bench.ModelFileName} ({string.Join("x", bench.InputDimensions)})");
+            AppendCapsRow(T.AboutCapsBenchmarkColdStart, $"{bench.ColdStartMs:0.0} ms");
+            AppendCapsRow(
+                T.AboutCapsBenchmarkP50,
+                $"{bench.SteadyStateP50Ms:0.00} / {bench.SteadyStateP95Ms:0.00} / {bench.SteadyStateP99Ms:0.00} ms");
+            AppendCapsRow(T.AboutCapsBenchmarkThroughput, $"{bench.ThroughputFps:0} fps");
+        }
+
         AboutCapsStatus.Text = $"{profile.ProbedAt.ToLocalTime():yyyy-MM-dd HH:mm} · schema {profile.ProbeSchemaVersion}";
+    }
+
+    private void AppendCapsSeparator()
+    {
+        var sep = new Border
+        {
+            Height = 1,
+            Background = (Brush)TryFindResource("border") ?? Brushes.Gray,
+            Margin = new Thickness(0, 8, 0, 8),
+            Opacity = 0.5,
+        };
+        AboutCapsContent.Children.Add(sep);
     }
 
     private void AppendCapsRow(string label, string value)
