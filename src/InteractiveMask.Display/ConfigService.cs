@@ -164,6 +164,7 @@ public sealed class ConfigService
                     NvrTitle = c.NvrTitle ?? "",
                     AiEnabled = c.AiEnabled,
                     AiClasses = ParseAiClasses(c.AiClasses),
+                    MaskPaddingPercent = Math.Clamp(c.MaskPaddingPercent, 0, 50),
                 })
                 .ToList();
         }
@@ -257,6 +258,7 @@ public sealed class ConfigService
                 NvrTitle = c.NvrTitle,
                 AiEnabled = c.AiEnabled,
                 AiClasses = c.AiClasses.Select(cls => cls.ToString()).ToList(),
+                MaskPaddingPercent = c.MaskPaddingPercent,
             })
             .ToList(),
         Kiosk = new StoredKiosk { Enabled = settings.Kiosk.Enabled },
@@ -445,5 +447,10 @@ public sealed class ConfigService
         // release is just a new value in the list; old configs simply don't list it.
         public bool AiEnabled { get; set; } = true;
         public List<string> AiClasses { get; set; } = new() { "Person", "TwoWheeler", "Vehicle" };
+        // v2.0 mask-padding percent (0..50). 10 means add 10% per side, so the
+        // privacy blur extends slightly past the detection bbox. Defaults to 10
+        // so existing configs get a small but useful padding without explicit
+        // reconfiguration.
+        public int MaskPaddingPercent { get; set; } = 10;
     }
 }

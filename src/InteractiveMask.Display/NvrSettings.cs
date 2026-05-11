@@ -245,4 +245,15 @@ public sealed class CameraSlotSettings
         InteractiveMask.Detection.ObjectClass.TwoWheeler,
         InteractiveMask.Detection.ObjectClass.Vehicle,
     };
+
+    /// <summary>
+    /// v2.0 mask-padding: inflates each detection bounding box by this
+    /// percentage on every side at render time, so the privacy blur extends
+    /// slightly beyond the model's tight bbox. Compensates for the few pixels
+    /// of slack that YOLO detection sometimes shows around objects (especially
+    /// on poses / angles where the box clips the silhouette). Stored as integer
+    /// percent 0..50; 10 means each side adds 10% of the dimension, total bbox
+    /// grows by 20% per axis. Clamped to frame bounds when applied.
+    /// </summary>
+    public int MaskPaddingPercent { get; set; } = 10;
 }

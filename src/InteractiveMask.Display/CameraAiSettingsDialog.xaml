@@ -75,6 +75,32 @@
                           Margin="0,4,0,4" />
             </StackPanel>
 
+            <!-- Mask padding: inflates the blur region around each detection. -->
+            <Grid Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="56" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="{local:Loc AiPaddingHeader}"
+                           Foreground="#8B95A7"
+                           FontSize="12"
+                           VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1"
+                           x:Name="PaddingValueText"
+                           Foreground="#E6E6E6"
+                           FontSize="13"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center" />
+            </Grid>
+            <Slider x:Name="PaddingSlider"
+                    Minimum="0" Maximum="50"
+                    SmallChange="1" LargeChange="5"
+                    TickFrequency="5" TickPlacement="None"
+                    IsSnapToTickEnabled="False"
+                    Margin="0,6,0,0"
+                    ValueChanged="OnPaddingSliderChanged" />
+
             <TextBlock Foreground="#8B95A7" FontSize="11" TextWrapping="Wrap"
                        Margin="0,16,0,0"
                        Text="{local:Loc AiDialogHint}" />

@@ -21,10 +21,13 @@
          detector implementation; replace / add files here rather than editing code. -->
     <!-- Content (not None) so the model copies transitively to any project that
          references InteractiveMask.Detection, including the Display app. -->
-    <Content Include="models\yolov8n.onnx">
+    <!-- Wildcard so the YOLO11n drop-in upgrade just works: place yolo11n.onnx
+         next to the existing yolov8n.onnx and both copy through to consuming
+         projects. ResolveYoloModelPath in OnnxLocalDetector prefers yolo11n when
+         present and falls back to yolov8n otherwise. -->
+    <Content Include="models\*.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <Link>models\yolov8n.onnx</Link>
     </Content>
   </ItemGroup>
 

@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using InteractiveMask.Detection;
 
@@ -27,8 +30,20 @@ public partial class CameraAiSettingsDialog : Window
         PersonBox.IsChecked     = target.AiClasses.Contains(ObjectClass.Person);
         TwoWheelerBox.IsChecked = target.AiClasses.Contains(ObjectClass.TwoWheeler);
         VehicleBox.IsChecked    = target.AiClasses.Contains(ObjectClass.Vehicle);
+        PaddingSlider.Value = Math.Clamp(target.MaskPaddingPercent, 0, 50);
+        UpdatePaddingText();
 
         UpdateClassesEnabledState();
+    }
+
+    private void OnPaddingSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => UpdatePaddingText();
+
+    private void UpdatePaddingText()
+    {
+        // Round to int (slider is logically integer-valued; visual feedback
+        // shows the discrete percentage value rather than a fractional one).
+        int pct = (int)Math.Round(PaddingSlider.Value);
+        PaddingValueText.Text = pct.ToString(CultureInfo.InvariantCulture) + " %";
     }
 
     private void OnEnableChanged(object sender, RoutedEventArgs e) => UpdateClassesEnabledState();
@@ -54,6 +69,8 @@ public partial class CameraAiSettingsDialog : Window
         if (TwoWheelerBox.IsChecked == true) picked.Add(ObjectClass.TwoWheeler);
         if (VehicleBox.IsChecked == true)    picked.Add(ObjectClass.Vehicle);
         _target.AiClasses = picked;
+
+        _target.MaskPaddingPercent = Math.Clamp((int)Math.Round(PaddingSlider.Value), 0, 50);
 
         DialogResult = true;
         Close();

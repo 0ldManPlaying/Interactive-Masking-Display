@@ -59,9 +59,11 @@ public sealed class OnnxLocalDetector : IObjectDetector
         InferenceCoordinator? built = null;
         try
         {
+            string resolvedModelName = "?";
             await Task.Run(() =>
             {
                 var modelPath = ResolveYoloModelPath();
+                resolvedModelName = Path.GetFileNameWithoutExtension(modelPath);
                 built = new InferenceCoordinator(modelPath);
                 built.SetConfidenceThreshold(ResolveObjectConfidence());
             }, ct).ConfigureAwait(false);
@@ -70,7 +72,7 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
             _capability = new DetectorCapability(
                 BackendName: "OnnxLocalDetector",
-                ModelDescription: $"ONNX Runtime ({_coordinator!.ExecutionProvider}) + YOLOv8n COCO (centralized worker)",
+                ModelDescription: $"ONNX Runtime ({_coordinator!.ExecutionProvider}) + {resolvedModelName.ToUpperInvariant()} COCO (centralized worker)",
                 SupportedClasses: new[] { ObjectClass.Person, ObjectClass.TwoWheeler, ObjectClass.Vehicle },
                 SupportsPolygonMasks: false);
 
@@ -172,17 +174,28 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
     private static string ResolveYoloModelPath()
     {
-        const string fileName = "yolov8n.onnx";
-        var candidates = new[]
+        // Prefer YOLO11n if present (newer, slightly better small-object accuracy
+        // at near-identical compute cost) and fall back to YOLOv8n. Both exports
+        // share the same I/O layout (input "images" 1x3x640x640, output "output0"
+        // 1x84x8400 with sigmoid'd class scores), so this is a pure drop-in:
+        // place yolo11n.onnx next to the binary and the next launch picks it up
+        // automatically, no decoder change required.
+        var fileNames = new[] { "yolo11n.onnx", "yolov8n.onnx" };
+        var roots = new[]
         {
-            Path.Combine(AppContext.BaseDirectory, "models", fileName),
-            Path.Combine(Path.GetDirectoryName(typeof(OnnxLocalDetector).Assembly.Location) ?? string.Empty, "models", fileName),
+            Path.Combine(AppContext.BaseDirectory, "models"),
+            Path.Combine(Path.GetDirectoryName(typeof(OnnxLocalDetector).Assembly.Location) ?? string.Empty, "models"),
         };
-        foreach (var c in candidates)
+        foreach (var name in fileNames)
         {
-            if (!string.IsNullOrEmpty(c) && File.Exists(c)) return c;
+            foreach (var root in roots)
+            {
+                if (string.IsNullOrEmpty(root)) continue;
+                var candidate = Path.Combine(root, name);
+                if (File.Exists(candidate)) return candidate;
+            }
         }
         throw new FileNotFoundException(
-            $"YOLOv8n model not found. Expected at {candidates[0]}.");
+            $"YOLO model not found. Expected yolo11n.onnx or yolov8n.onnx under {roots[0]}.");
     }
 }

@@ -160,6 +160,7 @@ public partial class MainWindow : Window
                     t.NvrTitle = cam.NvrTitle ?? "";
                     t.AiEnabled = cam.AiEnabled;
                     t.AiClasses = cam.AiClasses;
+                    t.MaskPaddingPercent = cam.MaskPaddingPercent;
                 }
                 _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             }
@@ -684,6 +685,7 @@ public partial class MainWindow : Window
                 t.NvrTitle = cam.NvrTitle ?? "";
                 t.AiEnabled = cam.AiEnabled;
                 t.AiClasses = cam.AiClasses;
+                t.MaskPaddingPercent = cam.MaskPaddingPercent;
             }
         }
 
@@ -699,6 +701,7 @@ public partial class MainWindow : Window
             t.NvrTitle = cam.NvrTitle ?? "";
             t.AiEnabled = cam.AiEnabled;
             t.AiClasses = cam.AiClasses;
+            t.MaskPaddingPercent = cam.MaskPaddingPercent;
         }
     }
 

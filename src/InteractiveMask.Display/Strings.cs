@@ -370,6 +370,8 @@ public sealed class StringsTable
     public string AiClassVehicle { get; init; } = "";
     public string CameraColumnAi { get; init; } = "";
     public string CameraButtonAi { get; init; } = "";
+    public string AiPaddingHeader { get; init; } = "";
+    public string AiPaddingHint { get; init; } = "";
 
     public static readonly StringsTable Nl = new()
     {
@@ -646,6 +648,8 @@ public sealed class StringsTable
         AiClassVehicle            = "Voertuigen (auto, bus, vrachtwagen)",
         CameraColumnAi            = "AI",
         CameraButtonAi            = "AI…",
+        AiPaddingHeader           = "Mask-padding",
+        AiPaddingHint             = "Vergroot het blur-vlak met dit percentage rondom de detectie. Compenseert voor strakke bboxen die het object net niet helemaal afdekken.",
     };
 
     public static readonly StringsTable En = new()
@@ -923,6 +927,8 @@ public sealed class StringsTable
         AiClassVehicle            = "Vehicles (car, bus, truck)",
         CameraColumnAi            = "AI",
         CameraButtonAi            = "AI…",
+        AiPaddingHeader           = "Mask padding",
+        AiPaddingHint             = "Enlarges the blur area by this percentage around the detection. Compensates for tight bounding boxes that don't quite cover the object.",
     };
 
     // ------------------------------------------------------------------
@@ -1205,6 +1211,8 @@ public sealed class StringsTable
         AiClassVehicle            = "Fahrzeuge (Auto, Bus, LKW)",
         CameraColumnAi            = "KI",
         CameraButtonAi            = "KI…",
+        AiPaddingHeader           = "Maskenpolsterung",
+        AiPaddingHint             = "Vergrößert den Unschärfebereich um diesen Prozentsatz rund um die Erkennung. Kompensiert enge Bounding-Boxen, die das Objekt nicht ganz abdecken.",
     };
 
     public static readonly StringsTable Fr = new()
@@ -1482,6 +1490,8 @@ public sealed class StringsTable
         AiClassVehicle            = "Véhicules (voiture, bus, camion)",
         CameraColumnAi            = "IA",
         CameraButtonAi            = "IA…",
+        AiPaddingHeader           = "Marge du masque",
+        AiPaddingHint             = "Agrandit la zone de flou de ce pourcentage autour de la détection. Compense les boîtes englobantes trop serrées qui ne couvrent pas tout à fait l'objet.",
     };
 
     public static readonly StringsTable Es = new()
@@ -1759,5 +1769,7 @@ public sealed class StringsTable
         AiClassVehicle            = "Vehículos (coche, autobús, camión)",
         CameraColumnAi            = "IA",
         CameraButtonAi            = "IA…",
+        AiPaddingHeader           = "Relleno de la máscara",
+        AiPaddingHint             = "Amplía la zona de desenfoque este porcentaje alrededor de la detección. Compensa los cuadros delimitadores ajustados que no cubren del todo el objeto.",
     };
 }

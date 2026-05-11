@@ -75,6 +75,15 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     };
 
     /// <summary>
+    /// Per-camera bbox inflation percent (0..50). Applied at render time to grow
+    /// the privacy blur slightly past the model's tight bbox, compensating for
+    /// the few pixels of detection slack that YOLO sometimes shows around object
+    /// silhouettes. Stored detections (audit, persistence) keep the raw values;
+    /// only the rendered overlay sees the inflation.
+    /// </summary>
+    public int MaskPaddingPercent { get; set; } = 10;
+
+    /// <summary>
     /// Timestamp of the last non-empty detection result. Combined with
     /// <see cref="EmptyDetectionGrace"/> it rides out single-frame false negatives:
     /// when the detector returns no detections on a frame but we had detections
@@ -492,6 +501,18 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             fresh = fresh.Where(d => AiClasses.Contains(d.Class)).ToList();
         }
 
+        // Inflate bboxes by the per-camera padding percent so the privacy
+        // blur extends slightly past the detection. Inflation happens here
+        // (post-detector, pre-render) so audit and any future analytics keep
+        // the raw bbox; only the on-screen overlay sees the padded version.
+        if (fresh.Count > 0 && MaskPaddingPercent > 0)
+        {
+            int srcW = _bitmap?.PixelWidth ?? int.MaxValue;
+            int srcH = _bitmap?.PixelHeight ?? int.MaxValue;
+            float frac = MaskPaddingPercent / 100f;
+            fresh = fresh.Select(d => InflateForRender(d, frac, srcW, srcH)).ToList();
+        }
+
         if (fresh.Count > 0)
         {
             Detections = fresh;
@@ -506,6 +527,18 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             return;
         }
         Detections = fresh;
+    }
+
+    private static DetectedObject InflateForRender(DetectedObject d, float frac, int srcW, int srcH)
+    {
+        int padX = (int)(d.Box.Width * frac);
+        int padY = (int)(d.Box.Height * frac);
+        int x = Math.Max(0, d.Box.X - padX);
+        int y = Math.Max(0, d.Box.Y - padY);
+        int w = Math.Min(srcW - x, d.Box.Width + 2 * padX);
+        int h = Math.Min(srcH - y, d.Box.Height + 2 * padY);
+        if (w <= 0 || h <= 0) return d;
+        return d with { Box = new BoundingBox(x, y, w, h) };
     }
 
     private void RenderFrame(DecodedFrame frame)
