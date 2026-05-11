@@ -1,8 +1,8 @@
 # InteractiveMask v2.0: Architectuur
 
-**Versie:** 0.1 (concept)
+**Versie:** 1.0 (Released)
 **Datum:** 11 mei 2026
-**Status:** Werkdocument. Wordt gefixeerd zodra v2.0-implementatie start.
+**Status:** Vastgelegd. Beschrijft de architectuur zoals daadwerkelijk gereleased in `v2.0.0`. Toekomstige wijzigingen krijgen een nieuwe versie + revisie-entry onderaan.
 **Eigenaar:** IDIS Nederland BV
 
 ---
@@ -11,7 +11,7 @@
 
 InteractiveMask v2.0 introduceert AI-gestuurde object-level privacy-masking als optionele uitbreiding op de bestaande tegel-level masking uit v1.x. Concrete aanleiding: een Nederlandse systeem-integratie partner heeft namens een grootzakelijke retail-eindklant gevraagd om automatische blurring van kentekens in live-view, GDPR-conform. Het architectuurontwerp is bewust generiek opgezet zodat dezelfde pipeline op termijn gezichten, personen en andere objectklassen kan maskeren.
 
-Dit document beschrijft architectuurkeuzes, niet implementatiedetails. Codedetails verschijnen in vervolg-iteraties zodra deelcomponenten worden gerealiseerd.
+Dit document beschrijft de architectuurkeuzes van v2.0 zoals daadwerkelijk gereleased. Codedetails staan in de bronbestanden onder `src/InteractiveMask.Detection/` en `src/InteractiveMask.Display/`. Een paar secties (capability-tier-tabel §7.2, adaptieve degradatie §8, reveal-flow §12) beschrijven gepland gedrag dat in v2.0.0 nog niet volledig is geïmplementeerd — die zijn in de tekst expliciet gemarkeerd en staan op de v2.0.x kandidaten-lijst in `docs/roadmap.md`.
 
 ---
 
@@ -119,26 +119,26 @@ public record DetectedObject(
     string? RawClassLabel,    // Model-native label voor audit (bv. "car", "truck", "bicycle")
     float Confidence,
     BoundingBox Box,
-    Polygon? Mask);           // null in bbox-only modus
+    SegmentationMask? Mask);  // null in bbox-only modus
 
 public enum ObjectClass
 {
     Unknown      = 0,
-    Face         = 1,
+    Face         = 1,         // gereserveerd, niet actief gebruikt in v2.0
     Person       = 2,
-    TwoWheeler   = 3,   // bicycle + motorcycle
-    Vehicle      = 4,   // car + bus + truck
-    LicensePlate = 5,
+    TwoWheeler   = 3,         // bicycle + motorcycle
+    Vehicle      = 4,         // car + bus + truck
+    LicensePlate = 5,         // gereserveerd voor v2.0.x
 }
 ```
 
-De vijf categorieën zijn afgeleid van pretrained- of in-house-modellen (volledige tabel in `docs/roadmap.md` onder "Object-categorieën"). Vier categorieën komen uit pretrained models (YuNet voor faces, YOLOv8n COCO voor de overige drie) en zijn beschikbaar in v2.0. LicensePlate vraagt in-house Roboflow-training en landt in v2.0.x zodra het model gereed is.
+`SegmentationMask` bevat een row-major byte-array (alpha per pixel) in bbox-local coördinaten, klaar om als WPF `OpacityMask` gebruikt te worden zonder verdere resampling. Drie van de vijf `ObjectClass`-waardes zijn actief in v2.0: Person, TwoWheeler, Vehicle. Face en LicensePlate zijn als enum-waardes gereserveerd zodat een toekomstige uitbreiding geen migratie van persisted config vraagt.
 
 Implementaties:
 
-- **`OnnxLocalDetector`** (v2.0): ONNX Runtime in-process, DirectML of CUDA EP, model uit `models/` directory. Model geladen bij eerste use, hot-reload bij Setup-apply.
+- **`InferenceCoordinator` + `OnnxLocalDetector`** (v2.0): ONNX Runtime in-process, DirectML EP, YOLO26s-seg model uit `models/yolo26s-seg.onnx`. Eén `InferenceSession` per coordinator-worker, single-threaded ORT-aanroepen via een channel met slot-replacement (oudste frame wordt gedropt bij congestie). Model geladen bij eerste use, hot-reload bij Setup-apply.
 - **`NullDetector`** (v2.0): faal-stand-in. Retourneert lege detectie-lijst met status `Unavailable`. Render pipeline interpreteert dit als trigger voor full-tile blur op gebonden tegels.
-- **`JetsonRemoteDetector`** (v2.1): gRPC-client naar Jetson-sidecar, mTLS-versleuteld, heartbeat elke 1 s. Interface en stub-implementatie meegenomen in v2.0 zodat de v2.1-port geen herontwerp vraagt.
+- **`JetsonRemoteDetector`** (v2.1): gRPC-client naar Jetson-sidecar, mTLS-versleuteld, heartbeat elke 1 s. In v2.0 alleen als stub aanwezig (throws `NotImplementedException`) zodat de v2.1-port geen herontwerp vraagt.
 
 De Display kent enkel `IObjectDetector` en weet niet welk type backend actief is, behalve voor de capability-display in Setup en de status-indicator op de tegel.
 
@@ -196,6 +196,8 @@ Profiel wordt eenmalig bepaald bij eerste start, opnieuw bij hardware-wisseling 
 
 ### 7.2 Capability-tier-tabel
 
+> **Status:** ontwerp. In v2.0.0 wordt nog geen tier-gebaseerde feature-gating toegepast — alle AI-features zijn beschikbaar zodra een DirectML-capable GPU aanwezig is, en de operator besluit per camera of AI aangaat. De tier-tabel hieronder is ontwerp voor v2.0.x adaptive-degradation.
+
 Indicatief. Definitieve drempels komen uit benchmark-output (sectie 7.3).
 
 | Tier | Indicator | Enabled AI-features |
@@ -222,6 +224,8 @@ Resultaat is doorslaggevend boven de tier-tabel: een ongebruikelijk goede iGPU k
 
 ## 8. Adaptieve degradatie
 
+> **Status:** ontwerp, niet in v2.0.0 geïmplementeerd. De centralized `InferenceCoordinator` (één worker per camera met slot-replacement) en de per-camera config-knoppen (confidence-slider, ROI, klasse-selectie) dempen al veel druk in de praktijk. Onderstaande degradatie-ladder is gepland voor v2.0.x; zie roadmap §v2.0.x → F3.
+
 Runtime-monitor draait elke 250 ms en leest:
 
 - Inference-latency p95 per detector
@@ -247,16 +251,17 @@ Elke degradatie-stap genereert een audit-event en een UI-status-update op de bet
 
 ## 9. Audit-uitbreidingen
 
-Bestaande v1.x audit-event-schema blijft 1-op-1 intact. Toevoegingen voor v2.0:
+Bestaande v1.x audit-event-schema blijft 1-op-1 intact. Toevoegingen ten opzichte van v1.x:
 
-| Event-type | Payload-velden | Wanneer |
-|---|---|---|
-| `ai.detector.init` | detector-type, model-id, version, capability-tier | Bij start of wisseling |
-| `ai.detector.degraded` | from-step, to-step, reason, metrics-snapshot | Bij degradatie-stap |
-| `ai.detector.restored` | restored-to-step, duration-degraded-sec | Bij herstel naar hogere stap |
-| `ai.detector.fault` | detector-type, error-class, message | Bij crash, timeout of heartbeat-loss |
-| `ai.reveal.requested` | camera-id, source (user/PIN/AD), duration-sec | Bij reveal door reviewer |
-| `ai.reveal.expired` | camera-id, reason (timeout/manual) | Bij einde reveal-window |
+| Event-type | Status | Payload-velden | Wanneer |
+|---|---|---|---|
+| `AiDetectorInit` | ✅ v2.0 | detector-type, model-id, execution-provider | Bij succesvolle init |
+| `AiDetectorFault` | ✅ v2.0 | detector-type, error-class, message | Bij init-failure of niet-herstelbare runtime-fault |
+| `AiDetectorStopped` | ✅ v2.0 | dispose-error detail (optioneel) | Bij graceful dispose |
+| `ai.detector.degraded` | 📋 v2.0.x | from-step, to-step, reason, metrics-snapshot | Bij degradatie-stap (zie §8) |
+| `ai.detector.restored` | 📋 v2.0.x | restored-to-step, duration-degraded-sec | Bij herstel naar hogere stap |
+| `ai.reveal.requested` | 📋 v2.0.x | camera-id, source (user/PIN/AD), duration-sec | Bij reveal door reviewer (zie §12) |
+| `ai.reveal.expired` | 📋 v2.0.x | camera-id, reason (timeout/manual) | Bij einde reveal-window |
 
 Belangrijk: **geen detectie-coordinaten, geen plate-content, geen frame-data** in audit. Alleen metadata over de detector-staat en reviewer-acties. Dit houdt het audit-bestand vrij van persoonsgegevens en consistent met het no-ANPR-principe.
 
@@ -304,25 +309,41 @@ mTLS-certificaten worden uitgegeven door een lokale CA tijdens Jetson-pairing (v
 
 ## 11. Setup-UI uitbreidingen
 
-In Setup verschijnt een nieuwe tab "AI-masking" met de volgende cards:
+AI-configuratie is in v2.0.0 **per camera** opgezet ipv via een aparte AI-tab. Dit volgt natuurlijk uit het gegeven dat verschillende cameras in een grid verschillende privacy-vereisten hebben (een buitencamera-vehicle versus een receptie-person).
 
-| Card | Inhoud |
+### Setup → Cameras tab
+
+Per slotrij verschijnt een **AI…**-knop naast het verwijder-icoon. Klikken opent `CameraAiSettingsDialog`, een modale per-camera config:
+
+| Card | Inhoud (`CameraAiSettingsDialog`) |
 |---|---|
-| Status | Huidige tier, detector-type, model-versie, laatste benchmark-resultaat |
-| Hardware | Probe-output (CPU, GPU, NPU, remote-endpoints), "Probe opnieuw"-knop |
-| Per-camera | Per camera aan/uit-toggle voor AI-mask, prioriteitsvolgorde voor degradatie, motion-gating-drempel |
-| Klassen | Welke object-klassen actief zijn (plate, face, person), per klasse confidence-drempel |
-| Fall-back | Tegel-status bij detector-uitval (altijd full-tile blur, niet configureerbaar in 2.0; reden uitgelegd in tekst) |
-| Benchmark | "Benchmark opnieuw draaien"-knop met laatste resultaten |
-| Jetson | Bij Baseline B: endpoint-adres, paring-status, certificaat-info, "Hercertificeer"-knop |
+| Enable AI masking | `ToggleSwitch` boven alle andere cards; uit-stand grijst de rest uit |
+| Categories | Drie `CategoryChip` pill-buttons (Person rood / TwoWheeler oranje / Vehicle blauw), met live-color-coded fill bij IsChecked |
+| Detection threshold | Slider 15-70% met live %-readout; hysteresis-uitleg in helptekst |
+| Mask padding | Slider 0-50% met live %-readout |
+| Mask style | `SegmentedOption` radio-buttons (Color-coded / Source blur) |
+| Mask opacity | Slider 20-100% met live %-readout |
+| Region of Interest | Status-tekst ("{n} punten geplaatst") + "Draw ROI…" knop die `RoiEditorDialog` opent op een live snapshot |
 
-Bij tier 0 toont de tab alleen Status en Hardware met de boodschap "AI-features niet beschikbaar op deze host" en een verwijzing naar de hardware-baseline-documentatie.
+Alle waardes worden lokaal in de dialog gemuteerd op `CameraSlotSettings` en pas op Save naar `ConfigService` doorgespoeld.
 
-Alle bestaande Setup-tabs (NVR, Cameras, Privacy, Audit, About) blijven ongewijzigd. AI-masking is een additie, geen herontwerp.
+### About-tab uitbreiding
+
+De About-tab is uitgebreid met een AI-runtime-card: model-naam, execution provider (DirectML / CPU fallback), gemiddelde inference-latency, frame-counter sinds opstart. Lets de operator verifiëren dat de AI daadwerkelijk op de GPU loopt en niet stilletjes op CPU is gevallen.
+
+### Bestaande tabs
+
+Alle bestaande Setup-tabs (NVR, Cameras, Privacy, Web UI, Audit, Administrator, About) blijven verder ongewijzigd. AI-masking is een additie binnen de Cameras-tab + About, geen herontwerp.
+
+### Toekomstige Setup-uitbreidingen (v2.0.x)
+
+Wanneer adaptive-degradation (F3) en het tier-systeem (§7.2) landen, komt er waarschijnlijk wél een aparte Setup → AI-tab met system-level info (capability-probe, benchmark-resultaten, degradatie-prioriteit per camera). Voor v2.0.0 is dat overkill.
 
 ---
 
 ## 12. Reveal-flow
+
+> **Status:** ontwerp, niet in v2.0.0 geïmplementeerd. In v2.0.0 wordt AI-masking per camera in Setup aan- of uitgezet; er is geen runtime per-tegel reveal-mechanisme voor de AI-overlay. De flow hieronder is gepland voor v2.0.x; zie roadmap §v2.0.x → F2.
 
 Reveal wordt afgehandeld via de bestaande PIN- of AD-policy uit v1.x. Geen aparte AI-reviewer-role in v2.0.
 
@@ -367,3 +388,4 @@ Reveal wordt afgehandeld via de bestaande PIN- of AD-policy uit v1.x. Geen apart
 | 0.3 | 2026-05-11 | Claude | Sequencing vastgelegd: Windows-baseline eerst 100% productie-rijp (v2.0), Jetson ARM-port daarna (v2.1). Trainings-data komt uit in-house ANPR-archief (domein-correct materiaal). |
 | 0.4 | 2026-05-11 | Claude | v2.0-scope verbreed naar multi-class (Face + Person + TwoWheeler + Vehicle) via pretrained models; LicensePlate verschoven naar v2.0.x. ObjectClass-enum + RawClassLabel toegevoegd. Drie-categorie-mapping (Person / TwoWheeler / Vehicle) als UI-grouping. |
 | 0.5 | 2026-05-11 | Claude | Einde implementatie-sessie. Documenteert daadwerkelijke implementatie-keuzes: centralized `InferenceCoordinator` ipv per-tile concurrent submissions (was bron van crashes); face-detection dropped en vervangen door YOLOv8n COCO (kleine gezichten op security-camera afstand te onbetrouwbaar); per-camera AI-config (toggle, klassen, mask-padding, ROI polygon) gerealiseerd; ORT bumped 1.20.1 → 1.24.4 voor opset 22 support; YOLO11n drop-in voorbereid maar Ultralytics-export heeft DirectML EP kernel-gap (CPU-fallback op nieuwe ops → 6x slowdown), wachten op betere export. Audit-events `AiDetectorInit / Fault / Stopped` toegevoegd. |
+| 1.0 | 2026-05-11 | Claude | **Released met v2.0.0**. Productie-model verschoven van YOLOv8n naar **YOLO26s-seg** (NMS-free decoder, 32-channel prototype masks @ 160×160, opset 22). Per-camera confidence-slider 15-70% met hysteresis (stay-threshold = enter/2, IoU ≥ 0.4 frame-matching) tegen flicker op kleine objecten. Color-coded silhouettes per klasse (Person rood `#E74C3C`, TwoWheeler oranje `#F39C12`, Vehicle blauw `#3498DB`). Per-camera mask-stijl toggle (color-coded vs source-blur CCTV look) + mask-opacity slider (20-100%). `CameraAiSettingsDialog` herontworpen in card-stijl met `ToggleSwitch` / `CategoryChip` / `SegmentedOption` templates. Status van het document opgewaardeerd van Werkdocument (0.x) naar Released (1.0). |

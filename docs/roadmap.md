@@ -1,6 +1,6 @@
 # InteractiveMask Roadmap
 
-Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 11 mei 2026, einde implementatie-sessie. P1-P4 prerequisite-werk afgerond; M1-M3.4 main work draait stabiel; ORT bump naar 1.24.4; YOLO11n forward-compat aanwezig (modelfile pending DirectML EP-coverage).
+Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 11 mei 2026, na v2.0.0 release. Hele v2.0-stack (AI-driven masking, YOLO26s-seg, centralized inference coordinator, per-camera config dialog) draait stabiel en is getagged als `v2.0.0`.
 
 ## Status legend
 
@@ -60,27 +60,13 @@ ConfigService.StoredCamera + StoredPrivacy waren in v1.2-vorm blijven hangen, wa
 
 ## v1.3.x patches 📋
 
-Korte-termijn point releases. Geen functionele wijzigingen, alleen polish en cleanup.
-
-### v1.3.1 kandidaten
-
-| Bron | Onderwerp | Inschatting |
-|---|---|---|
-| Pre-release M2/M3/M4 | Dead localized strings (NavGrid, GridPageTitle, AdminLangNl/En, StatusError) opruimen in alle 5 talen | 30 min |
-| Pre-release M5 | PrimePrivacyDefaultState bumpt nu de PIN-counter niet; consistent maken met OnMaskApplied per tegel | 30 min |
-| Pre-release M7 | ApplyCameraChangesLive doet onnodige UpdateLabel + NvrTitle-assign voor onveranderde tegels | 1 uur |
-| Pre-release M8 | FetchCameraNamesAsync gooit altijd TimeoutException, ook bij externe cancellation. Differentiëren met TaskCanceledException | 30 min |
-| Pre-release M10 | Hard-coded Dutch error string in Help-open path. Loc-key toevoegen | 30 min |
-| Pre-release L2 | Per-frame closure-allocation in TileViewModel.OnFrameDecoded (preexisting, niet v1.3-regressie) | 2 uur, alleen bij bewezen GC-pressure |
-| Field feedback | Hogere-resolutie IDIS-logo (2048 x 1024 of vector) zodra aangeleverd | 5 min vervangen |
-
-**Doel:** v1.3.1 binnen 2 weken na v1.3.0 als er een live-deployment incident komt; anders bundelen tot één v1.3.1 over een paar weken.
+Bundeling met v2.0.x. Doorgelopen pre-release items uit de v1.3 review en de losse code-analyse bevindingen staan nu in de **v2.0.x patches** sectie hieronder (carry-over polish-tabel). Geen aparte v1.3.x release-track meer.
 
 ---
 
-## v1.4.0 doorkijk 💡
+## Toekomstige ideeën — niet aan een release gebonden 💡
 
-Nog niet ingepland. Verzameld uit demo-feedback, klantgesprekken en tijdens v1.3.0 opgekomen ideeën.
+Verzameld uit demo-feedback, klantgesprekken en gedurende v1.3 / v2.0 opgekomen ideeën. Komt op de roadmap zodra een release-window vastgesteld wordt.
 
 ### Hoog op de wensenlijst
 
@@ -113,9 +99,11 @@ Nog niet ingepland. Verzameld uit demo-feedback, klantgesprekken en tijdens v1.3
 
 ---
 
-## v2.0: AI-driven object-level masking 💡
+## v2.0.0 — gereleased 11 mei 2026 ✅
 
-Aanleiding: vraag van een Nederlandse systeem-integratie partner namens een grootzakelijke retail-eindklant, 11 mei 2026. De eindklant heeft outdoor-cameras op distributiecentra en winkellocaties waar voertuigen passeren. GDPR-conform willen zij kentekens standaard maskeren in live-view, met reveal-on-demand voor geautoriseerde reviewers. De use case generaliseert naar een bredere productrichting: object-level privacy in plaats van tegel-level.
+AI-driven object-level masking als headline-feature. Vraag van een Nederlandse systeem-integratie partner namens een grootzakelijke retail-eindklant, 11 mei 2026. De eindklant heeft outdoor-cameras op distributiecentra en winkellocaties waar voertuigen passeren. GDPR-conform willen zij kentekens standaard maskeren in live-view, met reveal-on-demand voor geautoriseerde reviewers. De use case generaliseert naar een bredere productrichting: object-level privacy in plaats van tegel-level.
+
+Volledige release-notes: [`docs/release-notes-2.0.0.md`](release-notes-2.0.0.md).
 
 Volledig architectuurdocument: [`docs/architecture-v2-ai.md`](architecture-v2-ai.md).
 
@@ -129,17 +117,15 @@ Volledig architectuurdocument: [`docs/architecture-v2-ai.md`](architecture-v2-ai
 
 ### Object-categorieën
 
-Vijf masking-categorieën, afgeleid van pretrained- of in-house-getrainde detectie-modellen:
+Drie masking-categorieën in v2.0, afgeleid van het YOLO26s-seg detection + segmentation model:
 
-| Categorie | Bron-model | Onderliggende bron-labels |
+| Categorie | UI-kleur | COCO-bron-labels |
 |---|---|---|
-| Face | YuNet of SCRFD | n.v.t. (specialistisch gezichts-model) |
-| Person | YOLOv8n COCO | `person` (0) |
-| TwoWheeler | YOLOv8n COCO | `bicycle` (1), `motorcycle` (3) |
-| Vehicle | YOLOv8n COCO | `car` (2), `bus` (5), `truck` (7) |
-| LicensePlate | In-house Roboflow-getraind | n.v.t. (single-class detector) |
+| Person | rood `#E74C3C` | `person` (0) |
+| TwoWheeler | oranje `#F39C12` | `bicycle` (1), `motorcycle` (3) |
+| Vehicle | blauw `#3498DB` | `car` (2), `bus` (5), `truck` (7) |
 
-Vier van de vijf categorieën zijn pretrained beschikbaar en kosten geen modelontwikkeling. Alleen LicensePlate vraagt in-house training; daarom verschuift dit naar v2.0.x in de fasering hieronder. Bron-labels worden bewaard op elke `Detection`-record voor audit en diagnose (zodat support kan zien dat een Vehicle bijvoorbeeld een `truck` was).
+Face-detection is in de v2.0-cyclus geprobeerd (YuNet) en weer weggehaald: kleine gezichten op security-camera-afstand bleken te onbetrouwbaar voor productie. LicensePlate verschuift naar v2.0.x (vereist in-house Roboflow-getraind model). Bron-labels (COCO class ID's) worden bewaard op elke `Detection`-record voor audit en diagnose (zodat support kan zien dat een Vehicle bijvoorbeeld een `truck` was).
 
 ### Hardware-baselines
 
@@ -152,12 +138,12 @@ Vier van de vijf categorieën zijn pretrained beschikbaar en kosten geen modelon
 
 Sequencing-besluit (11 mei 2026): Windows-baseline eerst volledig productie-rijp, daarna pas ARM-port. Voorkomt dat twee build-pijplijnen en twee runtime-stacks tegelijk worden gestabiliseerd.
 
-| Fase | Inhoud | Doel |
+| Fase | Inhoud | Status |
 |---|---|---|
-| v2.0 | Multi-class detection op Windows + dGPU (Baseline A): Face + Person + TwoWheeler + Vehicle, bbox / polygon blur per categorie. Pretrained YuNet voor gezichten, YOLOv8n COCO voor de rest | Brede privacy-baseline; retail-pilot krijgt Vehicle-mask direct, plate volgt in 2.0.x |
-| v2.0.x | LicensePlate-categorie toegevoegd zodra de in-house Roboflow-training gereed is | Retail-specifieke verfijning, geen wachttijd op de bredere v2.0-release |
-| v2.1 | Jetson Orin Nano ARM64 port (Baseline B), zelfde feature-set als v2.0(.x) | Edge-appliance variant, start pas zodra v2.0 op Windows stabiel draait |
-| v2.x | Semantic segmentation upgrade, SAM2-class op edge-appliance | Precieze contour-blur ipv polygon-approx |
+| v2.0 | Multi-class detection + segmentation op Windows + dGPU (Baseline A): Person + TwoWheeler + Vehicle via YOLO26s-seg (NMS-free, prototype masks). Per-camera config (toggle, klassen, confidence-slider met hysteresis, mask-padding, mask-stijl color-coded vs source-blur, opacity slider, ROI polygon) | ✅ gereleased 11 mei 2026 |
+| v2.0.x | LicensePlate-categorie + Reveal-flow + Adaptive-degradation (zie "Nog open binnen v2.0-scope" hieronder) | 📋 ingepland |
+| v2.1 | Jetson Orin Nano ARM64 port (Baseline B), zelfde feature-set als v2.0(.x) | 💡 start pas zodra v2.0 op Windows in productie stabiel is |
+| v2.x | Semantic segmentation upgrade, SAM2-class voor pixel-perfecte contouren | 💡 deels achterhaald — YOLO26s-seg geeft al prototype-mask segmentation; SAM2 alleen voor precisie-verfijning |
 
 ### Prerequisite-werk (kan al starten voor v2.0-scope vaststaat)
 
@@ -169,20 +155,23 @@ Sequencing-besluit (11 mei 2026): Windows-baseline eerst volledig productie-rijp
 | P4 | `IObjectDetector`-abstractie + `NullDetector` fail-safe-bridge naar full-tile blur | ✅ commit `7c13950` |
 | P5 | IPC-protocol-specificatie voor Jetson-sidecar (gRPC + mTLS) | 💡 ontwerp blijft staan voor v2.1 |
 
-### Main work (v2.0 op Windows-baseline)
+### Main work (v2.0 op Windows-baseline) — gerealiseerd
 
 | ID | Component | Status |
 |---|---|---|
-| M1 | YuNet face-detection als eerste werkend detector-backend (vervolgens vervangen) | ✅ commit `bb81f68` |
+| M1 | YuNet face-detection als eerste werkend detector-backend | ✅ commit `bb81f68` (later vervangen omdat kleine gezichten op security-camera-afstand onbetrouwbaar bleken) |
 | M2 + M3.1 | YOLOv8n COCO multi-class detection + echte regio-blur (`ImageBrush` + `BlurEffect`) | ✅ commit `bcd0f9a` |
 | M3.2 v2 | **Centralized inference coordinator**: één worker bezit de `InferenceSession`, per-stream slot-replacement, geen concurrent ORT-calls meer (was bron van eerdere native crashes) | ✅ commit `c4824d7` |
-| M3.3 | Per-camera mask-padding (0-50%) + YOLO11n forward-compat path (`ResolveYoloModelPath` prefereert `yolo11n.onnx`) | ✅ commit `f2c1781` |
+| M3.3 | Per-camera mask-padding (0-50%) + YOLO11n forward-compat path | ✅ commit `f2c1781` |
 | Fase A+B | Per-camera AI on/off + class-filter (Person/TwoWheeler/Vehicle) + per-camera modal dialog | ✅ commit `9192aeb` |
 | M3.4 | ROI polygon per camera met drag-to-move editor + bbox-centroid filter | ✅ commits `bdd39bb` + `439c899` |
-| ORT bump | Microsoft.ML.OnnxRuntime.DirectML 1.20.1 → 1.24.4 (opset 22 support, ~10% sneller op YOLOv8n) | ✅ commit `2a74ed3` |
-| YOLO11n model | Ultralytics export laadt op ORT 1.24 maar onbekende ops vallen terug op CPU → ~6x slowdown. Wachten op DirectML EP-coverage of een geoptimaliseerde export | ⏸ geblokkeerd, niet kritisch (v8n draait prima) |
+| ORT bump | Microsoft.ML.OnnxRuntime.DirectML 1.20.1 → 1.24.4 (opset 22 support, vereist voor YOLO26 modellen) | ✅ commit `2a74ed3` |
+| M3.5 | Segmentation masks (YOLO26n-seg) + colour-coded silhouettes per klasse (Person rood, TwoWheeler oranje, Vehicle blauw) + radius-40 privacy blur | ✅ commits `96c581e` + `d9c9987` |
+| YOLO26 baseline | **YOLO26s-seg** als productie-model (NMS-free, 300 detection slots, 32-channel proto-masks @ 160×160). Per-camera confidence-slider met hysteresis (15-70%, default 40%, IoU≥0.4 frame-matching) tegen flicker op kleine objecten | ✅ commit `f9f3d9b` |
+| v2.0 polish | Per-camera mask-stijl toggle (color-coded vs source-blur CCTV look) + per-camera mask-opacity slider (20-100%) + CameraAiSettingsDialog herontwerp in app-stijl (Cards, ToggleSwitch, CategoryChip pills, SegmentedOption) | ✅ commit `f0a16b6` + fixes `aee4545` / `b5b2e16` |
+| YOLO11n model | Ultralytics export laadt op ORT 1.24 maar valt terug op CPU voor onbekende ops → ~6x slowdown | ⏸ geparkeerd, niet meer relevant: YOLO26s-seg vervangt YOLO11n als architectuur-keuze |
 
-### Audit-events voor v2.0
+### Audit-events in v2.0
 
 Toegevoegd in audit-log (`%PROGRAMDATA%\InteractiveMask\audit.log`):
 
@@ -190,32 +179,58 @@ Toegevoegd in audit-log (`%PROGRAMDATA%\InteractiveMask\audit.log`):
 - `AiDetectorFault` — init-failure of niet-herstelbare runtime-fault (Display draait door op v1.x)
 - `AiDetectorStopped` — graceful dispose, met evt. dispose-error detail
 
-### Nog open binnen v2.0-scope
+Nog te implementeren in v2.0.x (zie kandidatenlijst hieronder):
 
-| Item | Notitie |
-|---|---|
-| Reveal-flow voor AI-mask | Per-tegel tijdelijke AI-uitschakeling met PIN/AD-auth en audit-event. Architectuur-doc sectie 12. |
-| Adaptieve degradatie | Runtime-monitor + degradatie-ladder uit architectuurdoc sectie 8. Nog niet nodig in praktijk; coordinator + per-camera-config halen al veel druk weg. |
-| LicensePlate-detection (v2.0.x) | Vereist door jou getraind plate-detector model. `ObjectClass.LicensePlate` enum-waarde staat klaar, `CocoMap` hoeft alleen uitbreiding bij plate-toevoeging. |
-| YOLOv8s @ 960 input optie | Voor betere small-object accuracy als gebruikers daar tegenaan blijven lopen. Halveert inference-rate per tegel. |
+- `ai.detector.degraded` / `ai.detector.restored` — gekoppeld aan adaptive-degradation
+- `ai.reveal.requested` / `ai.reveal.expired` — gekoppeld aan reveal-flow
+
+---
+
+## v2.0.x patches 📋
+
+Korte-termijn point releases na de v2.0.0-tag. Twee sporen: functionele AI-uitbreidingen en carry-over polish.
+
+### Functionele AI-uitbreidingen (v2.0.x feature-batch)
+
+| ID | Item | Inschatting | Bron |
+|---|---|---|---|
+| F1 | **LicensePlate-categorie** — `ObjectClass.LicensePlate` enum staat al klaar; vereist alleen het in-house Roboflow-getraind plate-detector model en `CocoMap`-uitbreiding bij integratie | wachten op model + ~1 dag | retail-partner request (oorspronkelijke v2.0-aanleiding) |
+| F2 | **Reveal-flow voor AI-mask** — per-tegel tijdelijke AI-uitschakeling met PIN/AD-auth, duur-keuze (30 s / 1 min / 5 min / tot expliciete re-mask), audit-events `ai.reveal.requested` + `ai.reveal.expired` | 2 dagen | architectuur §12 |
+| F3 | **Adaptieve degradatie-ladder** — runtime-monitor leest latency / queue-depth / GPU-load, scaalt rate (15→10→5→1 fps) / resolutie (640→480→320) / mask-type (polygon→bbox) trapsgewijs af bij overload. Audit-events `ai.detector.degraded` + `ai.detector.restored`. Niet kritisch in praktijk (coordinator + per-camera-config dempen al veel) maar vereist voordat we 16-stream deployments officieel ondersteunen | 3 dagen | architectuur §8 |
+
+### Carry-over polish (v1.3 pre-release review)
+
+Niet gekoppeld aan AI-werk. Kandidaten voor combinatie in een v2.0.1.
+
+| Bron | Onderwerp | Inschatting | Status |
+|---|---|---|---|
+| ~~Pre-release M2/M3/M4~~ | ~~Dead localized strings (NavGrid, GridPageTitle, AdminLangNl/En, StatusError) opruimen~~ | ~~30 min~~ | ✅ commit `20954d8` |
+| Pre-release M5 | `PrimePrivacyDefaultState` bumpt PIN-counter niet; consistent maken met `OnMaskApplied` per tegel | 30 min | 📋 |
+| Pre-release M7 | `ApplyCameraChangesLive` doet onnodige `UpdateLabel` + `NvrTitle`-assign voor onveranderde tegels | 1 uur | 📋 |
+| ~~Pre-release M8~~ | ~~`FetchCameraNamesAsync` gooit altijd `TimeoutException`, ook bij externe cancellation; differentiëren met `TaskCanceledException`~~ | ~~30 min~~ | ✅ commit `20954d8` |
+| ~~Pre-release M10~~ | ~~Hard-coded Dutch error string in Help-open path; loc-key toevoegen~~ | ~~30 min~~ | ✅ commit `20954d8` |
+| Pre-release L2 | Per-frame closure-allocation in `TileViewModel.OnFrameDecoded` (preexisting, niet v1.3-regressie) | 2 uur | ⏸ alleen bij bewezen GC-pressure |
+| Code-analyse #9 | `AuditLog.Write` doet sync file-IO op UI-thread (lange-levende `StreamWriter` ipv `File.AppendAllText`) | 1 uur | ⏸ "laat staan" tenzij merkbare hapering |
+| Code-analyse #10 | `WebAccessSessionStore` heeft geen periodieke sweep van verlopen tokens | 30 min | 📋 |
+| Field feedback | Hogere-resolutie IDIS-logo (2048 × 1024 of vector) zodra aangeleverd | 5 min vervangen | 💡 |
 
 ---
 
 ## Architectuur-evoluties (v2.x en later)
 
-Out-of-scope voor v1.x en niet gebonden aan een specifiek releasespoor. Vastgelegd zodat we ze niet vergeten.
+Out-of-scope voor v2.0 en niet gebonden aan een specifiek releasespoor. Vastgelegd zodat we ze niet vergeten.
 
 ### Hot-swappable Display zonder restart
 
-Op dit moment vraagt elke structurele wijziging (NVR-fleet, camera-bindings, grid-grootte, privacy-mode) een Display-restart. Voor 24/7 zorgomgevingen is een restart-vrije live-apply path waardevol. Kost een aanzienlijke refactor van NvrSession-lifecycle en het GDK-decoder slot management.
+Op dit moment vraagt elke structurele wijziging (NVR-fleet, camera-bindings, grid-grootte, privacy-mode) een Display-restart. Voor 24/7 deploymentomgevingen is een restart-vrije live-apply path waardevol. Kost een aanzienlijke refactor van `NvrSession`-lifecycle en het GDK-decoder slot management.
 
 ### Cross-platform overweging
 
-Huidige stack is .NET 9 + WPF + IDIS GDK x64. WPF is Windows-only. Eerder genoteerd als mogelijke Avalonia-port; sinds v2.0 deels achterhaald omdat de Jetson-sidecar-aanpak een ARM64/Linux-pad biedt zonder de Display-UI te porten. Volledige cross-platform Display blijft een open vraag voor een hypothetische v3.0.
+Huidige stack is .NET 9 + WPF + IDIS GDK x64. WPF is Windows-only. Eerder genoteerd als mogelijke Avalonia-port; sinds v2.0 deels achterhaald omdat de Jetson-sidecar-aanpak in v2.1 een ARM64/Linux-pad biedt zonder de Display-UI te porten. Volledige cross-platform Display blijft een open vraag voor een hypothetische v3.0.
 
 ### IPC herzien
 
-Named-pipe + length-prefixed JSON werkt prima single-machine voor Display ↔ WebHost. De v2.0 detector-IPC introduceert gRPC over TLS naast deze pipe. Op termijn zou een unificatie naar gRPC voor beide kanalen kunnen, mits er een concrete distributie-vraag komt.
+Named-pipe + length-prefixed JSON werkt prima single-machine voor Display ↔ WebHost. v2.0 ship in-process detection (geen netwerk-IPC nodig); de v2.1 Jetson-sidecar introduceert gRPC over TLS naast deze pipe. Op termijn zou een unificatie naar gRPC voor beide kanalen kunnen, mits er een concrete distributie-vraag komt.
 
 ---
 
