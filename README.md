@@ -1,6 +1,6 @@
 # InteractiveMask
 
-**Version 1.3.0**
+**Version 2.0.0**
 
 ## Demo
 
@@ -12,20 +12,22 @@ Windowless C# / .NET 9 / WPF kiosk application that connects to one or more **ID
 
 A companion ASP.NET Core WebHost provides the same functionality over a browser, communicating with the kiosk over a local named-pipe IPC channel.
 
-## What's new in 1.3.0
+## What's new in 2.0.0
 
-- **Five UI languages** — NL, EN, DE, FR, ES, with a first-run picker, live language switching, and an MSI command-line seed (`INTERACTIVEMASK_LANGUAGE=de`) for SCCM / Intune mass-rollout.
-- **Long-press mass mask / unmask** — hold anywhere on the screen for 500 ms to mask or unmask every tile at once (state-guarded against accidental privacy breach in mixed states).
-- **Privacy-default mode** — boot with all tiles blurred; tap to briefly reveal for verification, auto-rollback restores privacy. Switchable per installation.
-- **Multi-NVR support** — one screen can show tiles from multiple IDIS recorders side by side; per-tile NVR + camera + stream selection.
-- **NVR camera-name sync** — pull the camera titles configured on the NVR straight into Setup, side-by-side with operator-typed labels (separate fields, never overwritten).
-- **Drag-and-drop tile reorder** — rearrange the slot bindings in Setup with a grip handle; slot numbers renumber automatically.
-- **Apply button** — push changes to the running kiosk without closing the Setup window.
-- **About tab** — version, publisher, copyright, integrations, open-source license attributions, bug-report link.
-- **5×5 grid** option (25 tiles).
-- **Aspect-ratio fix** for non-16:9 cameras (4:3, 5:4, 1:1 fish-eye, 21:9): tiles now letterbox / pillarbox to preserve the full image instead of cropping.
+- **AI-driven privacy masking** — YOLO26s-seg segmentation runs locally on the GPU via DirectML and applies privacy masks per detected object instead of the whole tile. Three categories: **Person** (red), **TwoWheeler** (orange), **Vehicle** (blue).
+- **Per-camera AI configuration** — enable / disable per camera, pick categories, tune confidence threshold (15–70 %) with hysteresis to remove flicker on small / distant objects, set mask-padding (0–50 %).
+- **Region of Interest polygon** — draw a polygon on a live snapshot to restrict detection to a specific area; detections outside the polygon are not masked. Drag-to-move on existing vertices.
+- **Mask-style toggle** — choose between **Color-coded silhouette** (per-class colour clipped by the segmentation mask) and **Source blur** (classic CCTV look — the camera area itself blurred).
+- **Mask opacity slider** — 20–100 % per camera so operators can let background context show through when needed.
+- **Redesigned AI-settings dialog** in the app's card-style language, fully localized NL / EN / DE / FR / ES.
+- **About tab → AI runtime info** — live model name, execution provider, average inference latency, frame counter.
+- **Audit-log coverage** for the full AI lifecycle (model load, per-camera enable, ROI edits, threshold changes).
+- **ONNX Runtime DirectML** upgraded 1.20.1 → 1.24.4.
+- **Centralized inference coordinator** — single background worker per camera; no more native crashes under concurrent inference attempts.
 
-See [`docs/release-notes-1.3.0.md`](docs/release-notes-1.3.0.md) for the full list, including the four pre-release HIGH-severity fixes and the ConfigService persistence repair.
+See [`docs/release-notes-2.0.0.md`](docs/release-notes-2.0.0.md) for the full list, breaking-change notes, acceptance tests, and the upgrade path from v1.3.x.
+
+The v1.3.0 release notes remain at [`docs/release-notes-1.3.0.md`](docs/release-notes-1.3.0.md) for reference.
 
 ## Features
 
@@ -85,15 +87,15 @@ dotnet build InteractiveMask.sln -c Release -p:Platform=x64
 To produce an MSI:
 
 ```powershell
-.\build-installer.ps1 -Version 1.3.0
+.\build-installer.ps1 -Version 2.0.0
 ```
 
 For a signed MSI (Authenticode — e.g. SafeNet EV-token cert in `CurrentUser\My`):
 
 ```powershell
-.\build-installer.ps1 -Version 1.3.0 -Sign -CertSubject 'IDIS Nederland BV'
+.\build-installer.ps1 -Version 2.0.0 -Sign -CertSubject 'IDIS Nederland BV'
 # or by thumbprint:
-.\build-installer.ps1 -Version 1.3.0 -Sign -CertThumbprint <40-hex>
+.\build-installer.ps1 -Version 2.0.0 -Sign -CertThumbprint <40-hex>
 ```
 
 `-Sign` first signs every `InteractiveMask.*.exe` / `.dll` (so the cab embedded in the MSI contains signed binaries) and then signs the MSI itself. SHA-256 file digest + SHA-256 timestamp digest. The default timestamp server is DigiCert; override via `-TimestampUrl`.
@@ -103,7 +105,7 @@ For a signed MSI (Authenticode — e.g. SafeNet EV-token cert in `CurrentUser\My
 For SCCM / Intune / mass-rollout scenarios, pre-seed the UI language so end-users don't see the first-run picker:
 
 ```
-msiexec /i InteractiveMask-1.3.0.msi /qn INTERACTIVEMASK_LANGUAGE=de
+msiexec /i InteractiveMask-2.0.0.msi /qn INTERACTIVEMASK_LANGUAGE=de
 ```
 
 The value is written to `HKLM\Software\InteractiveMask\InitialLanguage`. App.OnStartup picks it up on first run and skips the picker. Supported codes: `nl`, `en`, `de`, `fr`, `es`. Without the property the registry stays untouched and the first-run picker appears as usual.
