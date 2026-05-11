@@ -8,13 +8,40 @@ namespace InteractiveMask.WebHost;
 /// successful login, sliding-window expiry. Loses sessions on service restart
 /// (acceptable: user logs in again — we deliberately avoid a persistent store
 /// so an admin who disables auth doesn't leave dangling sessions on disk).
+/// <para>
+/// Expired entries are normally only removed on the next <see cref="TryRefresh"/>
+/// for that specific token. Tokens that no client ever re-presents (the user
+/// closed the tab, the cookie expired client-side) would otherwise linger
+/// indefinitely; a periodic sweep evicts them. Registered as a DI singleton,
+/// so the runtime disposes the timer at service shutdown.
+/// </para>
 /// </summary>
-public sealed class WebAccessSessionStore
+public sealed class WebAccessSessionStore : IDisposable
 {
     public const string CookieName = "im_session";
     public static TimeSpan DefaultLifetime { get; } = TimeSpan.FromHours(8);
 
+    /// <summary>
+    /// How often the background sweep evicts expired entries. Decoupled from
+    /// the cookie TTL — sweeping more often than every few minutes is wasted
+    /// work, sweeping rarely is fine because each entry is at most a tiny
+    /// record (subject + DateTime).
+    /// </summary>
+    private static readonly TimeSpan SweepInterval = TimeSpan.FromMinutes(15);
+
     private readonly ConcurrentDictionary<string, SessionEntry> _sessions = new();
+    private readonly Timer _sweepTimer;
+    private int _disposed;
+
+    public WebAccessSessionStore()
+    {
+        // Start the timer at construction so the sweep cadence is independent
+        // of when the first session is issued. dueTime == period so the first
+        // tick is one interval out (no need to sweep an empty dictionary at
+        // startup).
+        _sweepTimer = new Timer(_ => SweepExpired(), state: null,
+            dueTime: SweepInterval, period: SweepInterval);
+    }
 
     public string Issue(string subject)
     {
@@ -48,6 +75,34 @@ public sealed class WebAccessSessionStore
     /// <summary>Wipe every active session. Called when the admin changes the
     /// access mode/PIN so previously-issued tokens stop working immediately.</summary>
     public void RevokeAll() => _sessions.Clear();
+
+    /// <summary>
+    /// Sweep expired entries. ConcurrentDictionary iteration is safe to do
+    /// while other threads add / remove entries; the snapshot enumerator
+    /// reflects entries that exist at the time each element is visited.
+    /// </summary>
+    private void SweepExpired()
+    {
+        if (Volatile.Read(ref _disposed) != 0) return;
+
+        var nowUtc = DateTime.UtcNow;
+        foreach (var kvp in _sessions)
+        {
+            if (kvp.Value.ExpiryUtc <= nowUtc)
+            {
+                // TryRemove with the value-overload avoids the race where the
+                // entry has just been refreshed by an authenticated request
+                // between our check and the remove.
+                _sessions.TryRemove(new KeyValuePair<string, SessionEntry>(kvp.Key, kvp.Value));
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        _sweepTimer.Dispose();
+    }
 
     private static string GenerateToken()
     {
