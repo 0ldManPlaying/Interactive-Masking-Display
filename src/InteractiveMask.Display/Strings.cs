@@ -393,6 +393,11 @@ public sealed class StringsTable
     public string AiRevealBadgeRemask { get; init; } = "";
     public string AiRevealIconTooltip { get; init; } = "";
 
+    // Adaptive load badge (v2.0.x F3) - shown on tiles whose AI was
+    // suspended by the runtime controller to relieve overall load.
+    public string AiSuspendedByLoadBadge { get; init; } = "";
+    public string AiSuspendedByLoadTooltip { get; init; } = "";
+
     public string AiRoiSection { get; init; } = "";
     public string AiRoiButton { get; init; } = "";
     public string AiRoiHint { get; init; } = "";
@@ -698,6 +703,9 @@ public sealed class StringsTable
         AiRevealBadgeIndefinite       = "AI uit",
         AiRevealBadgeRemask           = "Her-masken",
         AiRevealIconTooltip           = "AI-mask tijdelijk uitzetten…",
+
+        AiSuspendedByLoadBadge        = "AI gepauzeerd (belasting)",
+        AiSuspendedByLoadTooltip      = "AI tijdelijk uitgeschakeld om GPU-belasting te verlagen. Wordt automatisch hersteld zodra de belasting daalt.",
         AiRoiSection              = "Region of Interest",
         AiRoiButton               = "ROI tekenen…",
         AiRoiHint                 = "Beperk de detectie tot een polygon-gebied. Detecties buiten het gebied worden niet gemaskeerd.",
@@ -1004,6 +1012,9 @@ public sealed class StringsTable
         AiRevealBadgeIndefinite       = "AI off",
         AiRevealBadgeRemask           = "Remask",
         AiRevealIconTooltip           = "Temporarily disable AI mask…",
+
+        AiSuspendedByLoadBadge        = "AI paused (load)",
+        AiSuspendedByLoadTooltip      = "AI is temporarily disabled to relieve GPU load. The kiosk restores it automatically once load drops.",
         AiRoiSection              = "Region of Interest",
         AiRoiButton               = "Draw ROI…",
         AiRoiHint                 = "Limit detection to a polygon area. Detections outside the polygon are not masked.",
@@ -1315,6 +1326,9 @@ public sealed class StringsTable
         AiRevealBadgeIndefinite       = "KI aus",
         AiRevealBadgeRemask           = "Wieder maskieren",
         AiRevealIconTooltip           = "KI-Maske vorübergehend deaktivieren…",
+
+        AiSuspendedByLoadBadge        = "KI pausiert (Last)",
+        AiSuspendedByLoadTooltip      = "KI ist vorübergehend deaktiviert, um die GPU-Last zu reduzieren. Wird automatisch wiederhergestellt, sobald die Last sinkt.",
         AiRoiSection              = "Bereich (ROI)",
         AiRoiButton               = "ROI zeichnen…",
         AiRoiHint                 = "Erkennung auf einen Polygon-Bereich beschränken. Erkennungen außerhalb werden nicht maskiert.",
@@ -1621,6 +1635,9 @@ public sealed class StringsTable
         AiRevealBadgeIndefinite       = "IA off",
         AiRevealBadgeRemask           = "Re-masquer",
         AiRevealIconTooltip           = "Désactiver temporairement le masque IA…",
+
+        AiSuspendedByLoadBadge        = "IA en pause (charge)",
+        AiSuspendedByLoadTooltip      = "L'IA est temporairement désactivée pour soulager la charge GPU. Restauration automatique dès que la charge baisse.",
         AiRoiSection              = "Zone d'intérêt",
         AiRoiButton               = "Dessiner la zone…",
         AiRoiHint                 = "Limite la détection à une zone polygonale. Les détections hors de la zone ne sont pas masquées.",
@@ -1927,6 +1944,9 @@ public sealed class StringsTable
         AiRevealBadgeIndefinite       = "IA off",
         AiRevealBadgeRemask           = "Volver a enmascarar",
         AiRevealIconTooltip           = "Desactivar temporalmente la máscara IA…",
+
+        AiSuspendedByLoadBadge        = "IA en pausa (carga)",
+        AiSuspendedByLoadTooltip      = "La IA está desactivada temporalmente para aliviar la carga de la GPU. Se restaura automáticamente cuando la carga baja.",
         AiRoiSection              = "Región de interés",
         AiRoiButton               = "Dibujar región…",
         AiRoiHint                 = "Limita la detección a un área poligonal. Las detecciones fuera del área no se enmascaran.",

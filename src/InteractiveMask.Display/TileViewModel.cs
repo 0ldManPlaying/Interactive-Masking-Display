@@ -53,6 +53,33 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     private const int DetectorEveryNFrames = 8;
 
     /// <summary>
+    /// Adaptive load controller (v2.0.x F3). When non-null OnFrameDecoded
+    /// multiplies <see cref="DetectorEveryNFrames"/> by the controller's
+    /// <see cref="DegradationController.FrameSkipMultiplier"/> and skips
+    /// submission entirely if this tile's slot is in
+    /// <see cref="DegradationController.DisabledStreams"/>. MainWindow
+    /// assigns the same controller instance to every tile after the
+    /// detector finishes initialising.
+    /// </summary>
+    public DegradationController? Degradation { get; set; }
+
+    /// <summary>True when the adaptive controller has taken this tile's AI
+    /// offline to relieve GPU load (v2.0.x F3). Drives a small status badge
+    /// on the live tile - see MainWindow.xaml. INPC-notified from the
+    /// controller's StateChanged handler in MainWindow.</summary>
+    public bool IsAiSuspendedByLoad
+    {
+        get => _isAiSuspendedByLoad;
+        set
+        {
+            if (_isAiSuspendedByLoad == value) return;
+            _isAiSuspendedByLoad = value;
+            OnPropertyChanged(nameof(IsAiSuspendedByLoad));
+        }
+    }
+    private bool _isAiSuspendedByLoad;
+
+    /// <summary>
     /// Per-camera v2.0 AI on/off. When false, OnFrameDecoded bypasses the detector
     /// submission path entirely so cameras pointing at irrelevant scenes (lawns,
     /// walls, ceilings) don't waste GPU. Mirrors CameraSlotSettings.AiEnabled and
@@ -587,7 +614,21 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         if (detector != null && AiEnabled && !_isMasked && detector.Status == DetectorStatus.Ready)
         {
             _frameCount++;
-            if (_frameCount % DetectorEveryNFrames == 0)
+
+            // Honour the adaptive controller (F3) if attached. Two effects:
+            //  - Inflate the cadence by FrameSkipMultiplier so an overloaded
+            //    detector receives proportionally fewer frames per tile.
+            //  - Skip submission entirely when this tile's slot is in the
+            //    DisabledStreams set (PerCameraDisable / GlobalFallback). The
+            //    overlay collapses on the UI side because TileViewModel's
+            //    IsAiSuspendedByLoad flag is set by the controller-state
+            //    handler in MainWindow.
+            var deg = Degradation;
+            int multiplier = deg?.FrameSkipMultiplier ?? 1;
+            int effectiveEvery = DetectorEveryNFrames * multiplier;
+            bool disabledByLoad = deg is not null && deg.DisabledStreams.Contains(SlotIndex);
+
+            if (!disabledByLoad && _frameCount % effectiveEvery == 0)
             {
                 int byteLen = frame.Stride * frame.Height;
                 var bgra = new byte[byteLen];

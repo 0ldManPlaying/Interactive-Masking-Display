@@ -46,6 +46,14 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
     public event EventHandler<DetectorStatus>? StatusChanged;
 
+    /// <summary>
+    /// Adaptive load controller (v2.0.x F3) created during initialise. Display
+    /// subscribes to its StateChanged event to drive the per-tile UI badges
+    /// and the audit-log entries; the coordinator feeds it inference latencies.
+    /// Null until InitializeAsync has completed successfully.
+    /// </summary>
+    public DegradationController? Degradation => _coordinator?.DegradationController;
+
     public async Task InitializeAsync(DetectorConfig config, CancellationToken ct = default)
     {
         if (_coordinator != null)
@@ -64,7 +72,14 @@ public sealed class OnnxLocalDetector : IObjectDetector
             {
                 var modelPath = ResolveYoloModelPath();
                 resolvedModelName = Path.GetFileNameWithoutExtension(modelPath);
-                built = new InferenceCoordinator(modelPath);
+                built = new InferenceCoordinator(modelPath)
+                {
+                    // Attach the adaptive controller (F3) so the worker feeds
+                    // it inference latencies on every Run. The Display project
+                    // subscribes via OnnxLocalDetector.Degradation after
+                    // InitializeAsync returns.
+                    DegradationController = new DegradationController(),
+                };
                 built.SetConfidenceThreshold(ResolveObjectConfidence());
             }, ct).ConfigureAwait(false);
 

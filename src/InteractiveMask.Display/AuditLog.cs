@@ -62,6 +62,22 @@ public enum AuditEventType
     /// "tile-rebound" (camera binding changed in Setup → Apply).
     /// </summary>
     AiRevealExpired,
+    /// <summary>
+    /// v2.0.x: adaptive load manager (F3) escalated one step on the degradation
+    /// ladder. Detail carries from→to state, frame-skip multiplier, p95
+    /// inference latency that triggered the step, and the count of streams
+    /// currently auto-disabled. Operators get a small status badge on
+    /// affected tiles; this audit row gives them the underlying numbers if
+    /// the badge is queried later.
+    /// </summary>
+    AiDetectorDegraded,
+    /// <summary>
+    /// v2.0.x: adaptive load manager recovered one step (reverse of
+    /// <see cref="AiDetectorDegraded"/>). Same detail shape. When the system
+    /// returns all the way to Normal the AppRoot also clears the per-tile
+    /// IsAiSuspendedByLoad flag so the badges disappear.
+    /// </summary>
+    AiDetectorRestored,
 }
 
 /// <summary>One row in the audit log. Serialised as a JSON object on a single line.</summary>

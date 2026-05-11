@@ -813,6 +813,11 @@ public partial class MainWindow : Window
             }
         }
 
+        // F3: the eligible-streams set may have changed (operator toggled AI
+        // on/off on one or more cameras). Push the new set to the adaptive
+        // controller so its disable-victim logic reads from the current grid.
+        RefreshDegradationEligibleStreams();
+
         // Step 4 — refresh labels, NVR titles and v2.0 AI settings for cameras
         // whose only change was a non-rebind field. Toggling AI on/off or changing
         // categories in Setup takes effect immediately on Apply without needing
@@ -973,7 +978,18 @@ public partial class MainWindow : Window
         _ipcBroadcaster = null;
         // Detach the AI detector from each tile before disposing so any in-flight
         // SubmitDetectionAsync calls won't try to assign back to a torn-down VM.
-        foreach (var tile in _viewModel.Tiles) tile.AttachDetector(null);
+        foreach (var tile in _viewModel.Tiles)
+        {
+            tile.AttachDetector(null);
+            tile.Degradation = null;       // F3: drop the controller reference
+        }
+        if (_aiDetector is OnnxLocalDetector localBeforeDispose
+            && localBeforeDispose.Degradation is { } degBefore)
+        {
+            // F3: unsubscribe so the controller can't fire StateChanged into
+            // the about-to-be-torn-down window once dispose returns.
+            degBefore.StateChanged -= OnDegradationStateChanged;
+        }
         if (_aiDetector != null)
         {
             try
@@ -1054,7 +1070,20 @@ public partial class MainWindow : Window
             foreach (var tile in _viewModel.Tiles)
             {
                 tile.AttachDetector(detector);
+                // F3: every tile reads the same DegradationController so the
+                // adaptive frame-skip multiplier and the disabled-streams
+                // set apply uniformly across the grid.
+                tile.Degradation = detector.Degradation;
             }
+
+            // F3: subscribe to degradation transitions for audit + the
+            // per-tile "AI suspended by load" badge.
+            if (detector.Degradation is not null)
+            {
+                detector.Degradation.StateChanged += OnDegradationStateChanged;
+                RefreshDegradationEligibleStreams();
+            }
+
             _audit.Write(AuditEventType.AiDetectorInit, source: "ai-detector",
                 detail: $"{detector.Capability.BackendName}: {detector.Capability.ModelDescription}");
         }
@@ -1063,6 +1092,69 @@ public partial class MainWindow : Window
             _audit.Write(AuditEventType.AiDetectorFault, source: "ai-detector",
                 detail: $"init failed, falling back to v1.x masking: {ex.GetType().Name}: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// F3: handle a degradation-state transition raised by
+    /// <see cref="DegradationController"/>. Two side effects:
+    /// 1. Update each tile's <see cref="TileViewModel.IsAiSuspendedByLoad"/>
+    ///    so the on-tile badge appears / disappears.
+    /// 2. Write an <see cref="AuditEventType.AiDetectorDegraded"/> or
+    ///    <see cref="AuditEventType.AiDetectorRestored"/> event with the
+    ///    transition detail.
+    /// Marshalled onto the UI thread; the controller raises from whatever
+    /// thread did the latency feed.
+    /// </summary>
+    private void OnDegradationStateChanged(object? sender, DegradationStateChange e)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => OnDegradationStateChanged(sender, e));
+            return;
+        }
+
+        // Update tile badges. A tile is "suspended by load" iff its slot
+        // index is in the disabled-streams set right now.
+        foreach (var tile in _viewModel.Tiles)
+        {
+            tile.IsAiSuspendedByLoad = e.DisabledStreams.Contains(tile.SlotIndex);
+        }
+
+        // Audit. The detail line is compact but self-describing so support can
+        // grep audit.log for "GlobalFallback" or "p95=" without guesswork.
+        string detail = string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0} -> {1}; mult {2} -> {3}; disabled={4}; p95={5:0}ms",
+            e.FromState, e.ToState,
+            e.FromMultiplier, e.ToMultiplier,
+            e.DisabledStreams.Count,
+            e.P95LatencyMs);
+
+        var type = e.Direction == DegradationDirection.Escalate
+            ? AuditEventType.AiDetectorDegraded
+            : AuditEventType.AiDetectorRestored;
+        _audit.Write(type, source: "ai-detector", detail: detail);
+    }
+
+    /// <summary>
+    /// F3: feed the controller the current set of streams that are AI-eligible
+    /// (i.e. operator has AiEnabled=true and a camera is bound). Called from
+    /// post-init and from Setup → Apply.
+    /// </summary>
+    private void RefreshDegradationEligibleStreams()
+    {
+        // The controller is only attached to the local-ONNX backend; remote
+        // backends (v2.1 Jetson sidecar) run their own degradation logic and
+        // don't expose this surface yet.
+        var degradation = (_aiDetector as OnnxLocalDetector)?.Degradation;
+        if (degradation is null) return;
+
+        var eligible = new List<int>();
+        foreach (var tile in _viewModel.Tiles)
+        {
+            if (tile.HasCamera && tile.AiEnabled) eligible.Add(tile.SlotIndex);
+        }
+        degradation.SetEligibleStreams(eligible);
     }
 
     /// <summary>

@@ -78,6 +78,15 @@ public sealed class InferenceCoordinator : IAsyncDisposable
 
     public string ExecutionProvider { get; }
 
+    /// <summary>
+    /// Optional adaptive load controller (v2.0.x F3). When attached, each
+    /// completed inference's latency is forwarded here so the controller can
+    /// drive the frame-skip multiplier + per-camera disable ladder on
+    /// persistent overload. Owned by the Display project; left null when no
+    /// adaptive behaviour is desired (e.g. unit tests, simple workloads).
+    /// </summary>
+    public DegradationController? DegradationController { get; set; }
+
     public InferenceCoordinator(string modelPath, int maxStreams = 32)
     {
         if (maxStreams <= 0) throw new ArgumentOutOfRangeException(nameof(maxStreams));
@@ -214,12 +223,20 @@ public sealed class InferenceCoordinator : IAsyncDisposable
         }
 
         sw.Stop();
+        double latencyMs = sw.Elapsed.TotalMilliseconds;
+
+        // Feed the adaptive controller (F3) outside the InferenceSession-using
+        // path so the lock contention - if the controller's StateChanged
+        // handler is slow - doesn't extend the time we hold inputs/outputs.
+        // Null-safe: many test/lightweight setups attach no controller.
+        DegradationController?.RecordLatency(latencyMs);
+
         return new DetectionFrame(
             FrameTimestampTicks: bitmapFrame.TimestampTicks,
             StreamId: bitmapFrame.StreamId,
             Detections: detections,
             Metrics: new DetectorMetrics(
-                InferenceLatencyMs: sw.Elapsed.TotalMilliseconds,
+                InferenceLatencyMs: latencyMs,
                 QueueDepth: 0,
                 GpuUtilizationPercent: null));
     }

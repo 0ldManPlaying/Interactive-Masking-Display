@@ -329,6 +329,38 @@
                                VerticalAlignment="Center" />
                 </Border>
 
+                <!-- AI suspended-by-load badge (v2.0.x F3).
+                     Shown on tiles whose AI was auto-disabled by the adaptive
+                     load controller. Lives bottom-left (below the AI-icon
+                     position) so it doesn't fight the reveal-action triggers
+                     in the top corners. Disappears automatically when the
+                     controller restores this stream. -->
+                <Border x:Name="AiSuspendedByLoadBadge"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="8,40,0,0"
+                        Padding="8,3"
+                        CornerRadius="10"
+                        Background="#A0000000"
+                        BorderBrush="#FFB347"
+                        BorderThickness="1"
+                        IsHitTestVisible="True"
+                        ToolTip="{Binding Source={x:Static local:Strings.Instance}, Path=Current.AiSuspendedByLoadTooltip}"
+                        Visibility="{Binding IsAiSuspendedByLoad, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="6" Height="6"
+                                 Fill="#FFB347"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding Source={x:Static local:Strings.Instance}, Path=Current.AiSuspendedByLoadBadge}"
+                                   Foreground="#E6E6E6"
+                                   FontFamily="Segoe UI"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
                 <!-- Bottom status bar.
                      Left:  status dot + NVR-side camera title + status text.
                      Right: operator label + privacy badge.
