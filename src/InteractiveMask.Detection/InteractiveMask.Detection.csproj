@@ -21,10 +21,10 @@
          detector implementation; replace / add files here rather than editing code. -->
     <!-- Content (not None) so the model copies transitively to any project that
          references InteractiveMask.Detection, including the Display app. -->
-    <Content Include="models\face_detection_yunet_2023mar.onnx">
+    <Content Include="models\yolov8n.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <Link>models\face_detection_yunet_2023mar.onnx</Link>
+      <Link>models\yolov8n.onnx</Link>
     </Content>
   </ItemGroup>
 

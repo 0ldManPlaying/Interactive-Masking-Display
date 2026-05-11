@@ -827,15 +827,23 @@ public partial class MainWindow : Window
         {
             var detector = new OnnxLocalDetector();
             var config = new DetectorConfig(
-                EnabledClasses: new HashSet<ObjectClass> { ObjectClass.Face },
+                EnabledClasses: new HashSet<ObjectClass>
+                {
+                    ObjectClass.Person,
+                    ObjectClass.TwoWheeler,
+                    ObjectClass.Vehicle,
+                },
                 ConfidenceThresholds: new Dictionary<ObjectClass, float>
                 {
-                    // 0.7 is a pragmatic compromise: real faces typically score 0.85+
-                    // on YuNet so we keep them, while filtering pattern-shaped false
-                    // positives that tend to cluster between 0.55-0.68. Fish-eye and
-                    // heavily distorted feeds will still mis-fire here and there;
-                    // proper dewarping is a v2.0 main-work item.
-                    [ObjectClass.Face] = 0.7f,
+                    // YOLOv8n COCO scores confident objects above 0.5 typically;
+                    // 0.3 captures less certain detections (parked vehicles at
+                    // distance, partially occluded persons) and substantially
+                    // reduces the on/off flicker seen with 0.4 around static
+                    // objects whose score wavers per-frame. Per-category tuning
+                    // lands in M3.x Setup UI.
+                    [ObjectClass.Person]     = 0.3f,
+                    [ObjectClass.TwoWheeler] = 0.3f,
+                    [ObjectClass.Vehicle]    = 0.3f,
                 },
                 MaxQueueDepth: 1,
                 PreferPolygonMasks: false);

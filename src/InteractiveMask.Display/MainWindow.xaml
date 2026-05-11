@@ -20,6 +20,7 @@
              StaticResource; WPF resolves StaticResource at parse time and cannot
              handle forward references. -->
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <local:BoundingBoxToViewboxConverter x:Key="BoxToViewbox" />
 
         <DataTemplate DataType="{x:Type local:TileViewModel}">
             <!-- Background must be solid (not Transparent) for hit-testing to fire
@@ -99,9 +100,39 @@
                             </ItemsControl.ItemContainerStyle>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
+                                    <!-- Real per-region blur. The ImageBrush samples the
+                                         detection's pixel rectangle out of the tile's
+                                         WriteableBitmap (Viewbox in absolute pixel units)
+                                         and renders it onto a same-sized Rectangle. The
+                                         BlurEffect on top scrambles the sampled pixels so
+                                         features are no longer recognizable while colour /
+                                         brightness silhouettes remain. The ImageSource is
+                                         pulled from the parent TileViewModel via the
+                                         ItemsControl's DataContext; per-item DataContext
+                                         is a DetectedObject. -->
                                     <Rectangle Width="{Binding Box.Width}"
-                                               Height="{Binding Box.Height}"
-                                               Fill="#80FF0000" />
+                                               Height="{Binding Box.Height}">
+                                        <Rectangle.Fill>
+                                            <ImageBrush
+                                                ImageSource="{Binding DataContext.Bitmap, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
+                                                ViewboxUnits="Absolute"
+                                                Stretch="Fill">
+                                                <ImageBrush.Viewbox>
+                                                    <MultiBinding Converter="{StaticResource BoxToViewbox}">
+                                                        <Binding Path="Box.X" />
+                                                        <Binding Path="Box.Y" />
+                                                        <Binding Path="Box.Width" />
+                                                        <Binding Path="Box.Height" />
+                                                    </MultiBinding>
+                                                </ImageBrush.Viewbox>
+                                            </ImageBrush>
+                                        </Rectangle.Fill>
+                                        <Rectangle.Effect>
+                                            <BlurEffect Radius="25"
+                                                        KernelType="Gaussian"
+                                                        RenderingBias="Performance" />
+                                        </Rectangle.Effect>
+                                    </Rectangle>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

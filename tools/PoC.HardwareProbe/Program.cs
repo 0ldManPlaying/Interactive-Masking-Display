@@ -88,12 +88,12 @@ try
 {
     await using var nullDetector = new NullDetector();
     var config = new DetectorConfig(
-        EnabledClasses: new HashSet<ObjectClass> { ObjectClass.Face, ObjectClass.Person, ObjectClass.Vehicle },
+        EnabledClasses: new HashSet<ObjectClass> { ObjectClass.Person, ObjectClass.TwoWheeler, ObjectClass.Vehicle },
         ConfidenceThresholds: new Dictionary<ObjectClass, float>
         {
-            [ObjectClass.Face] = 0.5f,
-            [ObjectClass.Person] = 0.4f,
-            [ObjectClass.Vehicle] = 0.4f,
+            [ObjectClass.Person]     = 0.4f,
+            [ObjectClass.TwoWheeler] = 0.4f,
+            [ObjectClass.Vehicle]    = 0.4f,
         },
         MaxQueueDepth: 1,
         PreferPolygonMasks: false);
@@ -116,28 +116,38 @@ catch (Exception ex)
 }
 
 // ------------------------------------------------------------------
-// OnnxLocalDetector smoke test (M1 deliverable: YuNet faces)
+// OnnxLocalDetector smoke test (M2: YOLOv8n COCO multi-class)
 // ------------------------------------------------------------------
 Console.WriteLine();
-Console.WriteLine("OnnxLocalDetector smoke test (YuNet face-detection)...");
+Console.WriteLine("OnnxLocalDetector smoke test (YOLOv8n COCO Person / TwoWheeler / Vehicle)...");
 try
 {
-    await using var faceDetector = new OnnxLocalDetector();
+    await using var detector = new OnnxLocalDetector();
     var detectorConfig = new DetectorConfig(
-        EnabledClasses: new HashSet<ObjectClass> { ObjectClass.Face },
-        ConfidenceThresholds: new Dictionary<ObjectClass, float> { [ObjectClass.Face] = 0.6f },
+        EnabledClasses: new HashSet<ObjectClass>
+        {
+            ObjectClass.Person,
+            ObjectClass.TwoWheeler,
+            ObjectClass.Vehicle,
+        },
+        ConfidenceThresholds: new Dictionary<ObjectClass, float>
+        {
+            [ObjectClass.Person]     = 0.4f,
+            [ObjectClass.TwoWheeler] = 0.4f,
+            [ObjectClass.Vehicle]    = 0.4f,
+        },
         MaxQueueDepth: 1,
         PreferPolygonMasks: false);
 
     var initSw = Stopwatch.StartNew();
-    await faceDetector.InitializeAsync(detectorConfig);
+    await detector.InitializeAsync(detectorConfig);
     initSw.Stop();
-    Console.WriteLine($"  Init: {faceDetector.Capability.ModelDescription} in {initSw.ElapsedMilliseconds} ms");
-    Console.WriteLine($"  Status: {faceDetector.Status}");
+    Console.WriteLine($"  Init: {detector.Capability.ModelDescription} in {initSw.ElapsedMilliseconds} ms");
+    Console.WriteLine($"  Status: {detector.Status}");
 
-    // Synthesise a 1920x1080 BGRA8 frame filled with random noise. YuNet should
-    // return zero detections on pure noise; we are validating the pipeline (preprocess,
-    // inference, decode, NMS) end-to-end, not detection accuracy.
+    // Synthesise a 1920x1080 BGRA8 frame filled with random noise. YOLOv8n should
+    // return zero (or near-zero) detections on pure noise; we are validating the
+    // pipeline (preprocess, inference, decode, NMS) end-to-end, not accuracy.
     const int testWidth = 1920;
     const int testHeight = 1080;
     var bgra = new byte[testWidth * testHeight * 4];
@@ -151,8 +161,8 @@ try
         bgraPixels: bgra);
 
     // Run two passes: first triggers ORT kernel compilation, second is steady-state.
-    var detection0 = await faceDetector.DetectAsync(testFrame);
-    var detection1 = await faceDetector.DetectAsync(testFrame);
+    var detection0 = await detector.DetectAsync(testFrame);
+    var detection1 = await detector.DetectAsync(testFrame);
     Console.WriteLine($"  Cold pass:    {detection0.Metrics.InferenceLatencyMs:0.0} ms, {detection0.Detections.Count} detections");
     Console.WriteLine($"  Warm pass:    {detection1.Metrics.InferenceLatencyMs:0.0} ms, {detection1.Detections.Count} detections");
     Console.WriteLine($"  Frame ts:     {detection1.FrameTimestampTicks} (matches: {detection1.FrameTimestampTicks == testFrame.TimestampTicks})");

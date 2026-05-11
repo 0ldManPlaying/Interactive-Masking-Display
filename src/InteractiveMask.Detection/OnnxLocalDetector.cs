@@ -14,27 +14,49 @@ namespace InteractiveMask.Detection;
 /// In-process detector that runs ONNX models via Microsoft.ML.OnnxRuntime with the
 /// DirectML execution provider (CPU fallback if DirectML init fails).
 /// <para>
-/// M1 milestone (v2.0 prerequisite work): face-detection only via YuNet
-/// (face_detection_yunet_2023mar.onnx). Multi-class output via YOLOv8n COCO is
-/// added in M2, license-plate detection in v2.0.x.
+/// M2 milestone: YOLOv8n COCO multi-class detection (Person / TwoWheeler / Vehicle).
+/// LicensePlate via custom-trained model in v2.0.x. Face detection was on the
+/// initial M3 v0.1 path via YuNet but dropped because faces on distant security
+/// cameras are too small and produce too many false positives to be useful for
+/// the retail use case.
 /// </para>
 /// <para>
 /// Thread-safety: <see cref="InitializeAsync"/> must be called exactly once.
-/// <see cref="DetectAsync"/> is safe to call concurrently after Initialize completes
-/// because <see cref="InferenceSession"/> serialises Run() calls internally.
+/// <see cref="DetectAsync"/> runs synchronously on the calling thread; concurrent
+/// callers are serialised internally by <see cref="InferenceSession"/>'s mutex.
 /// </para>
 /// </summary>
 public sealed class OnnxLocalDetector : IObjectDetector
 {
-    // YuNet 2023mar has a fixed 640x640 input. The model takes BGR float32 NCHW
-    // without normalisation (values in 0..255).
-    private const int YunetInputSize = 640;
-    private const float DefaultFaceConfidence = 0.6f;
-    private const float NmsIouThreshold = 0.4f;
+    // YOLOv8n input: 640x640 RGB float32 NCHW, values normalised to [0, 1].
+    private const int YoloInputSize = 640;
+    private const float DefaultObjectConfidence = 0.4f;
+    private const float NmsIouThreshold = 0.45f;
 
-    private static readonly int[] YunetStrides = { 8, 16, 32 };
+    // Output layout: (1, 84, 8400). 84 channels = 4 bbox coords + 80 COCO class
+    // scores (already sigmoid'd by the Ultralytics export). 8400 anchors =
+    // (80*80) + (40*40) + (20*20) across the three feature levels.
+    private const int YoloNumClasses = 80;
+    private const int YoloNumAnchors = 8400;
+    private const int YoloOutputChannels = 4 + YoloNumClasses;
 
-    private InferenceSession? _faceSession;
+    /// <summary>
+    /// COCO class indices that map to our masking categories. Everything else
+    /// (airplane, traffic light, fire hydrant, dog, ...) is ignored. The string
+    /// is the COCO label retained on <see cref="DetectedObject.RawClassLabel"/>
+    /// for audit and support diagnostics.
+    /// </summary>
+    private static readonly Dictionary<int, (ObjectClass Category, string Label)> CocoMap = new()
+    {
+        [0] = (ObjectClass.Person, "person"),
+        [1] = (ObjectClass.TwoWheeler, "bicycle"),
+        [2] = (ObjectClass.Vehicle, "car"),
+        [3] = (ObjectClass.TwoWheeler, "motorcycle"),
+        [5] = (ObjectClass.Vehicle, "bus"),
+        [7] = (ObjectClass.Vehicle, "truck"),
+    };
+
+    private InferenceSession? _session;
     private DetectorConfig? _config;
     private string _executionProvider = "Uninitialized";
 
@@ -52,7 +74,7 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
     public async Task InitializeAsync(DetectorConfig config, CancellationToken ct = default)
     {
-        if (_faceSession != null)
+        if (_session != null)
         {
             throw new InvalidOperationException("OnnxLocalDetector.InitializeAsync called twice.");
         }
@@ -64,24 +86,24 @@ public sealed class OnnxLocalDetector : IObjectDetector
         {
             await Task.Run(() =>
             {
-                var modelPath = ResolveYunetModelPath();
+                var modelPath = ResolveYoloModelPath();
                 var (session, provider) = CreateSession(modelPath);
-                _faceSession = session;
+                _session = session;
                 _executionProvider = provider;
             }, ct).ConfigureAwait(false);
 
             _capability = new DetectorCapability(
                 BackendName: "OnnxLocalDetector",
-                ModelDescription: $"ONNX Runtime ({_executionProvider}) + YuNet faces",
-                SupportedClasses: new[] { ObjectClass.Face },
+                ModelDescription: $"ONNX Runtime ({_executionProvider}) + YOLOv8n COCO (Person / TwoWheeler / Vehicle)",
+                SupportedClasses: new[] { ObjectClass.Person, ObjectClass.TwoWheeler, ObjectClass.Vehicle },
                 SupportsPolygonMasks: false);
 
             SetStatus(DetectorStatus.Ready);
         }
         catch
         {
-            _faceSession?.Dispose();
-            _faceSession = null;
+            _session?.Dispose();
+            _session = null;
             SetStatus(DetectorStatus.Unavailable);
             throw;
         }
@@ -89,7 +111,7 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
     public ValueTask<DetectionFrame> DetectAsync(FrameRef frame, CancellationToken ct = default)
     {
-        if (_faceSession is null)
+        if (_session is null)
         {
             throw new InvalidOperationException("OnnxLocalDetector not initialized.");
         }
@@ -103,24 +125,25 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
         var sw = Stopwatch.StartNew();
 
-        // 1. Preprocess BGRA frame to 640x640 BGR float32 NCHW.
-        var (inputTensor, scaleX, scaleY) = PreprocessForYunet(bitmapFrame);
+        // 1. Preprocess BGRA frame to 640x640 RGB float32 NCHW, normalised to [0, 1].
+        var (inputTensor, scaleX, scaleY) = PreprocessForYolo(bitmapFrame);
 
         // 2. Run inference.
         var inputs = new List<NamedOnnxValue>
         {
-            NamedOnnxValue.CreateFromTensor("input", inputTensor),
+            NamedOnnxValue.CreateFromTensor("images", inputTensor),
         };
         var detections = new List<DetectedObject>();
-        using (var outputs = _faceSession.Run(inputs))
+        using (var outputs = _session.Run(inputs))
         {
-            // 3. Anchor-free decode + NMS, then scale back to source frame coordinates.
-            var faceThreshold = ResolveFaceThreshold();
-            detections.AddRange(DecodeYunet(outputs, faceThreshold, scaleX, scaleY, bitmapFrame.Width, bitmapFrame.Height));
+            // 3. Decode YOLOv8 output, filter by class + confidence, per-class NMS,
+            //    scale bbox back to source-frame pixel coordinates.
+            var threshold = ResolveObjectConfidence();
+            detections.AddRange(DecodeYolo(outputs, threshold, scaleX, scaleY, bitmapFrame.Width, bitmapFrame.Height));
         }
 
-        // 4. Filter out classes the caller has disabled (defence in depth; YuNet only
-        //    emits Face anyway, but keeps the contract honest for the multi-model M2).
+        // 4. Filter out classes the caller has disabled (defence in depth; the
+        //    COCO mapping already only emits Person / TwoWheeler / Vehicle).
         if (_config?.EnabledClasses is { Count: > 0 } enabled)
         {
             detections = detections.Where(d => enabled.Contains(d.Class)).ToList();
@@ -139,14 +162,9 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
     public ValueTask DisposeAsync()
     {
-        // Synchronous on purpose. Disposing the ONNX InferenceSession is a fast,
-        // non-blocking call. An `await Task.Yield()` here would queue a continuation
-        // onto the current SynchronizationContext, which deadlocks if the caller
-        // is blocking the UI thread on .GetAwaiter().GetResult() during shutdown.
-        _faceSession?.Dispose();
-        _faceSession = null;
-        // Don't raise StatusChanged during dispose: subscribers may already be torn
-        // down and the event would surface after the consumer expected silence.
+        // Synchronous on purpose; see notes on the original M1 implementation.
+        _session?.Dispose();
+        _session = null;
         Status = DetectorStatus.Uninitialized;
         return ValueTask.CompletedTask;
     }
@@ -160,13 +178,25 @@ public sealed class OnnxLocalDetector : IObjectDetector
         StatusChanged?.Invoke(this, newStatus);
     }
 
-    private float ResolveFaceThreshold() =>
-        _config?.ConfidenceThresholds.TryGetValue(ObjectClass.Face, out var t) == true
-            ? t : DefaultFaceConfidence;
-
-    private static string ResolveYunetModelPath()
+    private float ResolveObjectConfidence()
     {
-        const string fileName = "face_detection_yunet_2023mar.onnx";
+        // The caller's threshold dict is per-category; we use the strictest of the
+        // Person / TwoWheeler / Vehicle thresholds as the cut-off applied during
+        // decode (further per-category filtering happens at the caller via
+        // EnabledClasses or post-hoc threshold checks). Falls back to a sensible
+        // default if none configured.
+        if (_config is null) return DefaultObjectConfidence;
+        float min = float.MaxValue;
+        foreach (var c in new[] { ObjectClass.Person, ObjectClass.TwoWheeler, ObjectClass.Vehicle })
+        {
+            if (_config.ConfidenceThresholds.TryGetValue(c, out var t) && t < min) min = t;
+        }
+        return min == float.MaxValue ? DefaultObjectConfidence : min;
+    }
+
+    private static string ResolveYoloModelPath()
+    {
+        const string fileName = "yolov8n.onnx";
         var candidates = new[]
         {
             Path.Combine(AppContext.BaseDirectory, "models", fileName),
@@ -177,7 +207,7 @@ public sealed class OnnxLocalDetector : IObjectDetector
             if (!string.IsNullOrEmpty(c) && File.Exists(c)) return c;
         }
         throw new FileNotFoundException(
-            $"YuNet model not found. Expected at {candidates[0]}.");
+            $"YOLOv8n model not found. Expected at {candidates[0]}.");
     }
 
     private static (InferenceSession Session, string ProviderName) CreateSession(string modelPath)
@@ -205,23 +235,22 @@ public sealed class OnnxLocalDetector : IObjectDetector
     // ------------------------------------------------------------------ Preprocess
 
     /// <summary>
-    /// Resamples the source BGRA frame to a fixed 640x640 BGR float32 NCHW tensor.
-    /// Returns the per-axis scale factors so the post-processor can map detections
-    /// back to source coordinates. Resampling uses nearest-neighbour; YuNet is
-    /// robust to that and we save the cost of bilinear interpolation.
+    /// Resamples the source BGRA frame to a fixed 640x640 RGB float32 NCHW tensor,
+    /// normalised to [0, 1]. Returns the per-axis scale factors so the post-processor
+    /// can map detections back to source-frame coordinates.
     /// <para>
-    /// The hot loop writes into a flat <c>float[]</c> instead of <c>tensor[c,y,x]</c>
-    /// because DenseTensor's indexer recomputes the strided offset on every access,
-    /// which dominates frame time. Direct buffer fills are about 20x faster.
+    /// The hot loop writes into a flat <c>float[]</c> rather than via
+    /// <c>tensor[c,y,x]</c> indexer because DenseTensor's indexer recomputes the
+    /// strided offset on every access (about 20x slower than direct buffer fills).
     /// </para>
     /// </summary>
-    private static (DenseTensor<float> Tensor, float ScaleX, float ScaleY) PreprocessForYunet(BitmapFrameRef frame)
+    private static (DenseTensor<float> Tensor, float ScaleX, float ScaleY) PreprocessForYolo(BitmapFrameRef frame)
     {
-        float scaleX = (float)frame.Width / YunetInputSize;
-        float scaleY = (float)frame.Height / YunetInputSize;
+        float scaleX = (float)frame.Width / YoloInputSize;
+        float scaleY = (float)frame.Height / YoloInputSize;
 
-        // NCHW with C=3, H=W=640. Plane order is B, G, R (YuNet expects BGR).
-        const int plane = YunetInputSize * YunetInputSize;
+        // NCHW with C=3, H=W=640. Plane order is R, G, B (YOLOv8 expects RGB).
+        const int plane = YoloInputSize * YoloInputSize;
         var buffer = new float[3 * plane];
 
         var pixels = frame.BgraPixels;
@@ -229,32 +258,33 @@ public sealed class OnnxLocalDetector : IObjectDetector
         int srcH = frame.Height;
         int srcW = frame.Width;
 
-        // YuNet expects BGR float in 0..255 (no mean / std normalisation).
-        for (int dy = 0; dy < YunetInputSize; dy++)
+        const float Scale = 1.0f / 255.0f;
+
+        for (int dy = 0; dy < YoloInputSize; dy++)
         {
             int sy = (int)(dy * scaleY);
             if (sy >= srcH) sy = srcH - 1;
             int rowBase = sy * stride;
-            int outRow = dy * YunetInputSize;
-            for (int dx = 0; dx < YunetInputSize; dx++)
+            int outRow = dy * YoloInputSize;
+            for (int dx = 0; dx < YoloInputSize; dx++)
             {
                 int sx = (int)(dx * scaleX);
                 if (sx >= srcW) sx = srcW - 1;
-                int p = rowBase + sx * 4;       // BGRA8 source: B=0, G=1, R=2, A=3
+                int p = rowBase + sx * 4;          // BGRA source: B=0, G=1, R=2, A=3
                 int outIdx = outRow + dx;
-                buffer[outIdx] = pixels[p];                  // B plane
-                buffer[outIdx + plane] = pixels[p + 1];      // G plane
-                buffer[outIdx + 2 * plane] = pixels[p + 2];  // R plane
+                buffer[outIdx] = pixels[p + 2] * Scale;             // R plane
+                buffer[outIdx + plane] = pixels[p + 1] * Scale;     // G plane
+                buffer[outIdx + 2 * plane] = pixels[p] * Scale;     // B plane
             }
         }
 
-        var tensor = new DenseTensor<float>(buffer, new[] { 1, 3, YunetInputSize, YunetInputSize });
+        var tensor = new DenseTensor<float>(buffer, new[] { 1, 3, YoloInputSize, YoloInputSize });
         return (tensor, scaleX, scaleY);
     }
 
     // ------------------------------------------------------------------ Postprocess
 
-    private static IReadOnlyList<DetectedObject> DecodeYunet(
+    private static IReadOnlyList<DetectedObject> DecodeYolo(
         IDisposableReadOnlyCollection<DisposableNamedOnnxValue> outputs,
         float scoreThreshold,
         float scaleX,
@@ -262,102 +292,89 @@ public sealed class OnnxLocalDetector : IObjectDetector
         int sourceWidth,
         int sourceHeight)
     {
-        // Index the outputs by name for clarity. The 12 outputs are organised as
-        // cls_{8,16,32}, obj_{8,16,32}, bbox_{8,16,32}, kps_{8,16,32}.
-        var outputMap = outputs.ToDictionary(o => o.Name, o => o.AsTensor<float>());
+        var tensor = outputs.First().AsTensor<float>();
 
-        var candidates = new List<(float Score, float X1, float Y1, float X2, float Y2)>();
+        // Per-class candidate lists for per-class NMS.
+        var perClass = new Dictionary<int, List<(float Score, float X1, float Y1, float X2, float Y2)>>();
 
-        foreach (var stride in YunetStrides)
+        for (int i = 0; i < YoloNumAnchors; i++)
         {
-            var cls = outputMap[$"cls_{stride}"];
-            var obj = outputMap[$"obj_{stride}"];
-            var bbox = outputMap[$"bbox_{stride}"];
+            // bbox channels 0..3 (cx, cy, w, h) in input-pixel space (0..640).
+            float cx = tensor[0, 0, i];
+            float cy = tensor[0, 1, i];
+            float w = tensor[0, 2, i];
+            float h = tensor[0, 3, i];
 
-            int gridSize = YunetInputSize / stride;
-            int anchorCount = gridSize * gridSize;
-
-            for (int idx = 0; idx < anchorCount; idx++)
+            // Find best class among the indices we care about. Iterating all 80
+            // classes just to argmax is wasteful when most are not maskable;
+            // we walk the CocoMap keys and pick the highest one.
+            float bestScore = 0;
+            int bestCocoIdx = -1;
+            foreach (var cocoIdx in CocoMap.Keys)
             {
-                int gridX = idx % gridSize;
-                int gridY = idx / gridSize;
-
-                float clsLogit = cls[0, idx, 0];
-                float objLogit = obj[0, idx, 0];
-                // YuNet score is geometric mean of the two sigmoid probabilities.
-                float score = MathF.Sqrt(Sigmoid(clsLogit) * Sigmoid(objLogit));
-                if (score < scoreThreshold) continue;
-
-                // Anchor-free decode: bbox offsets are relative to the grid cell's
-                // origin, w/h are log-space in stride units.
-                float dx = bbox[0, idx, 0];
-                float dy = bbox[0, idx, 1];
-                float dw = bbox[0, idx, 2];
-                float dh = bbox[0, idx, 3];
-
-                float cxModel = (gridX + dx) * stride;
-                float cyModel = (gridY + dy) * stride;
-                float wModel = MathF.Exp(dw) * stride;
-                float hModel = MathF.Exp(dh) * stride;
-
-                // Convert center-w-h to corners, still in model (640x640) coordinates.
-                float x1Model = cxModel - wModel / 2f;
-                float y1Model = cyModel - hModel / 2f;
-                float x2Model = cxModel + wModel / 2f;
-                float y2Model = cyModel + hModel / 2f;
-
-                // Map back to source-frame pixel coordinates.
-                float x1 = x1Model * scaleX;
-                float y1 = y1Model * scaleY;
-                float x2 = x2Model * scaleX;
-                float y2 = y2Model * scaleY;
-
-                candidates.Add((score, x1, y1, x2, y2));
-            }
-        }
-
-        if (candidates.Count == 0) return Array.Empty<DetectedObject>();
-
-        // NMS: sort by score descending, greedily keep, suppress overlapping.
-        candidates.Sort((a, b) => b.Score.CompareTo(a.Score));
-        var kept = new List<int>(candidates.Count);
-        var suppressed = new bool[candidates.Count];
-        for (int i = 0; i < candidates.Count; i++)
-        {
-            if (suppressed[i]) continue;
-            kept.Add(i);
-            for (int j = i + 1; j < candidates.Count; j++)
-            {
-                if (suppressed[j]) continue;
-                if (Iou(candidates[i], candidates[j]) > NmsIouThreshold)
+                float score = tensor[0, 4 + cocoIdx, i];
+                if (score > bestScore)
                 {
-                    suppressed[j] = true;
+                    bestScore = score;
+                    bestCocoIdx = cocoIdx;
                 }
             }
+            if (bestCocoIdx < 0 || bestScore < scoreThreshold) continue;
+
+            // Convert center-wh to corners (still in 640-pixel input space), then
+            // scale to source-frame pixel coordinates.
+            float x1Model = cx - w / 2f;
+            float y1Model = cy - h / 2f;
+            float x2Model = cx + w / 2f;
+            float y2Model = cy + h / 2f;
+            float x1 = x1Model * scaleX;
+            float y1 = y1Model * scaleY;
+            float x2 = x2Model * scaleX;
+            float y2 = y2Model * scaleY;
+
+            if (!perClass.TryGetValue(bestCocoIdx, out var list))
+            {
+                list = new List<(float, float, float, float, float)>();
+                perClass[bestCocoIdx] = list;
+            }
+            list.Add((bestScore, x1, y1, x2, y2));
         }
 
-        // Build the final DetectedObject list, clamping to frame bounds and dropping degenerate boxes.
-        var result = new List<DetectedObject>(kept.Count);
-        foreach (var i in kept)
-        {
-            var c = candidates[i];
-            int x = Math.Max(0, (int)c.X1);
-            int y = Math.Max(0, (int)c.Y1);
-            int w = Math.Min(sourceWidth, (int)c.X2) - x;
-            int h = Math.Min(sourceHeight, (int)c.Y2) - y;
-            if (w <= 0 || h <= 0) continue;
+        if (perClass.Count == 0) return Array.Empty<DetectedObject>();
 
-            result.Add(new DetectedObject(
-                Class: ObjectClass.Face,
-                RawClassLabel: "face",
-                Confidence: c.Score,
-                Box: new BoundingBox(x, y, w, h),
-                Mask: null));
+        // Per-class NMS, then merge into a single DetectedObject list.
+        var result = new List<DetectedObject>();
+        foreach (var (cocoIdx, candidates) in perClass)
+        {
+            candidates.Sort((a, b) => b.Score.CompareTo(a.Score));
+            var suppressed = new bool[candidates.Count];
+            var (category, label) = CocoMap[cocoIdx];
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                if (suppressed[i]) continue;
+                var c = candidates[i];
+                for (int j = i + 1; j < candidates.Count; j++)
+                {
+                    if (suppressed[j]) continue;
+                    if (Iou(c, candidates[j]) > NmsIouThreshold) suppressed[j] = true;
+                }
+
+                int xClamped = Math.Max(0, (int)c.X1);
+                int yClamped = Math.Max(0, (int)c.Y1);
+                int wClamped = Math.Min(sourceWidth, (int)c.X2) - xClamped;
+                int hClamped = Math.Min(sourceHeight, (int)c.Y2) - yClamped;
+                if (wClamped <= 0 || hClamped <= 0) continue;
+
+                result.Add(new DetectedObject(
+                    Class: category,
+                    RawClassLabel: label,
+                    Confidence: c.Score,
+                    Box: new BoundingBox(xClamped, yClamped, wClamped, hClamped),
+                    Mask: null));
+            }
         }
         return result;
     }
-
-    private static float Sigmoid(float x) => 1f / (1f + MathF.Exp(-x));
 
     private static float Iou(
         (float Score, float X1, float Y1, float X2, float Y2) a,

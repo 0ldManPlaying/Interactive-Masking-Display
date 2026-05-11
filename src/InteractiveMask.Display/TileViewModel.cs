@@ -52,6 +52,17 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     private const int DetectorEveryNFrames = 8;
 
     /// <summary>
+    /// Timestamp of the last non-empty detection result. Combined with
+    /// <see cref="EmptyDetectionGrace"/> it rides out single-frame false negatives:
+    /// when the detector returns no detections on a frame but we had detections
+    /// very recently, we keep the existing boxes visible briefly instead of
+    /// flickering them off. Particularly noticeable on static objects (parked
+    /// vehicles) whose confidence wavers per-frame around the threshold.
+    /// </summary>
+    private DateTime _lastDetectionsUpdatedUtc = DateTime.MinValue;
+    private static readonly TimeSpan EmptyDetectionGrace = TimeSpan.FromMilliseconds(750);
+
+    /// <summary>
     /// Gaussian blur radius applied to the camera image. 0 = no blur, ~80 = heavy
     /// blur such that no silhouette / motion / text is recognizable while colour
     /// blobs remain visible (the chosen privacy style).
@@ -427,7 +438,7 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             var result = await detector.DetectAsync(frameRef).ConfigureAwait(false);
             // BeginInvoke returns a DispatcherOperation we intentionally don't await;
             // the UI thread will pick up the assignment on its next pulse.
-            _ = _dispatcher.BeginInvoke(() => Detections = result.Detections);
+            _ = _dispatcher.BeginInvoke(() => ApplyDetections(result.Detections));
         }
         catch
         {
@@ -435,6 +446,31 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             // event on the detector will surface persistent faults; transient
             // exceptions per frame are swallowed.
         }
+    }
+
+    /// <summary>
+    /// UI-thread entry point that applies a fresh detection result to this tile.
+    /// Implements a small grace-window so a single-frame false negative does not
+    /// flicker the overlay off: when the new result is empty but we had detections
+    /// very recently we keep the previous ones visible until the grace expires.
+    /// Non-empty results always replace immediately and reset the timer.
+    /// </summary>
+    private void ApplyDetections(IReadOnlyList<DetectedObject> fresh)
+    {
+        if (fresh.Count > 0)
+        {
+            Detections = fresh;
+            _lastDetectionsUpdatedUtc = DateTime.UtcNow;
+            return;
+        }
+        // Empty result. Keep existing detections visible if we are still inside
+        // the grace window; otherwise accept the empty (subject genuinely gone)
+        // and clear the overlay.
+        if (_detections.Count > 0 && DateTime.UtcNow - _lastDetectionsUpdatedUtc < EmptyDetectionGrace)
+        {
+            return;
+        }
+        Detections = fresh;
     }
 
     private void RenderFrame(DecodedFrame frame)
