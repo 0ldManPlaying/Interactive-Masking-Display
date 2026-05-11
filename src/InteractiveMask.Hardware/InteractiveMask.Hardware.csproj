@@ -13,7 +13,11 @@
     <!-- ONNX Runtime with DirectML EP for the v2.0 benchmark runner.
          The .DirectML package bundles both CPU and DirectML providers and ships
          the native DLLs (onnxruntime.dll, DirectML.dll) into the output folder. -->
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.20.1" />
+    <!-- Bumped from 1.20.1 to 1.24.4 in M3.4 prep: YOLO11n ONNX exports from
+         Ultralytics use opset 22, which ORT 1.20 doesn't accept (Current official
+         support for domain ai.onnx is till opset 21 in that build). 1.24 supports
+         opset 22+ and keeps the same C# API surface so no caller changes needed. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
   </ItemGroup>
 
   <ItemGroup>

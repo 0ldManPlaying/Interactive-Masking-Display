@@ -12,7 +12,10 @@
   <ItemGroup>
     <!-- ONNX Runtime with DirectML EP for in-process inference. Same package as the
          benchmark uses; NuGet deduplicates native binaries at restore time. -->
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.20.1" />
+    <!-- Bumped from 1.20.1 to 1.24.4 in M3.4 prep so the YOLO11n.onnx export
+         from Ultralytics (opset 22) loads. Kept on the .DirectML variant so the
+         GPU path stays the same. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
   </ItemGroup>
 
   <ItemGroup>
