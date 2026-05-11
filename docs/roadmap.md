@@ -1,6 +1,6 @@
 # InteractiveMask Roadmap
 
-Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 8 mei 2026, na het taggen van v1.3.0.
+Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 11 mei 2026, v2.0-scope vastgelegd na retail-partner-aanvraag.
 
 ## Status legend
 
@@ -113,9 +113,54 @@ Nog niet ingepland. Verzameld uit demo-feedback, klantgesprekken en tijdens v1.3
 
 ---
 
-## Architectuur-evoluties (v2.x denken)
+## v2.0: AI-driven object-level masking 💡
 
-Out-of-scope voor v1.x. Vastgelegd zodat we ze niet vergeten.
+Aanleiding: vraag van een Nederlandse systeem-integratie partner namens een grootzakelijke retail-eindklant, 11 mei 2026. De eindklant heeft outdoor-cameras op distributiecentra en winkellocaties waar voertuigen passeren. GDPR-conform willen zij kentekens standaard maskeren in live-view, met reveal-on-demand voor geautoriseerde reviewers. De use case generaliseert naar een bredere productrichting: object-level privacy in plaats van tegel-level.
+
+Volledig architectuurdocument: [`docs/architecture-v2-ai.md`](architecture-v2-ai.md).
+
+### Scope-principes
+
+- **Bestaande v1.x-functionaliteit blijft 1-op-1 intact.** AI-features zijn opt-in en alleen beschikbaar als de hardware het trekt. Klanten zonder GPU/NPU draaien InteractiveMask 2.0 in compatibility-mode (equivalent aan v1.x).
+- **Privacy-first fail-safe.** Bij detector-uitval, overload of timeout valt elke betreffende tegel terug op volledige-tegel blur (huidige v1.x-gedrag). Geen privacy-leak als de AI-laag faalt.
+- **Geen ANPR.** Geen OCR, geen plate-string-opslag, geen plate-watchlist. Alleen detection en segmentation. Plate-strings worden nooit gelezen of geëxporteerd.
+- **Capability-gated.** AI-opties zijn alleen in Setup toegankelijk als de host de minimaal vereiste tier haalt. Runtime-monitoring degradeert automatisch bij overload.
+- **Realistisch maximum: 16 streams (4x4-grid)** voor AI-features. De 5x5-grid (25 tegels) blijft beschikbaar in v1.x-modus voor één bekende klant zonder AI-vraag.
+
+### Hardware-baselines
+
+| Baseline | Doel | Implementatie |
+|---|---|---|
+| Windows + dGPU | Intel Core i5 (12e gen of later) + NVIDIA RTX 4060 8 GB of beter | In-process ONNX Runtime met DirectML of CUDA EP. Zelfde installer en executable als v1.x. |
+| Jetson Orin Nano 8GB | Edge-appliance naast bestaande Windows-host | Sidecar-service op Linux ARM64, TensorRT-geoptimaliseerd, levert detectie-metadata over netwerk-IPC aan de Display-PC. |
+
+### Gefaseerde uitrol
+
+Sequencing-besluit (11 mei 2026): Windows-baseline eerst volledig productie-rijp, daarna pas ARM-port. Voorkomt dat twee build-pijplijnen en twee runtime-stacks tegelijk worden gestabiliseerd.
+
+| Fase | Inhoud | Doel |
+|---|---|---|
+| v2.0 | Plate-detection mask op Windows + dGPU (Baseline A), single class, bbox of polygon | Retail-pilot, 100% productie-rijp op Windows |
+| v2.1 | Jetson Orin Nano ARM64 port (Baseline B), zelfde feature-set als v2.0 | Edge-appliance variant, start pas zodra v2.0 op Windows stabiel draait |
+| v2.2 | Face-detection mask, tweede klasse in detector | Generieke privacy-uitbreiding |
+| v2.3 | Person-detection mask | Volledige bezoekers-anonimisering |
+| v2.x | Semantic segmentation upgrade, SAM2-class op edge-appliance | Precieze contour-blur ipv polygon-approx |
+
+### Prerequisite-werk (kan al starten voor v2.0-scope vaststaat)
+
+| ID | Component | Status |
+|---|---|---|
+| P1 | Roadmap- en architectuurdocumentatie | 🛠 in ontwikkeling |
+| P2 | `HostCapabilityProfile` resource-probe (DXGI, WinML provider-inventory, NPU-detectie) | 📋 ingepland |
+| P3 | Benchmark-runner (ONNX-mini-model latency-meting, persist + tonen in About-tab) | 📋 ingepland |
+| P4 | `IObjectDetector`-abstractie + `NullDetector` fail-safe-bridge naar full-tile blur | 💡 ontwerp |
+| P5 | IPC-protocol-specificatie voor Jetson-sidecar (gRPC + mTLS) | 💡 ontwerp, implementatie verschuift naar v2.1 |
+
+---
+
+## Architectuur-evoluties (v2.x en later)
+
+Out-of-scope voor v1.x en niet gebonden aan een specifiek releasespoor. Vastgelegd zodat we ze niet vergeten.
 
 ### Hot-swappable Display zonder restart
 
@@ -123,11 +168,11 @@ Op dit moment vraagt elke structurele wijziging (NVR-fleet, camera-bindings, gri
 
 ### Cross-platform overweging
 
-Huidige stack is .NET 9 + WPF + IDIS GDK x64. WPF is Windows-only. Een mogelijke v2.0 zou Avalonia + .NET 9 + IDIS GDK kunnen zijn voor Windows / Linux dekking, mits IDIS GDK een Linux-build levert. Geen concrete vraag op dit moment, alleen genoteerd.
+Huidige stack is .NET 9 + WPF + IDIS GDK x64. WPF is Windows-only. Eerder genoteerd als mogelijke Avalonia-port; sinds v2.0 deels achterhaald omdat de Jetson-sidecar-aanpak een ARM64/Linux-pad biedt zonder de Display-UI te porten. Volledige cross-platform Display blijft een open vraag voor een hypothetische v3.0.
 
 ### IPC herzien
 
-Named-pipe + length-prefixed JSON werkt prima single-machine. Voor distributie (één Display, web-clients op andere machines) zou een gRPC of WebSocket transport meer zin maken. Niet nu nodig.
+Named-pipe + length-prefixed JSON werkt prima single-machine voor Display ↔ WebHost. De v2.0 detector-IPC introduceert gRPC over TLS naast deze pipe. Op termijn zou een unificatie naar gRPC voor beide kanalen kunnen, mits er een concrete distributie-vraag komt.
 
 ---
 
