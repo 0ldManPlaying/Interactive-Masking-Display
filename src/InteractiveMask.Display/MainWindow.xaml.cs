@@ -162,6 +162,7 @@ public partial class MainWindow : Window
                     t.AiClasses = cam.AiClasses;
                     t.MaskPaddingPercent = cam.MaskPaddingPercent;
                     t.AiRoiPolygon = cam.AiRoiPolygon;
+                    t.AiConfidencePercent = cam.AiConfidencePercent;
                 }
                 _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             }
@@ -737,6 +738,7 @@ public partial class MainWindow : Window
                 t.AiClasses = cam.AiClasses;
                 t.MaskPaddingPercent = cam.MaskPaddingPercent;
                 t.AiRoiPolygon = cam.AiRoiPolygon;
+                t.AiConfidencePercent = cam.AiConfidencePercent;
             }
         }
 
@@ -754,6 +756,7 @@ public partial class MainWindow : Window
             t.AiClasses = cam.AiClasses;
             t.MaskPaddingPercent = cam.MaskPaddingPercent;
             t.AiRoiPolygon = cam.AiRoiPolygon;
+            t.AiConfidencePercent = cam.AiConfidencePercent;
         }
     }
 
@@ -917,15 +920,15 @@ public partial class MainWindow : Window
                 },
                 ConfidenceThresholds: new Dictionary<ObjectClass, float>
                 {
-                    // YOLOv8n COCO scores confident objects above 0.5 typically;
-                    // 0.3 captures less certain detections (parked vehicles at
-                    // distance, partially occluded persons) and substantially
-                    // reduces the on/off flicker seen with 0.4 around static
-                    // objects whose score wavers per-frame. Per-category tuning
-                    // lands in M3.x Setup UI.
-                    [ObjectClass.Person]     = 0.3f,
-                    [ObjectClass.TwoWheeler] = 0.3f,
-                    [ObjectClass.Vehicle]    = 0.3f,
+                    // Coordinator threshold is the FLOOR below which detections
+                    // never reach the per-tile filter. Per-tile thresholds (from
+                    // CameraSlotSettings.AiConfidencePercent, 15..70 in Setup)
+                    // are applied on top. Keeping the coordinator floor at 0.15
+                    // means a per-tile setting of 15% has actual effect; raising
+                    // the coordinator floor would clip the bottom of that range.
+                    [ObjectClass.Person]     = 0.15f,
+                    [ObjectClass.TwoWheeler] = 0.15f,
+                    [ObjectClass.Vehicle]    = 0.15f,
                 },
                 MaxQueueDepth: 1,
                 PreferPolygonMasks: false);

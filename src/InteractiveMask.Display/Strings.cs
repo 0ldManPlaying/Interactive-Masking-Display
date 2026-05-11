@@ -375,6 +375,8 @@ public sealed class StringsTable
     public string CameraButtonAi { get; init; } = "";
     public string AiPaddingHeader { get; init; } = "";
     public string AiPaddingHint { get; init; } = "";
+    public string AiConfidenceHeader { get; init; } = "";
+    public string AiConfidenceHint { get; init; } = "";
     public string AiRoiSection { get; init; } = "";
     public string AiRoiButton { get; init; } = "";
     public string AiRoiHint { get; init; } = "";
@@ -665,6 +667,8 @@ public sealed class StringsTable
         CameraButtonAi            = "AI…",
         AiPaddingHeader           = "Mask-padding",
         AiPaddingHint             = "Vergroot het blur-vlak met dit percentage rondom de detectie. Compenseert voor strakke bboxen die het object net niet helemaal afdekken.",
+        AiConfidenceHeader        = "Detectie-drempel",
+        AiConfidenceHint          = "Hoger = strenger (alleen zekere detecties, minder knipperen op kleine/verre objecten). Lager = meer recall (vangt distant objects op, kan false positives geven). Hysteresis: eenmaal opgepakt blijft een object zichtbaar tot half deze drempel.",
         AiRoiSection              = "Region of Interest",
         AiRoiButton               = "ROI tekenen…",
         AiRoiHint                 = "Beperk de detectie tot een polygon-gebied. Detecties buiten het gebied worden niet gemaskeerd.",
@@ -956,6 +960,8 @@ public sealed class StringsTable
         CameraButtonAi            = "AI…",
         AiPaddingHeader           = "Mask padding",
         AiPaddingHint             = "Enlarges the blur area by this percentage around the detection. Compensates for tight bounding boxes that don't quite cover the object.",
+        AiConfidenceHeader        = "Detection threshold",
+        AiConfidenceHint          = "Higher = stricter (only confident detections, less flicker on small / distant objects). Lower = more recall (catches faraway objects, may yield false positives). Hysteresis: once locked on, an object stays rendered down to half this threshold.",
         AiRoiSection              = "Region of Interest",
         AiRoiButton               = "Draw ROI…",
         AiRoiHint                 = "Limit detection to a polygon area. Detections outside the polygon are not masked.",
@@ -1252,6 +1258,8 @@ public sealed class StringsTable
         CameraButtonAi            = "KI…",
         AiPaddingHeader           = "Maskenpolsterung",
         AiPaddingHint             = "Vergrößert den Unschärfebereich um diesen Prozentsatz rund um die Erkennung. Kompensiert enge Bounding-Boxen, die das Objekt nicht ganz abdecken.",
+        AiConfidenceHeader        = "Erkennungsschwelle",
+        AiConfidenceHint          = "Höher = strenger (nur sichere Erkennungen, weniger Flackern bei kleinen / entfernten Objekten). Niedriger = mehr Treffer (erfasst entfernte Objekte, kann Fehltreffer geben). Hysterese: einmal erkannt, bleibt ein Objekt sichtbar bis zur Hälfte dieser Schwelle.",
         AiRoiSection              = "Bereich (ROI)",
         AiRoiButton               = "ROI zeichnen…",
         AiRoiHint                 = "Erkennung auf einen Polygon-Bereich beschränken. Erkennungen außerhalb werden nicht maskiert.",
@@ -1543,6 +1551,8 @@ public sealed class StringsTable
         CameraButtonAi            = "IA…",
         AiPaddingHeader           = "Marge du masque",
         AiPaddingHint             = "Agrandit la zone de flou de ce pourcentage autour de la détection. Compense les boîtes englobantes trop serrées qui ne couvrent pas tout à fait l'objet.",
+        AiConfidenceHeader        = "Seuil de détection",
+        AiConfidenceHint          = "Plus haut = plus strict (uniquement détections sûres, moins de scintillement sur petits / lointains objets). Plus bas = plus de rappel (capte les objets éloignés, possibles faux positifs). Hystérésis : une fois verrouillé, un objet reste visible jusqu'à la moitié de ce seuil.",
         AiRoiSection              = "Zone d'intérêt",
         AiRoiButton               = "Dessiner la zone…",
         AiRoiHint                 = "Limite la détection à une zone polygonale. Les détections hors de la zone ne sont pas masquées.",
@@ -1834,6 +1844,8 @@ public sealed class StringsTable
         CameraButtonAi            = "IA…",
         AiPaddingHeader           = "Relleno de la máscara",
         AiPaddingHint             = "Amplía la zona de desenfoque este porcentaje alrededor de la detección. Compensa los cuadros delimitadores ajustados que no cubren del todo el objeto.",
+        AiConfidenceHeader        = "Umbral de detección",
+        AiConfidenceHint          = "Más alto = más estricto (solo detecciones seguras, menos parpadeo en objetos pequeños / lejanos). Más bajo = más recuperación (captura objetos lejanos, posibles falsos positivos). Histéresis: una vez fijado, un objeto permanece visible hasta la mitad de este umbral.",
         AiRoiSection              = "Región de interés",
         AiRoiButton               = "Dibujar región…",
         AiRoiHint                 = "Limita la detección a un área poligonal. Las detecciones fuera del área no se enmascaran.",

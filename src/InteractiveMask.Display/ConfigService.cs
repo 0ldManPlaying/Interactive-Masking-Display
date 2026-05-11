@@ -166,6 +166,7 @@ public sealed class ConfigService
                     AiClasses = ParseAiClasses(c.AiClasses),
                     MaskPaddingPercent = Math.Clamp(c.MaskPaddingPercent, 0, 50),
                     AiRoiPolygon = ParseAiRoiPolygon(c.AiRoiPolygon),
+                    AiConfidencePercent = Math.Clamp(c.AiConfidencePercent, 15, 70),
                 })
                 .ToList();
         }
@@ -261,6 +262,7 @@ public sealed class ConfigService
                 AiClasses = c.AiClasses.Select(cls => cls.ToString()).ToList(),
                 MaskPaddingPercent = c.MaskPaddingPercent,
                 AiRoiPolygon = c.AiRoiPolygon.Select(p => new[] { p.X, p.Y }).ToList(),
+                AiConfidencePercent = c.AiConfidencePercent,
             })
             .ToList(),
         Kiosk = new StoredKiosk { Enabled = settings.Kiosk.Enabled },
@@ -478,5 +480,10 @@ public sealed class ConfigService
         // v2.0 ROI polygon serialised as a list of [x, y] int pairs for readability
         // in config.json. Empty list (default) means "no ROI configured".
         public List<int[]> AiRoiPolygon { get; set; } = new();
+        // v2.0 per-camera confidence threshold (M3.5+) as integer percent.
+        // Default 40 reflects the prior global 0.40-ish threshold; admins can
+        // tune higher for cameras with mostly close-by objects (less flicker)
+        // or lower for cameras dominated by small / distant objects (more recall).
+        public int AiConfidencePercent { get; set; } = 40;
     }
 }

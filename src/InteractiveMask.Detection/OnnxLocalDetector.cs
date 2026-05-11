@@ -179,7 +179,10 @@ public sealed class OnnxLocalDetector : IObjectDetector
         // fallback if no seg variant is present. Older anchor-based models
         // (yolo11n / yolov8n) are no longer supported by the decoder; if a
         // legacy file is in the folder it will be ignored.
-        var fileNames = new[] { "yolo26n-seg.onnx", "yolo26n.onnx" };
+        // Order of preference: largest available seg variant first so admins
+        // get the best small-object recall without code changes if they later
+        // drop in a beefier model. Falls back through s -> n -> n-detect-only.
+        var fileNames = new[] { "yolo26s-seg.onnx", "yolo26n-seg.onnx", "yolo26n.onnx" };
         var roots = new[]
         {
             Path.Combine(AppContext.BaseDirectory, "models"),

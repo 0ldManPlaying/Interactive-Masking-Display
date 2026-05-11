@@ -101,6 +101,38 @@
                     Margin="0,6,0,0"
                     ValueChanged="OnPaddingSliderChanged" />
 
+            <!-- Confidence threshold + implicit hysteresis (M3.5 follow-up).
+                 Slider 15..70 maps to the per-tile enter threshold; stay
+                 threshold (for IoU-matched detections from the prior frame)
+                 is half this value. -->
+            <Grid Margin="0,18,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="56" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="{local:Loc AiConfidenceHeader}"
+                           Foreground="#8B95A7"
+                           FontSize="12"
+                           VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1"
+                           x:Name="ConfidenceValueText"
+                           Foreground="#E6E6E6"
+                           FontSize="13"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center" />
+            </Grid>
+            <Slider x:Name="ConfidenceSlider"
+                    Minimum="15" Maximum="70"
+                    SmallChange="1" LargeChange="5"
+                    TickFrequency="5" TickPlacement="None"
+                    IsSnapToTickEnabled="False"
+                    Margin="0,6,0,0"
+                    ValueChanged="OnConfidenceSliderChanged" />
+            <TextBlock Foreground="#8B95A7" FontSize="11" TextWrapping="Wrap"
+                       Margin="0,6,0,0"
+                       Text="{local:Loc AiConfidenceHint}" />
+
             <!-- Region of Interest section (M3.4): button opens the polygon
                  editor. Disabled when no snapshot is available so the user gets
                  a clear "wait until camera is connected" message instead of a

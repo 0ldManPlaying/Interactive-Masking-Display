@@ -264,4 +264,15 @@ public sealed class CameraSlotSettings
     /// point / pair = "no ROI configured, the whole frame is in scope" (default).
     /// </summary>
     public List<InteractiveMask.Detection.PolygonPoint> AiRoiPolygon { get; set; } = new();
+
+    /// <summary>
+    /// v2.0 per-camera confidence threshold for detection rendering, as integer
+    /// percent (15..70, default 40). Higher = stricter, fewer detections, less
+    /// flicker on borderline objects. Hysteresis is implicit: the actual "stay
+    /// rendered" threshold for objects already visible in the previous frame is
+    /// half this value (matched by IoU + class), so confirmed detections persist
+    /// through brief score dips while spurious low-confidence first-time hits
+    /// are still filtered out.
+    /// </summary>
+    public int AiConfidencePercent { get; set; } = 40;
 }

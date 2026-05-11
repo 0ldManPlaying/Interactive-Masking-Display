@@ -37,6 +37,8 @@ public partial class CameraAiSettingsDialog : Window
         VehicleBox.IsChecked    = target.AiClasses.Contains(ObjectClass.Vehicle);
         PaddingSlider.Value = Math.Clamp(target.MaskPaddingPercent, 0, 50);
         UpdatePaddingText();
+        ConfidenceSlider.Value = Math.Clamp(target.AiConfidencePercent, 15, 70);
+        UpdateConfidenceText();
         UpdateRoiStatus();
 
         UpdateClassesEnabledState();
@@ -70,6 +72,14 @@ public partial class CameraAiSettingsDialog : Window
         PaddingValueText.Text = pct.ToString(CultureInfo.InvariantCulture) + " %";
     }
 
+    private void OnConfidenceSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => UpdateConfidenceText();
+
+    private void UpdateConfidenceText()
+    {
+        int pct = (int)Math.Round(ConfidenceSlider.Value);
+        ConfidenceValueText.Text = pct.ToString(CultureInfo.InvariantCulture) + " %";
+    }
+
     private void OnEnableChanged(object sender, RoutedEventArgs e) => UpdateClassesEnabledState();
 
     /// <summary>
@@ -95,6 +105,7 @@ public partial class CameraAiSettingsDialog : Window
         _target.AiClasses = picked;
 
         _target.MaskPaddingPercent = Math.Clamp((int)Math.Round(PaddingSlider.Value), 0, 50);
+        _target.AiConfidencePercent = Math.Clamp((int)Math.Round(ConfidenceSlider.Value), 15, 70);
 
         DialogResult = true;
         Close();

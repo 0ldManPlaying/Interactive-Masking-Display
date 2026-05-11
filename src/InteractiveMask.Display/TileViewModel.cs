@@ -92,6 +92,23 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     public IReadOnlyList<PolygonPoint> AiRoiPolygon { get; set; } = Array.Empty<PolygonPoint>();
 
     /// <summary>
+    /// Per-camera confidence threshold for accepting NEW detections (percent
+    /// 15..70). Detections that survive at this threshold are rendered. The
+    /// hysteresis "stay" threshold is half of this value: detections that
+    /// IoU-match a detection from the previous frame in the same class can
+    /// keep being rendered down to half-confidence, which smooths the
+    /// frame-to-frame score wobble that causes flicker on borderline objects
+    /// at distance.
+    /// </summary>
+    public int AiConfidencePercent { get; set; } = 40;
+
+    /// <summary>
+    /// Frame-N-minus-1 accepted detections, used by the hysteresis path in
+    /// ApplyDetections. Replaced wholesale on each accepted frame.
+    /// </summary>
+    private List<DetectedObject> _previousAccepted = new();
+
+    /// <summary>
     /// Timestamp of the last non-empty detection result. Combined with
     /// <see cref="EmptyDetectionGrace"/> it rides out single-frame false negatives:
     /// when the detector returns no detections on a frame but we had detections
@@ -521,6 +538,34 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
                 roi)).ToList();
         }
 
+        // Confidence + hysteresis filter (M3.5 follow-up). Two-level threshold:
+        //   enter = AiConfidencePercent (slider) - required for a NEW detection
+        //   stay  = enter / 2 - required for a detection that IoU-matches a
+        //           previous-frame detection of the same class
+        // The stay threshold lets borderline objects (small / distant cars and
+        // people that wobble around the score line) keep their blur stable
+        // across frames once they are first locked on, without lowering the
+        // false-positive admission bar for first-time hits.
+        float enter = Math.Clamp(AiConfidencePercent, 15, 70) / 100f;
+        float stay = enter * 0.5f;
+        var accepted = new List<DetectedObject>(fresh.Count);
+        foreach (var d in fresh)
+        {
+            if (d.Confidence >= enter)
+            {
+                accepted.Add(d);
+            }
+            else if (d.Confidence >= stay && HasIouMatchInPrevious(d, _previousAccepted))
+            {
+                accepted.Add(d);
+            }
+        }
+        // Update the previous-frame snapshot from the still-raw boxes (before
+        // padding inflation below) so IoU matches between frames are computed
+        // in the same coordinate space.
+        _previousAccepted = accepted.Count == 0 ? new List<DetectedObject>() : new List<DetectedObject>(accepted);
+        fresh = accepted;
+
         // Inflate bboxes by the per-camera padding percent so the privacy
         // blur extends slightly past the detection. Inflation happens here
         // (post-detector, pre-render) so audit and any future analytics keep
@@ -547,6 +592,35 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             return;
         }
         Detections = fresh;
+    }
+
+    /// <summary>
+    /// True when <paramref name="candidate"/> has a same-class IoU >= 0.4 match
+    /// in <paramref name="previous"/>. Used by the hysteresis path: a borderline-
+    /// confidence detection only stays rendered if it matches a higher-confidence
+    /// detection from the prior frame.
+    /// </summary>
+    private static bool HasIouMatchInPrevious(DetectedObject candidate, List<DetectedObject> previous)
+    {
+        foreach (var prev in previous)
+        {
+            if (prev.Class != candidate.Class) continue;
+            if (BoxIou(candidate.Box, prev.Box) >= 0.4f) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Intersection-over-union of two axis-aligned bboxes.</summary>
+    private static float BoxIou(BoundingBox a, BoundingBox b)
+    {
+        int interX1 = Math.Max(a.X, b.X);
+        int interY1 = Math.Max(a.Y, b.Y);
+        int interX2 = Math.Min(a.X + a.Width, b.X + b.Width);
+        int interY2 = Math.Min(a.Y + a.Height, b.Y + b.Height);
+        if (interX2 <= interX1 || interY2 <= interY1) return 0f;
+        int interArea = (interX2 - interX1) * (interY2 - interY1);
+        int unionArea = a.Width * a.Height + b.Width * b.Height - interArea;
+        return unionArea > 0 ? (float)interArea / unionArea : 0f;
     }
 
     /// <summary>

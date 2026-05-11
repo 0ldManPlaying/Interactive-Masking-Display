@@ -408,6 +408,7 @@ public partial class SetupWindow : Window
                 // ROI polygon copied as a new list so dialog edits don't bleed into
                 // the loaded settings reference.
                 AiRoiPolygon = new List<InteractiveMask.Detection.PolygonPoint>(c.AiRoiPolygon),
+                AiConfidencePercent = c.AiConfidencePercent,
             });
         }
 
@@ -1049,6 +1050,7 @@ public partial class SetupWindow : Window
                     AiClasses = new HashSet<InteractiveMask.Detection.ObjectClass>(c.AiClasses),
                     MaskPaddingPercent = c.MaskPaddingPercent,
                     AiRoiPolygon = new List<InteractiveMask.Detection.PolygonPoint>(c.AiRoiPolygon),
+                    AiConfidencePercent = c.AiConfidencePercent,
                 })
                 .ToList(),
             Kiosk = { Enabled = KioskEnabled.IsChecked == true },
