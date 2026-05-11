@@ -27,6 +27,24 @@ public enum AuditEventType
     /// runs once, before this event is written.
     /// </summary>
     MassMaskOff,
+    /// <summary>
+    /// v2.0: AI detector finished initialising and is Ready. Detail carries the
+    /// backend (DirectML / CPU) plus active model name; one entry per session
+    /// after a successful InitializeAsync.
+    /// </summary>
+    AiDetectorInit,
+    /// <summary>
+    /// v2.0: AI detector init failed or a non-recoverable runtime fault was
+    /// observed. Detail carries the exception type + message. The Display
+    /// continues with v1.x masking only after this event.
+    /// </summary>
+    AiDetectorFault,
+    /// <summary>
+    /// v2.0: AI detector dispose completed; one entry on graceful shutdown.
+    /// Useful for support to confirm the detector got a clean tear-down
+    /// instead of being killed via Task Manager or a crash.
+    /// </summary>
+    AiDetectorStopped,
 }
 
 /// <summary>One row in the audit log. Serialised as a JSON object on a single line.</summary>

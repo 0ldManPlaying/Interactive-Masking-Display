@@ -551,12 +551,32 @@ public partial class MainWindow : Window
             // ROI editor snapshot source: clone + freeze the current tile bitmap
             // so the editor sees a stable frame even while the live feed keeps
             // updating in the background.
-            frameSnapshotProvider: CaptureSlotSnapshot)
+            frameSnapshotProvider: CaptureSlotSnapshot,
+            // Live AI runtime info source for the About tab's System capabilities
+            // card (status + model description, sampled when the card renders).
+            aiRuntimeProvider: SnapshotAiRuntime)
         { Owner = this };
         setup.ShowDialog();
         // The Save path also fires onApplied (via SaveAndApply), so when the
         // dialog finally closes the live state is already current. Calling
         // ApplyChangedSettings again here would be redundant.
+    }
+
+    /// <summary>
+    /// Returns the current AI detector's runtime info for the About tab's
+    /// "System capabilities" card. Returns a "no detector" snapshot when the
+    /// AI path is not wired (e.g. init failed, Tier 0 host).
+    /// </summary>
+    private AiRuntimeInfo SnapshotAiRuntime()
+    {
+        var detector = _aiDetector;
+        if (detector is null)
+        {
+            return new AiRuntimeInfo(Status: "Unavailable", ModelDescription: null);
+        }
+        return new AiRuntimeInfo(
+            Status: detector.Status.ToString(),
+            ModelDescription: detector.Capability.ModelDescription);
     }
 
     /// <summary>
@@ -848,8 +868,21 @@ public partial class MainWindow : Window
                 // ONNX session dispose is sub-second; the timeout is purely a safety
                 // net so a future remote-detector backend can't strand the shutdown.
                 Task.Run(() => _aiDetector.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(2));
+                _audit.Write(AuditEventType.AiDetectorStopped, source: "ai-detector",
+                    detail: "graceful dispose");
             }
-            catch { /* shutdown path - swallow */ }
+            catch (Exception ex)
+            {
+                // Best-effort log; shutdown continues regardless. If we couldn't
+                // dispose cleanly the support engineer at least sees that we
+                // tried to, with the reason it failed.
+                try
+                {
+                    _audit.Write(AuditEventType.AiDetectorStopped, source: "ai-detector",
+                        detail: $"dispose error: {ex.GetType().Name}: {ex.Message}");
+                }
+                catch { }
+            }
             _aiDetector = null;
         }
         foreach (var session in _sessionsById.Values) session.Dispose();
@@ -903,12 +936,12 @@ public partial class MainWindow : Window
             {
                 tile.AttachDetector(detector);
             }
-            _audit.Write(AuditEventType.AppStarted, source: "ai-detector",
+            _audit.Write(AuditEventType.AiDetectorInit, source: "ai-detector",
                 detail: $"{detector.Capability.BackendName}: {detector.Capability.ModelDescription}");
         }
         catch (Exception ex)
         {
-            _audit.Write(AuditEventType.AppStarted, source: "ai-detector",
+            _audit.Write(AuditEventType.AiDetectorFault, source: "ai-detector",
                 detail: $"init failed, falling back to v1.x masking: {ex.GetType().Name}: {ex.Message}");
         }
     }

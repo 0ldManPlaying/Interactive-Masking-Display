@@ -95,7 +95,9 @@ De Display-PC bij Baseline B mag een eenvoudige Windows-host zonder dGPU zijn, w
 
 ## 5. Detector-abstractie
 
-Concept-interface (definitieve API volgt bij implementatie van P4):
+Geïmplementeerd in `InteractiveMask.Detection`. De definitieve types matchen het concept hieronder en zijn live in `DetectionContracts.cs` + `IObjectDetector.cs`. Type-rename: het record dat detecties bevat heet `DetectedObject` (niet `Detection`) om een type/namespace-collisie te vermijden bij consumers die ook de namespace `InteractiveMask.Detection` importeren.
+
+**Belangrijke afwijking van het oorspronkelijke ontwerp**: `OnnxLocalDetector` is geïmplementeerd als dunne facade over een nieuwe `InferenceCoordinator` (zelfde assembly). De coordinator bezit één gedeelde `InferenceSession` en draait alle `Run()`-calls op één worker-task; per-stream slot-replacement zorgt dat nieuwere frames oude pending submissions vervangen. Achtergrond: het eerste ontwerp ging uit van per-tile concurrent submissions naar dezelfde `InferenceSession` — dat veroorzaakte native AccessViolation-class crashes onder DirectML EP. De gecentraliseerde aanpak elimineert deze contentie volledig en geeft tegelijk voorspelbare per-tegel cadens. Zie commit `c4824d7` voor de refactor.
 
 ```csharp
 public interface IObjectDetector : IDisposable
@@ -112,7 +114,7 @@ public record DetectionFrame(
     IReadOnlyList<Detection> Detections,
     DetectorMetrics Metrics);
 
-public record Detection(
+public record DetectedObject(
     ObjectClass Class,        // Masking-categorie: Face / Person / TwoWheeler / Vehicle / LicensePlate
     string? RawClassLabel,    // Model-native label voor audit (bv. "car", "truck", "bicycle")
     float Confidence,
@@ -364,3 +366,4 @@ Reveal wordt afgehandeld via de bestaande PIN- of AD-policy uit v1.x. Geen apart
 | 0.2 | 2026-05-11 | Claude | IDIS GDK ARM64 bevestigd beschikbaar; model-keuze beslist (in-house Roboflow). Open punten 1 en 2 gesloten. |
 | 0.3 | 2026-05-11 | Claude | Sequencing vastgelegd: Windows-baseline eerst 100% productie-rijp (v2.0), Jetson ARM-port daarna (v2.1). Trainings-data komt uit in-house ANPR-archief (domein-correct materiaal). |
 | 0.4 | 2026-05-11 | Claude | v2.0-scope verbreed naar multi-class (Face + Person + TwoWheeler + Vehicle) via pretrained models; LicensePlate verschoven naar v2.0.x. ObjectClass-enum + RawClassLabel toegevoegd. Drie-categorie-mapping (Person / TwoWheeler / Vehicle) als UI-grouping. |
+| 0.5 | 2026-05-11 | Claude | Einde implementatie-sessie. Documenteert daadwerkelijke implementatie-keuzes: centralized `InferenceCoordinator` ipv per-tile concurrent submissions (was bron van crashes); face-detection dropped en vervangen door YOLOv8n COCO (kleine gezichten op security-camera afstand te onbetrouwbaar); per-camera AI-config (toggle, klassen, mask-padding, ROI polygon) gerealiseerd; ORT bumped 1.20.1 → 1.24.4 voor opset 22 support; YOLO11n drop-in voorbereid maar Ultralytics-export heeft DirectML EP kernel-gap (CPU-fallback op nieuwe ops → 6x slowdown), wachten op betere export. Audit-events `AiDetectorInit / Fault / Stopped` toegevoegd. |

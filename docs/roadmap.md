@@ -1,6 +1,6 @@
 # InteractiveMask Roadmap
 
-Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 11 mei 2026, v2.0-scope herzien naar multi-class detection als baseline; plate-detection naar v2.0.x. P1-P3 prerequisite-werk afgerond.
+Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 11 mei 2026, einde implementatie-sessie. P1-P4 prerequisite-werk afgerond; M1-M3.4 main work draait stabiel; ORT bump naar 1.24.4; YOLO11n forward-compat aanwezig (modelfile pending DirectML EP-coverage).
 
 ## Status legend
 
@@ -166,8 +166,38 @@ Sequencing-besluit (11 mei 2026): Windows-baseline eerst volledig productie-rijp
 | P1 | Roadmap- en architectuurdocumentatie | ✅ vastgelegd (deze documenten) |
 | P2 | `HostCapabilityProfile` resource-probe (WMI, registry-VRAM, NPU-detectie) | ✅ commit `3bb0cd9` |
 | P3 | Benchmark-runner (ONNX Runtime + DirectML, MobileNetV2 reference workload) | ✅ commit `ebf994d` |
-| P4 | `IObjectDetector`-abstractie + `NullDetector` fail-safe-bridge naar full-tile blur | 🛠 in ontwikkeling |
-| P5 | IPC-protocol-specificatie voor Jetson-sidecar (gRPC + mTLS) | 💡 ontwerp, implementatie verschuift naar v2.1 |
+| P4 | `IObjectDetector`-abstractie + `NullDetector` fail-safe-bridge naar full-tile blur | ✅ commit `7c13950` |
+| P5 | IPC-protocol-specificatie voor Jetson-sidecar (gRPC + mTLS) | 💡 ontwerp blijft staan voor v2.1 |
+
+### Main work (v2.0 op Windows-baseline)
+
+| ID | Component | Status |
+|---|---|---|
+| M1 | YuNet face-detection als eerste werkend detector-backend (vervolgens vervangen) | ✅ commit `bb81f68` |
+| M2 + M3.1 | YOLOv8n COCO multi-class detection + echte regio-blur (`ImageBrush` + `BlurEffect`) | ✅ commit `bcd0f9a` |
+| M3.2 v2 | **Centralized inference coordinator**: één worker bezit de `InferenceSession`, per-stream slot-replacement, geen concurrent ORT-calls meer (was bron van eerdere native crashes) | ✅ commit `c4824d7` |
+| M3.3 | Per-camera mask-padding (0-50%) + YOLO11n forward-compat path (`ResolveYoloModelPath` prefereert `yolo11n.onnx`) | ✅ commit `f2c1781` |
+| Fase A+B | Per-camera AI on/off + class-filter (Person/TwoWheeler/Vehicle) + per-camera modal dialog | ✅ commit `9192aeb` |
+| M3.4 | ROI polygon per camera met drag-to-move editor + bbox-centroid filter | ✅ commits `bdd39bb` + `439c899` |
+| ORT bump | Microsoft.ML.OnnxRuntime.DirectML 1.20.1 → 1.24.4 (opset 22 support, ~10% sneller op YOLOv8n) | ✅ commit `2a74ed3` |
+| YOLO11n model | Ultralytics export laadt op ORT 1.24 maar onbekende ops vallen terug op CPU → ~6x slowdown. Wachten op DirectML EP-coverage of een geoptimaliseerde export | ⏸ geblokkeerd, niet kritisch (v8n draait prima) |
+
+### Audit-events voor v2.0
+
+Toegevoegd in audit-log (`%PROGRAMDATA%\InteractiveMask\audit.log`):
+
+- `AiDetectorInit` — backend + actief model bij succesvolle init
+- `AiDetectorFault` — init-failure of niet-herstelbare runtime-fault (Display draait door op v1.x)
+- `AiDetectorStopped` — graceful dispose, met evt. dispose-error detail
+
+### Nog open binnen v2.0-scope
+
+| Item | Notitie |
+|---|---|
+| Reveal-flow voor AI-mask | Per-tegel tijdelijke AI-uitschakeling met PIN/AD-auth en audit-event. Architectuur-doc sectie 12. |
+| Adaptieve degradatie | Runtime-monitor + degradatie-ladder uit architectuurdoc sectie 8. Nog niet nodig in praktijk; coordinator + per-camera-config halen al veel druk weg. |
+| LicensePlate-detection (v2.0.x) | Vereist door jou getraind plate-detector model. `ObjectClass.LicensePlate` enum-waarde staat klaar, `CocoMap` hoeft alleen uitbreiding bij plate-toevoeging. |
+| YOLOv8s @ 960 input optie | Voor betere small-object accuracy als gebruikers daar tegenaan blijven lopen. Halveert inference-rate per tegel. |
 
 ---
 

@@ -351,6 +351,9 @@ public sealed class StringsTable
     public string AboutCapsGpu { get; init; } = "";
     public string AboutCapsNpu { get; init; } = "";
     public string AboutCapsAiTier { get; init; } = "";
+    public string AboutCapsAiStatus { get; init; } = "";
+    public string AboutCapsAiModel { get; init; } = "";
+    public string AboutCapsAiNotLoaded { get; init; } = "";
     public string AboutCapsNone { get; init; } = "";
     public string AboutCapsIntegrated { get; init; } = "";
     public string AboutCapsBenchmarkRun { get; init; } = "";
@@ -638,6 +641,9 @@ public sealed class StringsTable
         AboutCapsGpu              = "Grafische adapter",
         AboutCapsNpu              = "AI-versneller (NPU)",
         AboutCapsAiTier           = "v2.0 AI-maskering tier",
+        AboutCapsAiStatus         = "AI-status",
+        AboutCapsAiModel          = "AI-model",
+        AboutCapsAiNotLoaded      = "Niet geladen",
         AboutCapsNone             = "Geen gedetecteerd",
         AboutCapsIntegrated       = "geïntegreerd",
         AboutCapsBenchmarkRun     = "Benchmark draaien",
@@ -926,6 +932,9 @@ public sealed class StringsTable
         AboutCapsGpu              = "Graphics adapter",
         AboutCapsNpu              = "AI accelerator (NPU)",
         AboutCapsAiTier           = "v2.0 AI-masking tier",
+        AboutCapsAiStatus         = "AI status",
+        AboutCapsAiModel          = "AI model",
+        AboutCapsAiNotLoaded      = "Not loaded",
         AboutCapsNone             = "None detected",
         AboutCapsIntegrated       = "integrated",
         AboutCapsBenchmarkRun     = "Run benchmark",
@@ -1219,6 +1228,9 @@ public sealed class StringsTable
         AboutCapsGpu              = "Grafikadapter",
         AboutCapsNpu              = "KI-Beschleuniger (NPU)",
         AboutCapsAiTier           = "v2.0 KI-Maskierungs-Tier",
+        AboutCapsAiStatus         = "KI-Status",
+        AboutCapsAiModel          = "KI-Modell",
+        AboutCapsAiNotLoaded      = "Nicht geladen",
         AboutCapsNone             = "Nicht erkannt",
         AboutCapsIntegrated       = "integriert",
         AboutCapsBenchmarkRun     = "Benchmark starten",
@@ -1507,6 +1519,9 @@ public sealed class StringsTable
         AboutCapsGpu              = "Adaptateur graphique",
         AboutCapsNpu              = "Accélérateur IA (NPU)",
         AboutCapsAiTier           = "Niveau de masquage IA v2.0",
+        AboutCapsAiStatus         = "État IA",
+        AboutCapsAiModel          = "Modèle IA",
+        AboutCapsAiNotLoaded      = "Non chargé",
         AboutCapsNone             = "Aucun détecté",
         AboutCapsIntegrated       = "intégré",
         AboutCapsBenchmarkRun     = "Lancer le test",
@@ -1795,6 +1810,9 @@ public sealed class StringsTable
         AboutCapsGpu              = "Adaptador gráfico",
         AboutCapsNpu              = "Acelerador de IA (NPU)",
         AboutCapsAiTier           = "Nivel de enmascaramiento IA v2.0",
+        AboutCapsAiStatus         = "Estado IA",
+        AboutCapsAiModel          = "Modelo IA",
+        AboutCapsAiNotLoaded      = "No cargado",
         AboutCapsNone             = "Ninguno detectado",
         AboutCapsIntegrated       = "integrada",
         AboutCapsBenchmarkRun     = "Ejecutar prueba",

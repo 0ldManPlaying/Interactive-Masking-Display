@@ -43,6 +43,13 @@ public partial class SetupWindow : Window
     private readonly Func<int, System.Windows.Media.Imaging.BitmapSource?>? _frameSnapshotProvider;
 
     /// <summary>
+    /// Optional callback returning a snapshot of the AI detector's current
+    /// runtime state for the About tab's System capabilities card. Sampled
+    /// when the card renders; null returns yield the "no detector" fallback.
+    /// </summary>
+    private readonly Func<AiRuntimeInfo>? _aiRuntimeProvider;
+
+    /// <summary>
     /// Optional callback fired after a successful Apply / Save. Lets MainWindow
     /// hot-reload the new config without waiting for the dialog to close, so
     /// the operator can keep tweaking after seeing the change live.
@@ -54,11 +61,13 @@ public partial class SetupWindow : Window
     public SetupWindow(ConfigService configService, AdminPinService adminPin, AuditLog audit,
                        Func<int, CancellationToken, Task<IReadOnlyDictionary<int, string>>>? cameraNameFetcher = null,
                        Action? onApplied = null,
-                       Func<int, System.Windows.Media.Imaging.BitmapSource?>? frameSnapshotProvider = null)
+                       Func<int, System.Windows.Media.Imaging.BitmapSource?>? frameSnapshotProvider = null,
+                       Func<AiRuntimeInfo>? aiRuntimeProvider = null)
     {
         _cameraNameFetcher = cameraNameFetcher;
         _onApplied = onApplied;
         _frameSnapshotProvider = frameSnapshotProvider;
+        _aiRuntimeProvider = aiRuntimeProvider;
         InitializeComponent();
         _configService = configService;
         _adminPin = adminPin;
@@ -270,6 +279,17 @@ public partial class SetupWindow : Window
         }
 
         AppendCapsRow(T.AboutCapsAiTier, profile.Tier.ToString());
+
+        // Live AI runtime info (M3.4 polish): sampled from MainWindow's running
+        // detector. Two extra rows under the tier so admins see at-a-glance
+        // whether AI is actually doing work and which model is loaded.
+        var runtime = _aiRuntimeProvider?.Invoke();
+        if (runtime is not null)
+        {
+            AppendCapsRow(T.AboutCapsAiStatus, runtime.Status);
+            AppendCapsRow(T.AboutCapsAiModel,
+                string.IsNullOrWhiteSpace(runtime.ModelDescription) ? T.AboutCapsAiNotLoaded : runtime.ModelDescription);
+        }
 
         if (profile.LastBenchmark is { } bench)
         {
