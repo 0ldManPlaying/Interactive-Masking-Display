@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\InteractiveMask.Hardware\InteractiveMask.Hardware.csproj" />
+    <ProjectReference Include="..\..\src\InteractiveMask.Detection\InteractiveMask.Detection.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>InteractiveMask.Detection</RootNamespace>
+    <AssemblyName>InteractiveMask.Detection</AssemblyName>
+    <!-- net9.0-windows + x64 inherited from Directory.Build.props.
+         The contracts themselves are platform-neutral, but the concrete
+         OnnxLocalDetector implementation will depend on Microsoft.ML.OnnxRuntime.DirectML
+         (Windows-only) in v2.0 main work, so we anchor the whole assembly to Windows. -->
+  </PropertyGroup>
+
+</Project>

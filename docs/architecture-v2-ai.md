@@ -113,11 +113,24 @@ public record DetectionFrame(
     DetectorMetrics Metrics);
 
 public record Detection(
-    ObjectClass Class,        // Plate, Face, Person, Vehicle
+    ObjectClass Class,        // Masking-categorie: Face / Person / TwoWheeler / Vehicle / LicensePlate
+    string? RawClassLabel,    // Model-native label voor audit (bv. "car", "truck", "bicycle")
     float Confidence,
     BoundingBox Box,
-    Polygon? Mask);            // null bij bbox-only modus
+    Polygon? Mask);           // null in bbox-only modus
+
+public enum ObjectClass
+{
+    Unknown      = 0,
+    Face         = 1,
+    Person       = 2,
+    TwoWheeler   = 3,   // bicycle + motorcycle
+    Vehicle      = 4,   // car + bus + truck
+    LicensePlate = 5,
+}
 ```
+
+De vijf categorieën zijn afgeleid van pretrained- of in-house-modellen (volledige tabel in `docs/roadmap.md` onder "Object-categorieën"). Vier categorieën komen uit pretrained models (YuNet voor faces, YOLOv8n COCO voor de overige drie) en zijn beschikbaar in v2.0. LicensePlate vraagt in-house Roboflow-training en landt in v2.0.x zodra het model gereed is.
 
 Implementaties:
 
@@ -329,7 +342,7 @@ Reveal wordt afgehandeld via de bestaande PIN- of AD-policy uit v1.x. Geen apart
 | # | Onderwerp | Resolutie |
 |---|---|---|
 | ~~1~~ | IDIS GDK Linux ARM64-beschikbaarheid | Bevestigd 11 mei 2026, beschikbaar bij IDIS Nederland. Jetson krijgt native GDK-decode. |
-| ~~2~~ | Plate-detection model: pretrained inkopen of zelf finetunen | Zelf trainen via Roboflow. Single-class rechthoek-detectie is laag-complex; in-house gedaan zonder externe data-engineer. |
+| ~~2~~ | Detection-model strategie voor v2.0 | Pretrained YuNet (face) en YOLOv8n COCO (person / two-wheeler / vehicle) leveren vier van de vijf categorieën zonder eigen training. LicensePlate verschuift naar v2.0.x, in-house getraind via Roboflow. |
 
 ### Nog open
 
@@ -339,7 +352,7 @@ Reveal wordt afgehandeld via de bestaande PIN- of AD-policy uit v1.x. Geen apart
 | 4 | Reveal-flow autorisatie: hergebruik PIN/AD, of nieuwe rol "AI-reviewer" | Product (huidige voorstel: hergebruik) |
 | 5 | Recording-side blurring (NVR-post-process) | Expliciet buiten v2.0-scope; mogelijk v3.0 |
 | 6 | Licensering AI-module: aparte SKU/add-on, of standaard inbegrepen vanaf bepaalde tier | Sales / commercie |
-| 7 | Dataset NL-platen voor finetuning: bron, omvang, privacy-aspecten van trainings-data | IDIS Nederland (in-house via Roboflow) |
+| 7 | Dataset NL-platen voor v2.0.x finetuning: omvang, augmentation, privacy-aspecten van trainings-data | IDIS Nederland (in-house via Roboflow) |
 
 ---
 
@@ -349,4 +362,5 @@ Reveal wordt afgehandeld via de bestaande PIN- of AD-policy uit v1.x. Geen apart
 |---|---|---|---|
 | 0.1 | 2026-05-11 | Claude (concept) | Initiële opzet na retail-partner-aanvraag |
 | 0.2 | 2026-05-11 | Claude | IDIS GDK ARM64 bevestigd beschikbaar; model-keuze beslist (in-house Roboflow). Open punten 1 en 2 gesloten. |
-| 0.3 | 2026-05-11 | Claude | Sequencing vastgelegd: Windows-baseline eerst 100% productie-rijp (v2.0), Jetson ARM-port daarna (v2.1). Trainings-data komt uit IDIS Nederland ANPR-archief (domein-correct materiaal). |
+| 0.3 | 2026-05-11 | Claude | Sequencing vastgelegd: Windows-baseline eerst 100% productie-rijp (v2.0), Jetson ARM-port daarna (v2.1). Trainings-data komt uit in-house ANPR-archief (domein-correct materiaal). |
+| 0.4 | 2026-05-11 | Claude | v2.0-scope verbreed naar multi-class (Face + Person + TwoWheeler + Vehicle) via pretrained models; LicensePlate verschoven naar v2.0.x. ObjectClass-enum + RawClassLabel toegevoegd. Drie-categorie-mapping (Person / TwoWheeler / Vehicle) als UI-grouping. |

@@ -1,6 +1,6 @@
 # InteractiveMask Roadmap
 
-Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 11 mei 2026, v2.0-scope vastgelegd na retail-partner-aanvraag.
+Levend document. Items hier landen pas in een release nadat ze door het product team zijn bevestigd en in een sprint zijn ingepland. Meest recente update: 11 mei 2026, v2.0-scope herzien naar multi-class detection als baseline; plate-detection naar v2.0.x. P1-P3 prerequisite-werk afgerond.
 
 ## Status legend
 
@@ -127,6 +127,20 @@ Volledig architectuurdocument: [`docs/architecture-v2-ai.md`](architecture-v2-ai
 - **Capability-gated.** AI-opties zijn alleen in Setup toegankelijk als de host de minimaal vereiste tier haalt. Runtime-monitoring degradeert automatisch bij overload.
 - **Realistisch maximum: 16 streams (4x4-grid)** voor AI-features. De 5x5-grid (25 tegels) blijft beschikbaar in v1.x-modus voor één bekende klant zonder AI-vraag.
 
+### Object-categorieën
+
+Vijf masking-categorieën, afgeleid van pretrained- of in-house-getrainde detectie-modellen:
+
+| Categorie | Bron-model | Onderliggende bron-labels |
+|---|---|---|
+| Face | YuNet of SCRFD | n.v.t. (specialistisch gezichts-model) |
+| Person | YOLOv8n COCO | `person` (0) |
+| TwoWheeler | YOLOv8n COCO | `bicycle` (1), `motorcycle` (3) |
+| Vehicle | YOLOv8n COCO | `car` (2), `bus` (5), `truck` (7) |
+| LicensePlate | In-house Roboflow-getraind | n.v.t. (single-class detector) |
+
+Vier van de vijf categorieën zijn pretrained beschikbaar en kosten geen modelontwikkeling. Alleen LicensePlate vraagt in-house training; daarom verschuift dit naar v2.0.x in de fasering hieronder. Bron-labels worden bewaard op elke `Detection`-record voor audit en diagnose (zodat support kan zien dat een Vehicle bijvoorbeeld een `truck` was).
+
 ### Hardware-baselines
 
 | Baseline | Doel | Implementatie |
@@ -140,20 +154,19 @@ Sequencing-besluit (11 mei 2026): Windows-baseline eerst volledig productie-rijp
 
 | Fase | Inhoud | Doel |
 |---|---|---|
-| v2.0 | Plate-detection mask op Windows + dGPU (Baseline A), single class, bbox of polygon | Retail-pilot, 100% productie-rijp op Windows |
-| v2.1 | Jetson Orin Nano ARM64 port (Baseline B), zelfde feature-set als v2.0 | Edge-appliance variant, start pas zodra v2.0 op Windows stabiel draait |
-| v2.2 | Face-detection mask, tweede klasse in detector | Generieke privacy-uitbreiding |
-| v2.3 | Person-detection mask | Volledige bezoekers-anonimisering |
+| v2.0 | Multi-class detection op Windows + dGPU (Baseline A): Face + Person + TwoWheeler + Vehicle, bbox / polygon blur per categorie. Pretrained YuNet voor gezichten, YOLOv8n COCO voor de rest | Brede privacy-baseline; retail-pilot krijgt Vehicle-mask direct, plate volgt in 2.0.x |
+| v2.0.x | LicensePlate-categorie toegevoegd zodra de in-house Roboflow-training gereed is | Retail-specifieke verfijning, geen wachttijd op de bredere v2.0-release |
+| v2.1 | Jetson Orin Nano ARM64 port (Baseline B), zelfde feature-set als v2.0(.x) | Edge-appliance variant, start pas zodra v2.0 op Windows stabiel draait |
 | v2.x | Semantic segmentation upgrade, SAM2-class op edge-appliance | Precieze contour-blur ipv polygon-approx |
 
 ### Prerequisite-werk (kan al starten voor v2.0-scope vaststaat)
 
 | ID | Component | Status |
 |---|---|---|
-| P1 | Roadmap- en architectuurdocumentatie | 🛠 in ontwikkeling |
-| P2 | `HostCapabilityProfile` resource-probe (DXGI, WinML provider-inventory, NPU-detectie) | 📋 ingepland |
-| P3 | Benchmark-runner (ONNX-mini-model latency-meting, persist + tonen in About-tab) | 📋 ingepland |
-| P4 | `IObjectDetector`-abstractie + `NullDetector` fail-safe-bridge naar full-tile blur | 💡 ontwerp |
+| P1 | Roadmap- en architectuurdocumentatie | ✅ vastgelegd (deze documenten) |
+| P2 | `HostCapabilityProfile` resource-probe (WMI, registry-VRAM, NPU-detectie) | ✅ commit `3bb0cd9` |
+| P3 | Benchmark-runner (ONNX Runtime + DirectML, MobileNetV2 reference workload) | ✅ commit `ebf994d` |
+| P4 | `IObjectDetector`-abstractie + `NullDetector` fail-safe-bridge naar full-tile blur | 🛠 in ontwikkeling |
 | P5 | IPC-protocol-specificatie voor Jetson-sidecar (gRPC + mTLS) | 💡 ontwerp, implementatie verschuift naar v2.1 |
 
 ---

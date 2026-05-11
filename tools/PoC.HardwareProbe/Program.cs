@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using InteractiveMask.Detection;
 using InteractiveMask.Hardware;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -76,3 +78,44 @@ catch (Exception ex)
     Console.WriteLine();
     Console.WriteLine($"Benchmark failed: {ex.GetType().Name}: {ex.Message}");
 }
+
+// ------------------------------------------------------------------
+// NullDetector smoke test (P4 deliverable)
+// ------------------------------------------------------------------
+Console.WriteLine();
+Console.WriteLine("NullDetector smoke test...");
+try
+{
+    await using var nullDetector = new NullDetector();
+    var config = new DetectorConfig(
+        EnabledClasses: new HashSet<ObjectClass> { ObjectClass.Face, ObjectClass.Person, ObjectClass.Vehicle },
+        ConfidenceThresholds: new Dictionary<ObjectClass, float>
+        {
+            [ObjectClass.Face] = 0.5f,
+            [ObjectClass.Person] = 0.4f,
+            [ObjectClass.Vehicle] = 0.4f,
+        },
+        MaxQueueDepth: 1,
+        PreferPolygonMasks: false);
+    await nullDetector.InitializeAsync(config);
+
+    Console.WriteLine($"  Backend:           {nullDetector.Capability.BackendName}");
+    Console.WriteLine($"  Status:            {nullDetector.Status}");
+    Console.WriteLine($"  Supported classes: {nullDetector.Capability.SupportedClasses.Count} (expected 0)");
+
+    // Submit a dummy frame and confirm the detector returns an empty set
+    // (the contract guarantees full-tile blur fallback on the render side).
+    var dummyFrame = new DummyFrame(TimestampTicks: DateTime.UtcNow.Ticks, Width: 1920, Height: 1080, StreamId: 0);
+    var detectionFrame = await nullDetector.DetectAsync(dummyFrame);
+    Console.WriteLine($"  Returned detects:  {detectionFrame.Detections.Count} (expected 0)");
+    Console.WriteLine($"  Frame timestamp:   {detectionFrame.FrameTimestampTicks} (matches: {detectionFrame.FrameTimestampTicks == dummyFrame.TimestampTicks})");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"NullDetector smoke test failed: {ex.GetType().Name}: {ex.Message}");
+}
+
+// Local FrameRef subtype used only by this smoke test; real backends will define
+// their own typed FrameRef holding decoded-bitmap or GPU-resource handles.
+internal sealed record DummyFrame(long TimestampTicks, int Width, int Height, int StreamId)
+    : FrameRef(TimestampTicks, Width, Height, StreamId);
