@@ -409,6 +409,8 @@ public partial class SetupWindow : Window
                 // the loaded settings reference.
                 AiRoiPolygon = new List<InteractiveMask.Detection.PolygonPoint>(c.AiRoiPolygon),
                 AiConfidencePercent = c.AiConfidencePercent,
+                AiUseSourceBlur = c.AiUseSourceBlur,
+                AiMaskOpacityPercent = c.AiMaskOpacityPercent,
             });
         }
 
@@ -1051,6 +1053,8 @@ public partial class SetupWindow : Window
                     MaskPaddingPercent = c.MaskPaddingPercent,
                     AiRoiPolygon = new List<InteractiveMask.Detection.PolygonPoint>(c.AiRoiPolygon),
                     AiConfidencePercent = c.AiConfidencePercent,
+                    AiUseSourceBlur = c.AiUseSourceBlur,
+                    AiMaskOpacityPercent = c.AiMaskOpacityPercent,
                 })
                 .ToList(),
             Kiosk = { Enabled = KioskEnabled.IsChecked == true },

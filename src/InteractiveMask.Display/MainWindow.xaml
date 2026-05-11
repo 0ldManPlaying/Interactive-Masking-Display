@@ -102,38 +102,84 @@
                             </ItemsControl.ItemContainerStyle>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <!-- Real per-region blur. The ImageBrush samples the
-                                         detection's pixel rectangle out of the tile's
-                                         WriteableBitmap (Viewbox in absolute pixel units)
-                                         and renders it onto a same-sized Rectangle. The
-                                         BlurEffect on top scrambles the sampled pixels so
-                                         features are no longer recognizable while colour /
-                                         brightness silhouettes remain. The ImageSource is
-                                         pulled from the parent TileViewModel via the
-                                         ItemsControl's DataContext; per-item DataContext
-                                         is a DetectedObject. -->
-                                    <!-- Colour-coded silhouette overlay (M3.5).
-                                         Fill is a solid colour per category (red=Person,
-                                         blue=Vehicle, orange=TwoWheeler) clipped by the
-                                         segmentation OpacityMask to the object's silhouette,
-                                         then heavily Gaussian-blurred. The solid-colour-on-mask
-                                         approach gives two wins at once: privacy (underlying
-                                         camera content is completely hidden, no blur-leak of
-                                         features) AND clear category visualisation so the
-                                         operator scanning a video grid knows what is being
-                                         masked. For bbox-only fallback (Mask=null), OpacityMask
-                                         is null and the full bbox is rendered as a solid
-                                         coloured blob. -->
-                                    <Rectangle Width="{Binding Box.Width}"
-                                               Height="{Binding Box.Height}"
-                                               Fill="{Binding Class, Converter={StaticResource ClassToBrush}}"
-                                               OpacityMask="{Binding Mask, Converter={StaticResource MaskToBrush}}">
-                                        <Rectangle.Effect>
-                                            <BlurEffect Radius="40"
-                                                        KernelType="Gaussian"
-                                                        RenderingBias="Performance" />
-                                        </Rectangle.Effect>
-                                    </Rectangle>
+                                    <!-- Per-detection overlay (M3.5 + v1.3 rendering toggle).
+                                         Two mutually-exclusive Rectangle children driven by
+                                         the parent TileViewModel's AiUseSourceBlur flag:
+
+                                         (1) Colour-coded silhouette (default, AiUseSourceBlur=false):
+                                             Solid colour per category (red=Person, orange=TwoWheeler,
+                                             blue=Vehicle), clipped by the segmentation OpacityMask
+                                             and Gaussian-blurred. Privacy + clear category preview
+                                             for the operator. Bbox-only fallback (Mask=null) renders
+                                             the full bbox as a solid coloured blob.
+
+                                         (2) Source blur (AiUseSourceBlur=true):
+                                             ImageBrush samples the detection's pixel rectangle out
+                                             of the tile's WriteableBitmap (Viewbox in absolute pixel
+                                             units) and renders it onto a same-sized Rectangle, with
+                                             a heavy BlurEffect. Classic CCTV look: the camera area
+                                             itself is shown but unrecognisable.
+
+                                         The wrapping Grid's Opacity is bound to AiMaskOpacity on
+                                         the parent TileViewModel (1.0=opaque, 0.2=very translucent)
+                                         giving the operator a single per-camera transparency dial. -->
+                                    <Grid Width="{Binding Box.Width}"
+                                          Height="{Binding Box.Height}"
+                                          Opacity="{Binding DataContext.AiMaskOpacity, RelativeSource={RelativeSource AncestorType=ItemsControl}, FallbackValue=1.0}">
+
+                                        <!-- (1) Colour-coded silhouette -->
+                                        <Rectangle Fill="{Binding Class, Converter={StaticResource ClassToBrush}}"
+                                                   OpacityMask="{Binding Mask, Converter={StaticResource MaskToBrush}}">
+                                            <Rectangle.Style>
+                                                <Style TargetType="Rectangle">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DataContext.AiUseSourceBlur, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Rectangle.Style>
+                                            <Rectangle.Effect>
+                                                <BlurEffect Radius="40"
+                                                            KernelType="Gaussian"
+                                                            RenderingBias="Performance" />
+                                            </Rectangle.Effect>
+                                        </Rectangle>
+
+                                        <!-- (2) Source blur (CCTV look) -->
+                                        <Rectangle OpacityMask="{Binding Mask, Converter={StaticResource MaskToBrush}}">
+                                            <Rectangle.Style>
+                                                <Style TargetType="Rectangle">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DataContext.AiUseSourceBlur, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Rectangle.Style>
+                                            <Rectangle.Fill>
+                                                <ImageBrush ImageSource="{Binding DataContext.Bitmap, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            ViewboxUnits="Absolute"
+                                                            Stretch="Fill">
+                                                    <ImageBrush.Viewbox>
+                                                        <MultiBinding Converter="{StaticResource BoxToViewbox}">
+                                                            <Binding Path="Box.X" />
+                                                            <Binding Path="Box.Y" />
+                                                            <Binding Path="Box.Width" />
+                                                            <Binding Path="Box.Height" />
+                                                        </MultiBinding>
+                                                    </ImageBrush.Viewbox>
+                                                </ImageBrush>
+                                            </Rectangle.Fill>
+                                            <Rectangle.Effect>
+                                                <BlurEffect Radius="40"
+                                                            KernelType="Gaussian"
+                                                            RenderingBias="Performance" />
+                                            </Rectangle.Effect>
+                                        </Rectangle>
+                                    </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

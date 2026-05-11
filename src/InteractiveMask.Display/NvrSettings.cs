@@ -275,4 +275,21 @@ public sealed class CameraSlotSettings
     /// are still filtered out.
     /// </summary>
     public int AiConfidencePercent { get; set; } = 40;
+
+    /// <summary>
+    /// Rendering mode for the AI mask on this camera. False (default) renders a
+    /// solid class-coloured silhouette (high privacy + colour-coded debug view);
+    /// true renders a sample of the underlying camera content with Gaussian blur
+    /// (looks like a blurred photo, classic CCTV blur). Per-camera so each feed
+    /// can pick what fits its audience.
+    /// </summary>
+    public bool AiUseSourceBlur { get; set; } = false;
+
+    /// <summary>
+    /// Mask opacity in percent (20..100, default 100). Lower values let the
+    /// underlying camera scene partially show through the privacy mask, useful
+    /// for demos / sales presentations where the operator wants to convey
+    /// "person was here" without fully hiding the area.
+    /// </summary>
+    public int AiMaskOpacityPercent { get; set; } = 100;
 }

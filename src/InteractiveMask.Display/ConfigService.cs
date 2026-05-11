@@ -167,6 +167,8 @@ public sealed class ConfigService
                     MaskPaddingPercent = Math.Clamp(c.MaskPaddingPercent, 0, 50),
                     AiRoiPolygon = ParseAiRoiPolygon(c.AiRoiPolygon),
                     AiConfidencePercent = Math.Clamp(c.AiConfidencePercent, 15, 70),
+                    AiUseSourceBlur = c.AiUseSourceBlur,
+                    AiMaskOpacityPercent = Math.Clamp(c.AiMaskOpacityPercent, 20, 100),
                 })
                 .ToList();
         }
@@ -263,6 +265,8 @@ public sealed class ConfigService
                 MaskPaddingPercent = c.MaskPaddingPercent,
                 AiRoiPolygon = c.AiRoiPolygon.Select(p => new[] { p.X, p.Y }).ToList(),
                 AiConfidencePercent = c.AiConfidencePercent,
+                AiUseSourceBlur = c.AiUseSourceBlur,
+                AiMaskOpacityPercent = c.AiMaskOpacityPercent,
             })
             .ToList(),
         Kiosk = new StoredKiosk { Enabled = settings.Kiosk.Enabled },
@@ -485,5 +489,9 @@ public sealed class ConfigService
         // tune higher for cameras with mostly close-by objects (less flicker)
         // or lower for cameras dominated by small / distant objects (more recall).
         public int AiConfidencePercent { get; set; } = 40;
+        // M3.5 polish: rendering mode + opacity. Defaults preserve current
+        // behaviour (colour-coded solid silhouette at full opacity).
+        public bool AiUseSourceBlur { get; set; } = false;
+        public int AiMaskOpacityPercent { get; set; } = 100;
     }
 }

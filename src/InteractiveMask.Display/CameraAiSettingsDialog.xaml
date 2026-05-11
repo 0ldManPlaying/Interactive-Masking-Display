@@ -4,7 +4,8 @@
         xmlns:local="clr-namespace:InteractiveMask.Display"
         Title="AI"
         Icon="pack://application:,,,/app.ico"
-        SizeToContent="WidthAndHeight"
+        SizeToContent="Height"
+        Width="640"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -17,170 +18,442 @@
         KeyDown="OnKeyDown">
 
     <Window.Resources>
-        <!-- Default styling so checkbox labels keep their light-on-dark contrast.
-             WPF's default Foreground inherits SystemColors.ControlText (black) and
-             becomes unreadable on this dialog's dark chrome without an explicit
-             setter. Same lesson as the Setup window from v1.3. -->
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#E6E6E6" />
+        <!-- Colour tokens (kept in sync with SetupWindow.xaml) -->
+        <SolidColorBrush x:Key="text"            Color="#E6E6E6" />
+        <SolidColorBrush x:Key="text.muted"      Color="#8B95A7" />
+        <SolidColorBrush x:Key="text.dim"        Color="#5A6273" />
+        <SolidColorBrush x:Key="border"          Color="#2A2F3A" />
+        <SolidColorBrush x:Key="border.strong"   Color="#374050" />
+        <SolidColorBrush x:Key="accent"          Color="#4DABF7" />
+        <SolidColorBrush x:Key="accent.soft"     Color="#1F3A52" />
+        <SolidColorBrush x:Key="bg.card"         Color="#202733" />
+        <SolidColorBrush x:Key="bg.input"        Color="#232831" />
+        <SolidColorBrush x:Key="bg.window"       Color="#1A1D24" />
+
+        <!-- Per-class accent for the category chips. Aligns with
+             ObjectClassToBrushConverter so the chips visually preview the colour
+             that will appear on detections of that class in the live view. -->
+        <SolidColorBrush x:Key="class.person"     Color="#E74C3C" />
+        <SolidColorBrush x:Key="class.twoWheeler" Color="#F39C12" />
+        <SolidColorBrush x:Key="class.vehicle"    Color="#3498DB" />
+
+        <!-- ====== Card ====== -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource bg.card}" />
+            <Setter Property="BorderBrush" Value="{StaticResource border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <Style x:Key="CardHeader" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource text}" />
+            <Setter Property="FontSize"   Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin"     Value="0,0,0,12" />
+        </Style>
+
+        <Style x:Key="CardHint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource text.muted}" />
+            <Setter Property="FontSize"   Value="11" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <!-- ====== Toggle switch ====== -->
+        <Style x:Key="ToggleSwitch" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Foreground" Value="{StaticResource text}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="track" Width="38" Height="22" CornerRadius="11"
+                                    Background="#2D3340" BorderBrush="{StaticResource border}" BorderThickness="1">
+                                <Border x:Name="knob" Width="16" Height="16" CornerRadius="8"
+                                        Background="#8B95A7" HorizontalAlignment="Left" Margin="2,0,0,0" />
+                            </Border>
+                            <ContentPresenter Margin="12,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="track" Property="Background" Value="{StaticResource accent}" />
+                                <Setter TargetName="track" Property="BorderBrush" Value="{StaticResource accent}" />
+                                <Setter TargetName="knob" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="knob" Property="Margin" Value="0,0,2,0" />
+                                <Setter TargetName="knob" Property="Background" Value="#0F1115" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="track" Property="BorderBrush" Value="{StaticResource border.strong}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ====== Category chip (pill-style CheckBox with a colour-coded ring) ======
+             Unchecked: muted text + muted border, no fill. Checked: solid colour fill,
+             dark text. The colour comes from the per-style override using the
+             class.* brushes - keeps the chip's visual identity in sync with the live
+             detection overlay colour rendered by ObjectClassToBrushConverter. -->
+        <Style x:Key="CategoryChip" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,8,8" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="root"
+                                CornerRadius="16"
+                                Padding="14,7"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource border.strong}"
+                                BorderThickness="1.5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse x:Name="dot"
+                                         Width="10" Height="10"
+                                         Fill="{TemplateBinding Tag}"
+                                         Margin="0,0,8,0"
+                                         VerticalAlignment="Center" />
+                                <TextBlock x:Name="label"
+                                           Text="{TemplateBinding Content}"
+                                           Foreground="{StaticResource text.muted}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="root" Property="Background" Value="{TemplateBinding Tag}" />
+                                <Setter TargetName="root" Property="BorderBrush" Value="{TemplateBinding Tag}" />
+                                <Setter TargetName="label" Property="Foreground" Value="#0F1115" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="root" Property="Opacity" Value="0.88" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ====== Segmented option (RadioButton styled as a pill in a 2-option group) ====== -->
+        <Style x:Key="SegmentedOption" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="root"
+                                CornerRadius="16"
+                                Padding="14,7"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource border.strong}"
+                                BorderThickness="1.5">
+                            <TextBlock x:Name="label"
+                                       Text="{TemplateBinding Content}"
+                                       Foreground="{StaticResource text.muted}"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="root" Property="Background" Value="{StaticResource accent}" />
+                                <Setter TargetName="root" Property="BorderBrush" Value="{StaticResource accent}" />
+                                <Setter TargetName="label" Property="Foreground" Value="#0F1115" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="root" Property="Opacity" Value="0.88" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ====== Buttons ====== -->
+        <Style x:Key="BtnPrimary" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource accent}" />
+            <Setter Property="Foreground" Value="#0F1115" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#74C0FC" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#3B96D8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="BtnGhost" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource text.muted}" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{StaticResource border.strong}" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource accent}" />
+                                <Setter Property="Foreground" Value="{StaticResource text}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ====== Slider ====== -->
+        <Style TargetType="Slider">
+            <Setter Property="Background" Value="{StaticResource bg.input}" />
+            <Setter Property="Foreground" Value="{StaticResource accent}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="MinHeight" Value="22" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid VerticalAlignment="Center">
+                            <Border Height="4" CornerRadius="2" Background="{StaticResource bg.input}" />
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate>
+                                                <Border Height="4" CornerRadius="2" Background="{StaticResource accent}" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate>
+                                                <Border Width="16" Height="16" CornerRadius="8"
+                                                        Background="{StaticResource accent}"
+                                                        BorderBrush="#0F1115" BorderThickness="2" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate>
+                                                <Border Background="Transparent" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
-    <Border Background="#1A1D24"
-            BorderBrush="#2A2F3A"
+    <Border Background="{StaticResource bg.window}"
+            BorderBrush="{StaticResource border}"
             BorderThickness="1"
             CornerRadius="14"
-            Padding="28"
-            MinWidth="420">
+            Padding="28">
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="0" Opacity="0.5" />
         </Border.Effect>
+
         <StackPanel>
+            <!-- ===== Header ===== -->
             <TextBlock Text="{local:Loc AiDialogTitle}"
                        FontSize="18"
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center" />
             <TextBlock x:Name="SubheaderText"
-                       Foreground="#8B95A7"
+                       Foreground="{StaticResource text.muted}"
                        FontSize="13"
                        HorizontalAlignment="Center"
                        Margin="0,4,0,20" />
 
-            <!-- Master toggle. When unchecked the categories are visually dimmed
-                 and ignored on Save, but their state is kept in the UI so flipping
-                 the master back on restores the prior selection (not surprising). -->
-            <CheckBox x:Name="EnableBox"
-                      Content="{local:Loc AiEnableToggle}"
-                      FontWeight="SemiBold"
-                      FontSize="14"
-                      Checked="OnEnableChanged"
-                      Unchecked="OnEnableChanged" />
+            <!-- ===== Enable toggle ===== -->
+            <Border Style="{StaticResource Card}">
+                <CheckBox x:Name="EnableBox"
+                          Style="{StaticResource ToggleSwitch}"
+                          Content="{local:Loc AiEnableToggle}"
+                          Checked="OnEnableChanged"
+                          Unchecked="OnEnableChanged" />
+            </Border>
 
-            <TextBlock Text="{local:Loc AiClassesHeader}"
-                       Foreground="#8B95A7"
-                       FontSize="12"
-                       Margin="0,18,0,8" />
+            <!-- ===== Categories ===== -->
+            <Border Style="{StaticResource Card}" x:Name="ClassesPanel">
+                <StackPanel>
+                    <TextBlock Text="{local:Loc AiClassesHeader}" Style="{StaticResource CardHeader}" />
+                    <WrapPanel Orientation="Horizontal">
+                        <CheckBox x:Name="PersonBox"
+                                  Style="{StaticResource CategoryChip}"
+                                  Content="{local:Loc AiClassPerson}"
+                                  Tag="{StaticResource class.person}" />
+                        <CheckBox x:Name="TwoWheelerBox"
+                                  Style="{StaticResource CategoryChip}"
+                                  Content="{local:Loc AiClassTwoWheeler}"
+                                  Tag="{StaticResource class.twoWheeler}" />
+                        <CheckBox x:Name="VehicleBox"
+                                  Style="{StaticResource CategoryChip}"
+                                  Content="{local:Loc AiClassVehicle}"
+                                  Tag="{StaticResource class.vehicle}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
 
-            <StackPanel x:Name="ClassesPanel" Margin="6,0,0,0">
-                <CheckBox x:Name="PersonBox"
-                          Content="{local:Loc AiClassPerson}"
-                          Margin="0,4,0,4" />
-                <CheckBox x:Name="TwoWheelerBox"
-                          Content="{local:Loc AiClassTwoWheeler}"
-                          Margin="0,4,0,4" />
-                <CheckBox x:Name="VehicleBox"
-                          Content="{local:Loc AiClassVehicle}"
-                          Margin="0,4,0,4" />
-            </StackPanel>
+            <!-- ===== Detection threshold ===== -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <TextBlock Text="{local:Loc AiConfidenceHeader}" Style="{StaticResource CardHeader}" Margin="0" />
+                        <TextBlock x:Name="ConfidenceValueText"
+                                   HorizontalAlignment="Right"
+                                   Foreground="{StaticResource accent}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold" />
+                    </Grid>
+                    <Slider x:Name="ConfidenceSlider"
+                            Minimum="15" Maximum="70"
+                            SmallChange="1" LargeChange="5"
+                            ValueChanged="OnConfidenceSliderChanged" />
+                    <TextBlock Style="{StaticResource CardHint}"
+                               Margin="0,10,0,0"
+                               Text="{local:Loc AiConfidenceHint}" />
+                </StackPanel>
+            </Border>
 
-            <!-- Mask padding: inflates the blur region around each detection. -->
-            <Grid Margin="0,20,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="56" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0"
-                           Text="{local:Loc AiPaddingHeader}"
-                           Foreground="#8B95A7"
-                           FontSize="12"
-                           VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1"
-                           x:Name="PaddingValueText"
-                           Foreground="#E6E6E6"
-                           FontSize="13"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Center" />
-            </Grid>
-            <Slider x:Name="PaddingSlider"
-                    Minimum="0" Maximum="50"
-                    SmallChange="1" LargeChange="5"
-                    TickFrequency="5" TickPlacement="None"
-                    IsSnapToTickEnabled="False"
-                    Margin="0,6,0,0"
-                    ValueChanged="OnPaddingSliderChanged" />
+            <!-- ===== Mask padding ===== -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <TextBlock Text="{local:Loc AiPaddingHeader}" Style="{StaticResource CardHeader}" Margin="0" />
+                        <TextBlock x:Name="PaddingValueText"
+                                   HorizontalAlignment="Right"
+                                   Foreground="{StaticResource accent}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold" />
+                    </Grid>
+                    <Slider x:Name="PaddingSlider"
+                            Minimum="0" Maximum="50"
+                            SmallChange="1" LargeChange="5"
+                            ValueChanged="OnPaddingSliderChanged" />
+                    <TextBlock Style="{StaticResource CardHint}"
+                               Margin="0,10,0,0"
+                               Text="{local:Loc AiPaddingHint}" />
+                </StackPanel>
+            </Border>
 
-            <!-- Confidence threshold + implicit hysteresis (M3.5 follow-up).
-                 Slider 15..70 maps to the per-tile enter threshold; stay
-                 threshold (for IoU-matched detections from the prior frame)
-                 is half this value. -->
-            <Grid Margin="0,18,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="56" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0"
-                           Text="{local:Loc AiConfidenceHeader}"
-                           Foreground="#8B95A7"
-                           FontSize="12"
-                           VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1"
-                           x:Name="ConfidenceValueText"
-                           Foreground="#E6E6E6"
-                           FontSize="13"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Center" />
-            </Grid>
-            <Slider x:Name="ConfidenceSlider"
-                    Minimum="15" Maximum="70"
-                    SmallChange="1" LargeChange="5"
-                    TickFrequency="5" TickPlacement="None"
-                    IsSnapToTickEnabled="False"
-                    Margin="0,6,0,0"
-                    ValueChanged="OnConfidenceSliderChanged" />
-            <TextBlock Foreground="#8B95A7" FontSize="11" TextWrapping="Wrap"
-                       Margin="0,6,0,0"
-                       Text="{local:Loc AiConfidenceHint}" />
+            <!-- ===== Mask style (color-coded vs source blur) ===== -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="{local:Loc AiRenderHeader}" Style="{StaticResource CardHeader}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <RadioButton x:Name="RenderColorCodedRadio"
+                                     Style="{StaticResource SegmentedOption}"
+                                     GroupName="MaskStyle"
+                                     Content="{local:Loc AiRenderColorCoded}"
+                                     Checked="OnRenderStyleChanged" />
+                        <RadioButton x:Name="RenderBlurredSourceRadio"
+                                     Style="{StaticResource SegmentedOption}"
+                                     GroupName="MaskStyle"
+                                     Content="{local:Loc AiRenderBlurredSource}"
+                                     Checked="OnRenderStyleChanged" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource CardHint}"
+                               Margin="0,10,0,0"
+                               Text="{local:Loc AiRenderHint}" />
+                </StackPanel>
+            </Border>
 
-            <!-- Region of Interest section (M3.4): button opens the polygon
-                 editor. Disabled when no snapshot is available so the user gets
-                 a clear "wait until camera is connected" message instead of a
-                 cryptic empty editor. -->
-            <TextBlock Text="{local:Loc AiRoiSection}"
-                       Foreground="#8B95A7"
-                       FontSize="12"
-                       Margin="0,20,0,6" />
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0"
-                           x:Name="RoiStatusText"
-                           Foreground="#E6E6E6"
-                           FontSize="13"
-                           VerticalAlignment="Center" />
-                <Button Grid.Column="1"
-                        x:Name="RoiOpenButton"
-                        Content="{local:Loc AiRoiButton}"
-                        Click="OnOpenRoiEditor"
-                        Background="Transparent" Foreground="#E6E6E6"
-                        BorderBrush="#374050" BorderThickness="1"
-                        Padding="12,5" Cursor="Hand" />
-            </Grid>
-            <TextBlock Foreground="#8B95A7" FontSize="11" TextWrapping="Wrap"
-                       Margin="0,6,0,0"
-                       Text="{local:Loc AiRoiHint}" />
+            <!-- ===== Mask opacity ===== -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <TextBlock Text="{local:Loc AiOpacityHeader}" Style="{StaticResource CardHeader}" Margin="0" />
+                        <TextBlock x:Name="OpacityValueText"
+                                   HorizontalAlignment="Right"
+                                   Foreground="{StaticResource accent}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold" />
+                    </Grid>
+                    <Slider x:Name="OpacitySlider"
+                            Minimum="20" Maximum="100"
+                            SmallChange="1" LargeChange="10"
+                            ValueChanged="OnOpacitySliderChanged" />
+                    <TextBlock Style="{StaticResource CardHint}"
+                               Margin="0,10,0,0"
+                               Text="{local:Loc AiOpacityHint}" />
+                </StackPanel>
+            </Border>
 
-            <TextBlock Foreground="#8B95A7" FontSize="11" TextWrapping="Wrap"
-                       Margin="0,16,0,0"
-                       Text="{local:Loc AiDialogHint}" />
+            <!-- ===== Region of Interest ===== -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="{local:Loc AiRoiSection}" Style="{StaticResource CardHeader}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   x:Name="RoiStatusText"
+                                   Foreground="{StaticResource text}"
+                                   FontSize="13"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                x:Name="RoiOpenButton"
+                                Style="{StaticResource BtnGhost}"
+                                Content="{local:Loc AiRoiButton}"
+                                Click="OnOpenRoiEditor" />
+                    </Grid>
+                    <TextBlock Style="{StaticResource CardHint}"
+                               Margin="0,10,0,0"
+                               Text="{local:Loc AiRoiHint}" />
+                </StackPanel>
+            </Border>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+            <!-- ===== Bottom action bar ===== -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <Button Content="{local:Loc SetupCancel}"
+                        Style="{StaticResource BtnGhost}"
                         Click="OnCancel"
-                        Background="Transparent" Foreground="#8B95A7"
-                        BorderBrush="#374050" BorderThickness="1"
-                        Padding="14,8" Cursor="Hand"
                         Margin="0,0,8,0" />
                 <Button Content="{local:Loc SetupSave}"
+                        Style="{StaticResource BtnPrimary}"
                         Click="OnOk"
-                        IsDefault="True"
-                        Background="#4DABF7" Foreground="#0F1115"
-                        FontWeight="SemiBold"
-                        BorderThickness="0"
-                        Padding="14,8" Cursor="Hand" />
+                        IsDefault="True" />
             </StackPanel>
         </StackPanel>
     </Border>

@@ -103,6 +103,41 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     public int AiConfidencePercent { get; set; } = 40;
 
     /// <summary>
+    /// Per-camera rendering style for AI mask. False = colour-coded silhouette
+    /// (solid class colour clipped by seg mask), true = sample of the underlying
+    /// camera content with Gaussian blur. Drives a DataTrigger on the per-
+    /// detection Rectangle template in MainWindow.xaml.
+    /// </summary>
+    public bool AiUseSourceBlur
+    {
+        get => _aiUseSourceBlur;
+        set
+        {
+            if (_aiUseSourceBlur == value) return;
+            _aiUseSourceBlur = value;
+            OnPropertyChanged(nameof(AiUseSourceBlur));
+        }
+    }
+    private bool _aiUseSourceBlur;
+
+    /// <summary>
+    /// Per-camera AI mask opacity 0.20..1.00 (derived from AiMaskOpacityPercent
+    /// 20..100 on the settings). Bound directly to Rectangle.Opacity on the
+    /// per-detection overlays.
+    /// </summary>
+    public double AiMaskOpacity
+    {
+        get => _aiMaskOpacity;
+        set
+        {
+            if (Math.Abs(_aiMaskOpacity - value) < 0.001) return;
+            _aiMaskOpacity = value;
+            OnPropertyChanged(nameof(AiMaskOpacity));
+        }
+    }
+    private double _aiMaskOpacity = 1.0;
+
+    /// <summary>
     /// Frame-N-minus-1 accepted detections, used by the hysteresis path in
     /// ApplyDetections. Replaced wholesale on each accepted frame.
     /// </summary>

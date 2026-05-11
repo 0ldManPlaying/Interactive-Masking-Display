@@ -39,6 +39,16 @@ public partial class CameraAiSettingsDialog : Window
         UpdatePaddingText();
         ConfidenceSlider.Value = Math.Clamp(target.AiConfidencePercent, 15, 70);
         UpdateConfidenceText();
+
+        // Mask style: color-coded silhouette vs source-blur (CCTV look). Default
+        // (and persisted false) maps to color-coded so existing camera configs
+        // keep their current rendering.
+        if (target.AiUseSourceBlur) RenderBlurredSourceRadio.IsChecked = true;
+        else                        RenderColorCodedRadio.IsChecked    = true;
+
+        OpacitySlider.Value = Math.Clamp(target.AiMaskOpacityPercent, 20, 100);
+        UpdateOpacityText();
+
         UpdateRoiStatus();
 
         UpdateClassesEnabledState();
@@ -80,6 +90,22 @@ public partial class CameraAiSettingsDialog : Window
         ConfidenceValueText.Text = pct.ToString(CultureInfo.InvariantCulture) + " %";
     }
 
+    private void OnOpacitySliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => UpdateOpacityText();
+
+    private void UpdateOpacityText()
+    {
+        // Guard for designer/initial load before XAML element is realised.
+        if (OpacityValueText == null) return;
+        int pct = (int)Math.Round(OpacitySlider.Value);
+        OpacityValueText.Text = pct.ToString(CultureInfo.InvariantCulture) + " %";
+    }
+
+    private void OnRenderStyleChanged(object sender, RoutedEventArgs e)
+    {
+        // No live preview yet - the change applies on Save. Hook kept for future
+        // visual feedback (e.g. updating a thumbnail in the dialog itself).
+    }
+
     private void OnEnableChanged(object sender, RoutedEventArgs e) => UpdateClassesEnabledState();
 
     /// <summary>
@@ -106,6 +132,9 @@ public partial class CameraAiSettingsDialog : Window
 
         _target.MaskPaddingPercent = Math.Clamp((int)Math.Round(PaddingSlider.Value), 0, 50);
         _target.AiConfidencePercent = Math.Clamp((int)Math.Round(ConfidenceSlider.Value), 15, 70);
+
+        _target.AiUseSourceBlur = RenderBlurredSourceRadio.IsChecked == true;
+        _target.AiMaskOpacityPercent = Math.Clamp((int)Math.Round(OpacitySlider.Value), 20, 100);
 
         DialogResult = true;
         Close();

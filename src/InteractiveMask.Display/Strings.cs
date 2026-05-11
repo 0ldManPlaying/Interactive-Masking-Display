@@ -377,6 +377,12 @@ public sealed class StringsTable
     public string AiPaddingHint { get; init; } = "";
     public string AiConfidenceHeader { get; init; } = "";
     public string AiConfidenceHint { get; init; } = "";
+    public string AiRenderHeader { get; init; } = "";
+    public string AiRenderHint { get; init; } = "";
+    public string AiRenderColorCoded { get; init; } = "";
+    public string AiRenderBlurredSource { get; init; } = "";
+    public string AiOpacityHeader { get; init; } = "";
+    public string AiOpacityHint { get; init; } = "";
     public string AiRoiSection { get; init; } = "";
     public string AiRoiButton { get; init; } = "";
     public string AiRoiHint { get; init; } = "";
@@ -669,6 +675,12 @@ public sealed class StringsTable
         AiPaddingHint             = "Vergroot het blur-vlak met dit percentage rondom de detectie. Compenseert voor strakke bboxen die het object net niet helemaal afdekken.",
         AiConfidenceHeader        = "Detectie-drempel",
         AiConfidenceHint          = "Hoger = strenger (alleen zekere detecties, minder knipperen op kleine/verre objecten). Lager = meer recall (vangt distant objects op, kan false positives geven). Hysteresis: eenmaal opgepakt blijft een object zichtbaar tot half deze drempel.",
+        AiRenderHeader            = "Mask-stijl",
+        AiRenderHint              = "Kleur-coded toont een gekleurde silhouet per klasse (rood/oranje/blauw). Beeld-blur laat het cameragebied zien met Gaussian blur, klassieke CCTV-look.",
+        AiRenderColorCoded        = "Kleur-coded",
+        AiRenderBlurredSource     = "Beeld-blur",
+        AiOpacityHeader           = "Mask-dekking",
+        AiOpacityHint             = "Lager = de mask is doorzichtiger en je ziet meer van de achtergrond. 100% is volledig ondoorzichtig.",
         AiRoiSection              = "Region of Interest",
         AiRoiButton               = "ROI tekenen…",
         AiRoiHint                 = "Beperk de detectie tot een polygon-gebied. Detecties buiten het gebied worden niet gemaskeerd.",
@@ -962,6 +974,12 @@ public sealed class StringsTable
         AiPaddingHint             = "Enlarges the blur area by this percentage around the detection. Compensates for tight bounding boxes that don't quite cover the object.",
         AiConfidenceHeader        = "Detection threshold",
         AiConfidenceHint          = "Higher = stricter (only confident detections, less flicker on small / distant objects). Lower = more recall (catches faraway objects, may yield false positives). Hysteresis: once locked on, an object stays rendered down to half this threshold.",
+        AiRenderHeader            = "Mask style",
+        AiRenderHint              = "Colour-coded shows a coloured silhouette per class (red / orange / blue). Source blur shows the camera area itself through a Gaussian blur - classic CCTV look.",
+        AiRenderColorCoded        = "Colour-coded",
+        AiRenderBlurredSource     = "Source blur",
+        AiOpacityHeader           = "Mask opacity",
+        AiOpacityHint             = "Lower = the mask becomes more transparent and the background shows through. 100% is fully opaque.",
         AiRoiSection              = "Region of Interest",
         AiRoiButton               = "Draw ROI…",
         AiRoiHint                 = "Limit detection to a polygon area. Detections outside the polygon are not masked.",
@@ -1260,6 +1278,12 @@ public sealed class StringsTable
         AiPaddingHint             = "Vergrößert den Unschärfebereich um diesen Prozentsatz rund um die Erkennung. Kompensiert enge Bounding-Boxen, die das Objekt nicht ganz abdecken.",
         AiConfidenceHeader        = "Erkennungsschwelle",
         AiConfidenceHint          = "Höher = strenger (nur sichere Erkennungen, weniger Flackern bei kleinen / entfernten Objekten). Niedriger = mehr Treffer (erfasst entfernte Objekte, kann Fehltreffer geben). Hysterese: einmal erkannt, bleibt ein Objekt sichtbar bis zur Hälfte dieser Schwelle.",
+        AiRenderHeader            = "Maskenstil",
+        AiRenderHint              = "Farbkodiert zeigt eine farbige Silhouette pro Klasse (rot / orange / blau). Bild-Unschärfe zeigt den Kamerabereich mit Gaußscher Unschärfe – klassischer CCTV-Look.",
+        AiRenderColorCoded        = "Farbkodiert",
+        AiRenderBlurredSource     = "Bild-Unschärfe",
+        AiOpacityHeader           = "Maskendeckkraft",
+        AiOpacityHint             = "Niedriger = die Maske wird transparenter und der Hintergrund scheint durch. 100 % ist vollständig deckend.",
         AiRoiSection              = "Bereich (ROI)",
         AiRoiButton               = "ROI zeichnen…",
         AiRoiHint                 = "Erkennung auf einen Polygon-Bereich beschränken. Erkennungen außerhalb werden nicht maskiert.",
@@ -1553,6 +1577,12 @@ public sealed class StringsTable
         AiPaddingHint             = "Agrandit la zone de flou de ce pourcentage autour de la détection. Compense les boîtes englobantes trop serrées qui ne couvrent pas tout à fait l'objet.",
         AiConfidenceHeader        = "Seuil de détection",
         AiConfidenceHint          = "Plus haut = plus strict (uniquement détections sûres, moins de scintillement sur petits / lointains objets). Plus bas = plus de rappel (capte les objets éloignés, possibles faux positifs). Hystérésis : une fois verrouillé, un objet reste visible jusqu'à la moitié de ce seuil.",
+        AiRenderHeader            = "Style de masque",
+        AiRenderHint              = "Couleur par classe affiche une silhouette colorée par catégorie (rouge / orange / bleu). Flou de l'image montre la zone caméra elle-même via un flou gaussien — look CCTV classique.",
+        AiRenderColorCoded        = "Couleur par classe",
+        AiRenderBlurredSource     = "Flou de l'image",
+        AiOpacityHeader           = "Opacité du masque",
+        AiOpacityHint             = "Plus bas = le masque devient plus transparent et l'arrière-plan apparaît. 100 % est entièrement opaque.",
         AiRoiSection              = "Zone d'intérêt",
         AiRoiButton               = "Dessiner la zone…",
         AiRoiHint                 = "Limite la détection à une zone polygonale. Les détections hors de la zone ne sont pas masquées.",
@@ -1846,6 +1876,12 @@ public sealed class StringsTable
         AiPaddingHint             = "Amplía la zona de desenfoque este porcentaje alrededor de la detección. Compensa los cuadros delimitadores ajustados que no cubren del todo el objeto.",
         AiConfidenceHeader        = "Umbral de detección",
         AiConfidenceHint          = "Más alto = más estricto (solo detecciones seguras, menos parpadeo en objetos pequeños / lejanos). Más bajo = más recuperación (captura objetos lejanos, posibles falsos positivos). Histéresis: una vez fijado, un objeto permanece visible hasta la mitad de este umbral.",
+        AiRenderHeader            = "Estilo de máscara",
+        AiRenderHint              = "Color por clase muestra una silueta coloreada por categoría (rojo / naranja / azul). Desenfoque de imagen muestra la zona de la cámara con desenfoque gaussiano — estilo CCTV clásico.",
+        AiRenderColorCoded        = "Color por clase",
+        AiRenderBlurredSource     = "Desenfoque de imagen",
+        AiOpacityHeader           = "Opacidad de la máscara",
+        AiOpacityHint             = "Más bajo = la máscara se vuelve más transparente y se ve el fondo. 100 % es totalmente opaca.",
         AiRoiSection              = "Región de interés",
         AiRoiButton               = "Dibujar región…",
         AiRoiHint                 = "Limita la detección a un área poligonal. Las detecciones fuera del área no se enmascaran.",

@@ -163,6 +163,8 @@ public partial class MainWindow : Window
                     t.MaskPaddingPercent = cam.MaskPaddingPercent;
                     t.AiRoiPolygon = cam.AiRoiPolygon;
                     t.AiConfidencePercent = cam.AiConfidencePercent;
+                    t.AiUseSourceBlur = cam.AiUseSourceBlur;
+                    t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
                 }
                 _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             }
@@ -739,6 +741,8 @@ public partial class MainWindow : Window
                 t.MaskPaddingPercent = cam.MaskPaddingPercent;
                 t.AiRoiPolygon = cam.AiRoiPolygon;
                 t.AiConfidencePercent = cam.AiConfidencePercent;
+                t.AiUseSourceBlur = cam.AiUseSourceBlur;
+                t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
             }
         }
 
@@ -757,6 +761,8 @@ public partial class MainWindow : Window
             t.MaskPaddingPercent = cam.MaskPaddingPercent;
             t.AiRoiPolygon = cam.AiRoiPolygon;
             t.AiConfidencePercent = cam.AiConfidencePercent;
+            t.AiUseSourceBlur = cam.AiUseSourceBlur;
+            t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
         }
     }
 

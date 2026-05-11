@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:InteractiveMask.Display"
         Title="InteractiveMask - Setup"
         Icon="pack://application:,,,/app.ico"
-        Width="1180" Height="1000"
+        Width="1280" Height="1000"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
