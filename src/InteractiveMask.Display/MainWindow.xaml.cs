@@ -758,6 +758,25 @@ public partial class MainWindow : Window
         _audit.Write(AuditEventType.AppStarted, source: "config",
             detail: $"camera list updated: +{totalAdded} / -{totalRemoved}");
 
+        // Snapshot the previous per-slot camera config so step 4 can skip tiles
+        // whose Setup state didn't actually change. Without this every Apply
+        // re-pushed Label / NvrTitle / AI settings to every tile, which (a)
+        // re-allocated the AiClasses / AiRoiPolygon collection references every
+        // time, (b) triggered an unconditional MaskOverlayText + IsLabelVisible
+        // property-change ping on every tile via UpdateLabel, and (c) re-fired
+        // the AI-icon visibility MultiDataTrigger across the grid. Cheap to
+        // compare; saves the work for tiles that didn't change.
+        var prevBySlot = _lastAppliedSettings?.Cameras
+            .Where(c => c.Slot >= 0)
+            .GroupBy(c => c.Slot)
+            .ToDictionary(g => g.Key, g => g.First())
+            ?? new();
+
+        // Track slots that got their state freshly pushed in step 3 so step 4
+        // doesn't redundantly write the same values a second time on the same
+        // Apply pass.
+        var freshlyBound = new HashSet<int>();
+
         // Step 3 — bind every camera in the new list to its slot. Cameras that
         // were already bound at the right slot are skipped so the live image
         // stays uninterrupted.
@@ -781,6 +800,7 @@ public partial class MainWindow : Window
                 t.AiConfidencePercent = cam.AiConfidencePercent;
                 t.AiUseSourceBlur = cam.AiUseSourceBlur;
                 t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
+                freshlyBound.Add(cam.Slot);
 
                 // If the operator just turned AI off on a tile that still had
                 // an active reveal window running, the reveal becomes nonsense
@@ -796,10 +816,15 @@ public partial class MainWindow : Window
         // Step 4 — refresh labels, NVR titles and v2.0 AI settings for cameras
         // whose only change was a non-rebind field. Toggling AI on/off or changing
         // categories in Setup takes effect immediately on Apply without needing
-        // a restart.
+        // a restart. Skipped for slots that step 3 just freshly bound, and for
+        // slots whose config is identical to last Apply (no work, no INPC churn).
         foreach (var cam in newCameras)
         {
             if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
+            if (freshlyBound.Contains(cam.Slot)) continue;
+            if (prevBySlot.TryGetValue(cam.Slot, out var prev) && CameraConfigUnchanged(prev, cam))
+                continue;
+
             var t = _viewModel.Tiles[cam.Slot];
             t.UpdateLabel(cam.Label);
             t.NvrTitle = cam.NvrTitle ?? "";
@@ -811,6 +836,40 @@ public partial class MainWindow : Window
             t.AiUseSourceBlur = cam.AiUseSourceBlur;
             t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
         }
+    }
+
+    /// <summary>
+    /// True when every field that step 4 of ApplyCameraChangesLive would push
+    /// to the TileViewModel is identical between two camera-slot configs.
+    /// Collection fields (AiClasses, AiRoiPolygon) are compared by reference
+    /// first as a fast path, then by deep equality; SetupWindow rebuilds these
+    /// per Save, so equal contents in different instances are the common case
+    /// when only an unrelated tile was edited.
+    /// </summary>
+    private static bool CameraConfigUnchanged(CameraSlotSettings a, CameraSlotSettings b)
+    {
+        if (a.Label != b.Label) return false;
+        if ((a.NvrTitle ?? "") != (b.NvrTitle ?? "")) return false;
+        if (a.AiEnabled != b.AiEnabled) return false;
+        if (a.MaskPaddingPercent != b.MaskPaddingPercent) return false;
+        if (a.AiConfidencePercent != b.AiConfidencePercent) return false;
+        if (a.AiUseSourceBlur != b.AiUseSourceBlur) return false;
+        if (a.AiMaskOpacityPercent != b.AiMaskOpacityPercent) return false;
+
+        if (!ReferenceEquals(a.AiClasses, b.AiClasses)
+            && !a.AiClasses.SetEquals(b.AiClasses)) return false;
+
+        if (!ReferenceEquals(a.AiRoiPolygon, b.AiRoiPolygon))
+        {
+            if (a.AiRoiPolygon.Count != b.AiRoiPolygon.Count) return false;
+            for (int i = 0; i < a.AiRoiPolygon.Count; i++)
+            {
+                if (a.AiRoiPolygon[i].X != b.AiRoiPolygon[i].X) return false;
+                if (a.AiRoiPolygon[i].Y != b.AiRoiPolygon[i].Y) return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool AuditForwardEqual(AuditForwardSettings a, AuditForwardSettings b) =>
@@ -951,6 +1010,10 @@ public partial class MainWindow : Window
         _audit.SetForwarder(null);
         _auditForwarder?.Dispose();
         _auditForwarder = null;
+        // Flush + close the persistent audit-log handle. The final
+        // AppStopped event just above is in the buffer until Dispose flushes,
+        // so this is the durability point for the close-out record.
+        _audit.Dispose();
     }
 
     /// <summary>

@@ -457,7 +457,19 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         // reference and never get GC'd.
         _onLanguageChanged = (_, _) => RefreshLanguageStrings();
         Strings.Instance.PropertyChanged += _onLanguageChanged;
+
+        // Cache method-group delegates used in the per-frame BeginInvoke path.
+        // Storing them as fields means OnFrameDecoded / SubmitDetectionAsync
+        // can use Dispatcher.BeginInvoke(Delegate, priority, arg) without
+        // allocating a fresh closure + compiler-generated display class on
+        // every single frame (16 tiles × 25 fps = 400 GC allocations per
+        // second on the GDK callback thread without this).
+        _renderFrameAction = RenderFrame;
+        _applyDetectionsAction = ApplyDetections;
     }
+
+    private readonly Action<DecodedFrame> _renderFrameAction;
+    private readonly Action<IReadOnlyList<DetectedObject>> _applyDetectionsAction;
 
     public void Dispose()
     {
@@ -561,7 +573,10 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         // Called on GDK thread. Marshal the bitmap update to the UI thread.
         // BeginInvoke (not Invoke) so the GDK callback can return immediately and the
         // next frame's decode pipeline isn't blocked on UI work.
-        _dispatcher.BeginInvoke(() => RenderFrame(frame), DispatcherPriority.Render);
+        // Uses the cached _renderFrameAction delegate to avoid a per-frame
+        // closure + display-class allocation on a hot path that fires at
+        // ~25 fps per tile.
+        _dispatcher.BeginInvoke(DispatcherPriority.Render, _renderFrameAction, frame);
 
         // v2.0 AI path: every Nth frame, snapshot the unmanaged pixel buffer to a
         // managed array (must happen synchronously here on the GDK thread; the
@@ -595,7 +610,10 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             var result = await detector.DetectAsync(frameRef).ConfigureAwait(false);
             // BeginInvoke returns a DispatcherOperation we intentionally don't await;
             // the UI thread will pick up the assignment on its next pulse.
-            _ = _dispatcher.BeginInvoke(() => ApplyDetections(result.Detections));
+            // Uses the cached _applyDetectionsAction delegate (set in ctor)
+            // to avoid the per-detection-result closure allocation.
+            _ = _dispatcher.BeginInvoke(DispatcherPriority.Normal,
+                _applyDetectionsAction, result.Detections);
         }
         catch
         {

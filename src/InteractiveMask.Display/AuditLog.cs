@@ -82,8 +82,21 @@ public sealed record AuditEvent(
 ///
 /// One event per line; we append synchronously to keep ordering deterministic
 /// and so a hard crash during a privacy-related action doesn't lose the event.
+/// <para>
+/// Persistent <see cref="StreamWriter"/> kept open for the lifetime of the
+/// process (replaces the prior <c>File.AppendAllText</c> per-call pattern
+/// which re-opened, wrote and closed the file on every event). The new pattern
+/// keeps the slowest disk + AV-scanner combinations from blocking the UI
+/// thread for tens of ms on the open/close round-trip while still flushing
+/// after each write so a crash doesn't lose the in-flight line.
+/// </para>
+/// <para>
+/// <c>FileShare.ReadWrite</c> on the handle lets the WebHost open the same
+/// file for read concurrently. Implements <see cref="IDisposable"/> so the
+/// process-shutdown path can flush and release the handle cleanly.
+/// </para>
 /// </summary>
-public sealed class AuditLog
+public sealed class AuditLog : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -95,7 +108,9 @@ public sealed class AuditLog
 
     private readonly object _lock = new();
     private readonly string _path;
+    private StreamWriter? _writer;
     private IAuditForwarder? _forwarder;
+    private bool _disposed;
 
     public string Path => _path;
 
@@ -113,6 +128,24 @@ public sealed class AuditLog
             "InteractiveMask");
         try { Directory.CreateDirectory(dir); } catch { }
         _path = System.IO.Path.Combine(dir, "audit.log");
+
+        try
+        {
+            // FileShare.ReadWrite lets the WebHost-service process open the
+            // same file for read while we hold a write handle. AutoFlush=false:
+            // we Flush() manually inside the lock so each line is durable but
+            // we don't pay the syscall twice (BaseStream + encoder).
+            var stream = new FileStream(_path, FileMode.Append, FileAccess.Write,
+                FileShare.ReadWrite);
+            _writer = new StreamWriter(stream, System.Text.Encoding.UTF8) { AutoFlush = false };
+        }
+        catch
+        {
+            // Fall back to per-call AppendAllText if the persistent handle
+            // can't be opened (e.g. permissions, locked path). Audit must
+            // never crash the app at startup.
+            _writer = null;
+        }
     }
 
     public void Write(AuditEventType type, int? slot = null, int? cameraIndex = null,
@@ -132,7 +165,19 @@ public sealed class AuditLog
             var json = JsonSerializer.Serialize(ev, JsonOpts);
             lock (_lock)
             {
-                File.AppendAllText(_path, json + Environment.NewLine);
+                if (_writer is not null)
+                {
+                    _writer.WriteLine(json);
+                    // Flush after every event so a hard crash doesn't lose the
+                    // in-flight line. This is the durability contract of the
+                    // audit log; we pay the syscall cost deliberately.
+                    _writer.Flush();
+                }
+                else
+                {
+                    // Fallback path (writer couldn't open at startup).
+                    File.AppendAllText(_path, json + Environment.NewLine);
+                }
             }
         }
         catch
@@ -145,5 +190,17 @@ public sealed class AuditLog
         // Forward after the local write so a slow sink can't delay the disk
         // write; the forwarder itself is non-blocking (bounded queue).
         try { _forwarder?.Forward(ev); } catch { /* sink failures must never crash audit */ }
+    }
+
+    public void Dispose()
+    {
+        lock (_lock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            try { _writer?.Flush(); } catch { /* swallow on shutdown */ }
+            try { _writer?.Dispose(); } catch { /* swallow on shutdown */ }
+            _writer = null;
+        }
     }
 }
