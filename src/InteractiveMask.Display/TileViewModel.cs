@@ -1,6 +1,9 @@
+using InteractiveMask.Detection;
 using InteractiveMask.Gdk;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -37,6 +40,16 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     private int _autoReMaskMinutes;
     private bool _isTimerWarning;
     private string _countdownText = "";
+
+    // -- v2.0 AI detection wiring ---------------------------------------------
+    // The detector is shared across all tiles and owned by MainWindow; we hold
+    // a weak reference here in the form of a plain field set via AttachDetector.
+    // Frame submission is rate-limited per tile so 16 tiles do not collectively
+    // saturate the inference pipeline.
+    private IObjectDetector? _detector;
+    private int _frameCount;
+    private IReadOnlyList<DetectedObject> _detections = Array.Empty<DetectedObject>();
+    private const int DetectorEveryNFrames = 8;
 
     /// <summary>
     /// Gaussian blur radius applied to the camera image. 0 = no blur, ~80 = heavy
@@ -341,6 +354,38 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         Label = "";
         StatusText = "";
         StatusBrush = Brushes.Gray;
+        // The detector reference stays wired (it survives camera-rebind); only
+        // the cached detections become stale and need clearing.
+        Detections = Array.Empty<DetectedObject>();
+    }
+
+    /// <summary>
+    /// Latest detection result for this tile. Updated asynchronously from the
+    /// detector backend; rendered as a per-detection overlay in <c>MainWindow.xaml</c>.
+    /// </summary>
+    public IReadOnlyList<DetectedObject> Detections
+    {
+        get => _detections;
+        private set
+        {
+            if (ReferenceEquals(_detections, value)) return;
+            _detections = value;
+            OnPropertyChanged(nameof(Detections));
+        }
+    }
+
+    /// <summary>
+    /// Wires this tile to the shared AI detector. Called once at startup from
+    /// <c>MainWindow</c> after the detector finishes <see cref="IObjectDetector.InitializeAsync"/>.
+    /// Pass <c>null</c> to detach (used when the detector faults or shuts down).
+    /// </summary>
+    public void AttachDetector(IObjectDetector? detector)
+    {
+        _detector = detector;
+        if (detector is null)
+        {
+            Detections = Array.Empty<DetectedObject>();
+        }
     }
 
     private void OnFrameDecoded(DecodedFrame frame)
@@ -349,6 +394,47 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         // BeginInvoke (not Invoke) so the GDK callback can return immediately and the
         // next frame's decode pipeline isn't blocked on UI work.
         _dispatcher.BeginInvoke(() => RenderFrame(frame), DispatcherPriority.Render);
+
+        // v2.0 AI path: every Nth frame, snapshot the unmanaged pixel buffer to a
+        // managed array (must happen synchronously here on the GDK thread; the
+        // buffer is reused for the next frame) and submit asynchronously to the
+        // shared detector. Skipped when masked because a masked tile shows blur,
+        // not the underlying image, and per-detection overlays would be invisible.
+        var detector = _detector;
+        if (detector != null && !_isMasked && detector.Status == DetectorStatus.Ready)
+        {
+            _frameCount++;
+            if (_frameCount % DetectorEveryNFrames == 0)
+            {
+                int byteLen = frame.Stride * frame.Height;
+                var bgra = new byte[byteLen];
+                Marshal.Copy(frame.Buffer, bgra, 0, byteLen);
+                var frameRef = BitmapFrameRef.FromBgra(
+                    timestampTicks: DateTime.UtcNow.Ticks,
+                    width: frame.Width,
+                    height: frame.Height,
+                    streamId: SlotIndex,
+                    bgraPixels: bgra);
+                _ = SubmitDetectionAsync(detector, frameRef);
+            }
+        }
+    }
+
+    private async Task SubmitDetectionAsync(IObjectDetector detector, BitmapFrameRef frameRef)
+    {
+        try
+        {
+            var result = await detector.DetectAsync(frameRef).ConfigureAwait(false);
+            // BeginInvoke returns a DispatcherOperation we intentionally don't await;
+            // the UI thread will pick up the assignment on its next pulse.
+            _ = _dispatcher.BeginInvoke(() => Detections = result.Detections);
+        }
+        catch
+        {
+            // Detector path failures must not affect the render flow. The Status
+            // event on the detector will surface persistent faults; transient
+            // exceptions per frame are swallowed.
+        }
     }
 
     private void RenderFrame(DecodedFrame frame)

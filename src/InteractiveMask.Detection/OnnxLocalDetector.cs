@@ -111,7 +111,7 @@ public sealed class OnnxLocalDetector : IObjectDetector
         {
             NamedOnnxValue.CreateFromTensor("input", inputTensor),
         };
-        var detections = new List<Detection>();
+        var detections = new List<DetectedObject>();
         using (var outputs = _faceSession.Run(inputs))
         {
             // 3. Anchor-free decode + NMS, then scale back to source frame coordinates.
@@ -137,12 +137,18 @@ public sealed class OnnxLocalDetector : IObjectDetector
                 GpuUtilizationPercent: null)));
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        await Task.Yield();
+        // Synchronous on purpose. Disposing the ONNX InferenceSession is a fast,
+        // non-blocking call. An `await Task.Yield()` here would queue a continuation
+        // onto the current SynchronizationContext, which deadlocks if the caller
+        // is blocking the UI thread on .GetAwaiter().GetResult() during shutdown.
         _faceSession?.Dispose();
         _faceSession = null;
-        SetStatus(DetectorStatus.Uninitialized);
+        // Don't raise StatusChanged during dispose: subscribers may already be torn
+        // down and the event would surface after the consumer expected silence.
+        Status = DetectorStatus.Uninitialized;
+        return ValueTask.CompletedTask;
     }
 
     // ------------------------------------------------------------------ Helpers
@@ -248,7 +254,7 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
     // ------------------------------------------------------------------ Postprocess
 
-    private static IReadOnlyList<Detection> DecodeYunet(
+    private static IReadOnlyList<DetectedObject> DecodeYunet(
         IDisposableReadOnlyCollection<DisposableNamedOnnxValue> outputs,
         float scoreThreshold,
         float scaleX,
@@ -310,7 +316,7 @@ public sealed class OnnxLocalDetector : IObjectDetector
             }
         }
 
-        if (candidates.Count == 0) return Array.Empty<Detection>();
+        if (candidates.Count == 0) return Array.Empty<DetectedObject>();
 
         // NMS: sort by score descending, greedily keep, suppress overlapping.
         candidates.Sort((a, b) => b.Score.CompareTo(a.Score));
@@ -330,8 +336,8 @@ public sealed class OnnxLocalDetector : IObjectDetector
             }
         }
 
-        // Build the final Detection list, clamping to frame bounds and dropping degenerate boxes.
-        var result = new List<Detection>(kept.Count);
+        // Build the final DetectedObject list, clamping to frame bounds and dropping degenerate boxes.
+        var result = new List<DetectedObject>(kept.Count);
         foreach (var i in kept)
         {
             var c = candidates[i];
@@ -341,7 +347,7 @@ public sealed class OnnxLocalDetector : IObjectDetector
             int h = Math.Min(sourceHeight, (int)c.Y2) - y;
             if (w <= 0 || h <= 0) continue;
 
-            result.Add(new Detection(
+            result.Add(new DetectedObject(
                 Class: ObjectClass.Face,
                 RawClassLabel: "face",
                 Confidence: c.Score,

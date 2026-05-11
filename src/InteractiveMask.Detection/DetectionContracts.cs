@@ -11,8 +11,13 @@ namespace InteractiveMask.Detection;
 /// that drives Setup-toggles and audit-events; <see cref="RawClassLabel"/> retains the
 /// model-native label (for instance "car" or "truck" from a YOLOv8n COCO output) for
 /// audit and support diagnostics. Mask coordinates are in frame-pixel space.
+/// <para>
+/// Named <see cref="DetectedObject"/> (not <c>Detection</c>) to avoid an unresolvable
+/// type/namespace ambiguity with the enclosing <c>InteractiveMask.Detection</c>
+/// namespace at consumer sites.
+/// </para>
 /// </summary>
-public sealed record Detection(
+public sealed record DetectedObject(
     ObjectClass Class,
     string? RawClassLabel,
     float Confidence,
@@ -21,7 +26,7 @@ public sealed record Detection(
 
 /// <summary>
 /// Masking-categorie. Drives Setup-toggles and audit policy. The underlying model can
-/// produce more fine-grained labels (see <see cref="Detection.RawClassLabel"/>) but
+/// produce more fine-grained labels (see <see cref="DetectedObject.RawClassLabel"/>) but
 /// those are not used to drive privacy decisions.
 /// </summary>
 public enum ObjectClass
@@ -45,13 +50,16 @@ public readonly record struct BoundingBox(int X, int Y, int Width, int Height)
 
 /// <summary>
 /// Polygon outline in frame-pixel coordinates. Used for segmentation-mode masks;
-/// bbox-only detectors leave <see cref="Detection.Mask"/> null. The polygon is
+/// bbox-only detectors leave <see cref="DetectedObject.Mask"/> null. The polygon is
 /// assumed closed (last point connects back to first); implementations should not
 /// duplicate the closing point.
 /// </summary>
-public sealed record Polygon(IReadOnlyList<Point> Points);
+public sealed record Polygon(IReadOnlyList<PolygonPoint> Points);
 
-public readonly record struct Point(int X, int Y);
+/// <summary>Pixel-space vertex of a <see cref="Polygon"/>. Named <c>PolygonPoint</c>
+/// rather than <c>Point</c> to avoid clashing with <c>System.Windows.Point</c> at
+/// consumer sites that import both WPF and this namespace.</summary>
+public readonly record struct PolygonPoint(int X, int Y);
 
 // --------------------------------------------------------------------------
 // Detector lifecycle and metadata
@@ -109,5 +117,5 @@ public sealed record DetectorMetrics(
 public sealed record DetectionFrame(
     long FrameTimestampTicks,
     int StreamId,
-    IReadOnlyList<Detection> Detections,
+    IReadOnlyList<DetectedObject> Detections,
     DetectorMetrics Metrics);

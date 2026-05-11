@@ -53,7 +53,7 @@ public sealed class NullDetector : IObjectDetector
         return ValueTask.FromResult(new DetectionFrame(
             FrameTimestampTicks: frame.TimestampTicks,
             StreamId: frame.StreamId,
-            Detections: Array.Empty<Detection>(),
+            Detections: Array.Empty<DetectedObject>(),
             Metrics: new DetectorMetrics(
                 InferenceLatencyMs: 0,
                 QueueDepth: 0,

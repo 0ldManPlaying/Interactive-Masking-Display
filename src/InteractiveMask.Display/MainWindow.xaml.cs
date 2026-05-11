@@ -1,5 +1,7 @@
+using InteractiveMask.Detection;
 using InteractiveMask.Gdk;
 using Microsoft.Extensions.Configuration;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -29,6 +31,13 @@ public partial class MainWindow : Window
     /// soonest one so the countdown reflects the next attempt across the fleet.</summary>
     private readonly Dictionary<int, DateTime> _nextReconnectByNvr = new();
     private readonly DispatcherTimer _timerTick = new() { Interval = TimeSpan.FromSeconds(1) };
+
+    /// <summary>
+    /// v2.0 AI-masking detector. Created and initialised asynchronously after the
+    /// tile grid is wired; <c>null</c> while initialising and on init-failure (which
+    /// silently falls back to v1.x masking with no per-detection overlay).
+    /// </summary>
+    private IObjectDetector? _aiDetector;
 
     private readonly KioskGuard _kioskGuard = new();
     private MaskController? _maskController;
@@ -171,6 +180,12 @@ public partial class MainWindow : Window
         // Push the current overlay toggles onto the freshly-bound tiles so the
         // bottom bar reflects the persisted Setup choice from the first frame.
         ApplyTileOverlayToggles();
+
+        // Kick off v2.0 AI detector init in the background. Tiles get AttachDetector
+        // once the model is loaded; until then their Detections stay empty (which
+        // renders as nothing on top of the live image). On init failure the app
+        // keeps running with v1.x masking only - no privacy regression.
+        _ = InitializeAiDetectorAsync();
 
         // Start the IPC broadcaster after the grid is fully wired so the very first
         // Hello snapshot already reflects any restored masks.
@@ -772,6 +787,22 @@ public partial class MainWindow : Window
         _stateStore.Flush();
         _ipcBroadcaster?.Dispose();
         _ipcBroadcaster = null;
+        // Detach the AI detector from each tile before disposing so any in-flight
+        // SubmitDetectionAsync calls won't try to assign back to a torn-down VM.
+        foreach (var tile in _viewModel.Tiles) tile.AttachDetector(null);
+        if (_aiDetector != null)
+        {
+            try
+            {
+                // Run the async dispose on the thread pool so it can't capture and
+                // deadlock against the UI dispatcher, then wait at most 2 seconds.
+                // ONNX session dispose is sub-second; the timeout is purely a safety
+                // net so a future remote-detector backend can't strand the shutdown.
+                Task.Run(() => _aiDetector.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(2));
+            }
+            catch { /* shutdown path - swallow */ }
+            _aiDetector = null;
+        }
         foreach (var session in _sessionsById.Values) session.Dispose();
         _sessionsById.Clear();
         _gdkLifetime?.Dispose();
@@ -782,6 +813,47 @@ public partial class MainWindow : Window
         _audit.SetForwarder(null);
         _auditForwarder?.Dispose();
         _auditForwarder = null;
+    }
+
+    /// <summary>
+    /// Loads the YuNet face detector via ONNX Runtime + DirectML and, on success,
+    /// attaches it to every tile so per-frame detection submission begins on the
+    /// next frame. Init failure is non-fatal: tiles continue showing the live
+    /// image plus v1.x manual masking, just without AI overlays.
+    /// </summary>
+    private async Task InitializeAiDetectorAsync()
+    {
+        try
+        {
+            var detector = new OnnxLocalDetector();
+            var config = new DetectorConfig(
+                EnabledClasses: new HashSet<ObjectClass> { ObjectClass.Face },
+                ConfidenceThresholds: new Dictionary<ObjectClass, float>
+                {
+                    // 0.7 is a pragmatic compromise: real faces typically score 0.85+
+                    // on YuNet so we keep them, while filtering pattern-shaped false
+                    // positives that tend to cluster between 0.55-0.68. Fish-eye and
+                    // heavily distorted feeds will still mis-fire here and there;
+                    // proper dewarping is a v2.0 main-work item.
+                    [ObjectClass.Face] = 0.7f,
+                },
+                MaxQueueDepth: 1,
+                PreferPolygonMasks: false);
+            await detector.InitializeAsync(config).ConfigureAwait(true);
+
+            _aiDetector = detector;
+            foreach (var tile in _viewModel.Tiles)
+            {
+                tile.AttachDetector(detector);
+            }
+            _audit.Write(AuditEventType.AppStarted, source: "ai-detector",
+                detail: $"{detector.Capability.BackendName}: {detector.Capability.ModelDescription}");
+        }
+        catch (Exception ex)
+        {
+            _audit.Write(AuditEventType.AppStarted, source: "ai-detector",
+                detail: $"init failed, falling back to v1.x masking: {ex.GetType().Name}: {ex.Message}");
+        }
     }
 
     /// <summary>

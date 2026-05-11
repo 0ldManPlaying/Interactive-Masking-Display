@@ -62,6 +62,52 @@
                     </Image.Style>
                 </Image>
 
+                <!-- v2.0 AI detection overlay. Viewbox letterboxes the inner Grid the
+                     same way Stretch=Uniform letterboxes the Image above, so detections
+                     in source-frame pixel coordinates land exactly on the rendered
+                     pixels. Hidden while IsMasked=True (full-tile blur supersedes any
+                     per-detection overlay) and ignores hit-testing so taps reach the
+                     Image's MouseLeftButtonUp handler unobstructed.
+
+                     The inner Rectangle is a placeholder visual for M3 v0.1; M3.1
+                     will replace it with a VisualBrush sample of the underlying Image
+                     plus a BlurEffect to deliver real per-region blur. -->
+                <Viewbox Stretch="Uniform" IsHitTestVisible="False">
+                    <Viewbox.Style>
+                        <Style TargetType="Viewbox">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMasked}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Viewbox.Style>
+                    <Grid Width="{Binding Bitmap.PixelWidth, FallbackValue=1}"
+                          Height="{Binding Bitmap.PixelHeight, FallbackValue=1}">
+                        <ItemsControl ItemsSource="{Binding Detections}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="{Binding Box.X}" />
+                                    <Setter Property="Canvas.Top" Value="{Binding Box.Y}" />
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Rectangle Width="{Binding Box.Width}"
+                                               Height="{Binding Box.Height}"
+                                               Fill="#80FF0000" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Viewbox>
+
                 <!-- Privacy overlay shown when masked: a translucent dim layer plus
                      the "Privacy actief - {Label}" text and (when armed) the
                      auto-unmask countdown. Centered so it's the first thing a
