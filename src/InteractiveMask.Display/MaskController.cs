@@ -106,6 +106,14 @@ public sealed class MaskController
     /// <see cref="PrivacyMode.PrivacyDefault"/>. Forces every camera-bound
     /// tile into the masked default state without writing audit events
     /// (this is the default state, not a user action).
+    /// <para>
+    /// Each primed tile is also reported to <see cref="BlurPinService"/>
+    /// via <see cref="BlurPinService.OnMaskApplied"/> so the masked-tile
+    /// counter matches the visible state. Without this, the counter starts
+    /// at 0 while N tiles are visibly masked; the first unmask later would
+    /// clamp the counter back to 0 and prematurely clear the session PIN
+    /// while other tiles are still masked — a privacy regression.
+    /// </para>
     /// </summary>
     public void PrimePrivacyDefaultState(IEnumerable<TileViewModel> allTiles)
     {
@@ -113,6 +121,7 @@ public sealed class MaskController
         {
             if (!tile.HasCamera) continue;
             tile.SetMasked(true, autoMinutes: 0);
+            _pinService.OnMaskApplied();
         }
         _onStateChanged();
     }
