@@ -22,6 +22,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <local:BoundingBoxToViewboxConverter x:Key="BoxToViewbox" />
         <local:SegmentationMaskToImageBrushConverter x:Key="MaskToBrush" />
+        <local:ObjectClassToBrushConverter x:Key="ClassToBrush" />
 
         <DataTemplate DataType="{x:Type local:TileViewModel}">
             <!-- Background must be solid (not Transparent) for hit-testing to fire
@@ -111,34 +112,24 @@
                                          pulled from the parent TileViewModel via the
                                          ItemsControl's DataContext; per-item DataContext
                                          is a DetectedObject. -->
-                                    <!-- Per-region blur. The ImageBrush samples the bbox
-                                         region from the tile's WriteableBitmap; the BlurEffect
-                                         on top scrambles the sampled pixels. When the detector
-                                         is a segmentation variant (YOLO26n-seg from M3.5 on)
-                                         the OpacityMask clips the blur to the object silhouette
-                                         instead of the rectangular bbox; for bbox-only detectors
-                                         Mask is null and OpacityMask=null leaves the full bbox
-                                         opaque (legacy behaviour). -->
+                                    <!-- Colour-coded silhouette overlay (M3.5).
+                                         Fill is a solid colour per category (red=Person,
+                                         blue=Vehicle, orange=TwoWheeler) clipped by the
+                                         segmentation OpacityMask to the object's silhouette,
+                                         then heavily Gaussian-blurred. The solid-colour-on-mask
+                                         approach gives two wins at once: privacy (underlying
+                                         camera content is completely hidden, no blur-leak of
+                                         features) AND clear category visualisation so the
+                                         operator scanning a video grid knows what is being
+                                         masked. For bbox-only fallback (Mask=null), OpacityMask
+                                         is null and the full bbox is rendered as a solid
+                                         coloured blob. -->
                                     <Rectangle Width="{Binding Box.Width}"
                                                Height="{Binding Box.Height}"
+                                               Fill="{Binding Class, Converter={StaticResource ClassToBrush}}"
                                                OpacityMask="{Binding Mask, Converter={StaticResource MaskToBrush}}">
-                                        <Rectangle.Fill>
-                                            <ImageBrush
-                                                ImageSource="{Binding DataContext.Bitmap, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
-                                                ViewboxUnits="Absolute"
-                                                Stretch="Fill">
-                                                <ImageBrush.Viewbox>
-                                                    <MultiBinding Converter="{StaticResource BoxToViewbox}">
-                                                        <Binding Path="Box.X" />
-                                                        <Binding Path="Box.Y" />
-                                                        <Binding Path="Box.Width" />
-                                                        <Binding Path="Box.Height" />
-                                                    </MultiBinding>
-                                                </ImageBrush.Viewbox>
-                                            </ImageBrush>
-                                        </Rectangle.Fill>
                                         <Rectangle.Effect>
-                                            <BlurEffect Radius="25"
+                                            <BlurEffect Radius="40"
                                                         KernelType="Gaussian"
                                                         RenderingBias="Performance" />
                                         </Rectangle.Effect>
