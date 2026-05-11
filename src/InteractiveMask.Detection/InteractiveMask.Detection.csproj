@@ -5,8 +5,27 @@
     <AssemblyName>InteractiveMask.Detection</AssemblyName>
     <!-- net9.0-windows + x64 inherited from Directory.Build.props.
          The contracts themselves are platform-neutral, but the concrete
-         OnnxLocalDetector implementation will depend on Microsoft.ML.OnnxRuntime.DirectML
-         (Windows-only) in v2.0 main work, so we anchor the whole assembly to Windows. -->
+         OnnxLocalDetector implementation depends on Microsoft.ML.OnnxRuntime.DirectML
+         (Windows-only) so we anchor the whole assembly to Windows. -->
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ONNX Runtime with DirectML EP for in-process inference. Same package as the
+         benchmark uses; NuGet deduplicates native binaries at restore time. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.20.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Detection models. Copied next to the executable on build; CopyToPublishDirectory
+         covers the published output. Each model is referenced by file-name in the
+         detector implementation; replace / add files here rather than editing code. -->
+    <!-- Content (not None) so the model copies transitively to any project that
+         references InteractiveMask.Detection, including the Display app. -->
+    <Content Include="models\face_detection_yunet_2023mar.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <Link>models\face_detection_yunet_2023mar.onnx</Link>
+    </Content>
+  </ItemGroup>
 
 </Project>
