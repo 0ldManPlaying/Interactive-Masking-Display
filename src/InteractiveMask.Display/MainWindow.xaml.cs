@@ -151,9 +151,15 @@ public partial class MainWindow : Window
                 // NvrTitle is persisted on CameraSlotSettings (filled by Setup's
                 // Pull-names sync) so the tile shows the recorder-side name from
                 // the first frame, no live device-status round-trip needed.
+                // v2.0: AiEnabled and AiClasses also pushed from config to tile so
+                // per-camera AI settings take effect from the first frame after a
+                // restart, no Setup-window-open needed.
                 if (cam.Slot >= 0 && cam.Slot < _viewModel.Tiles.Count)
                 {
-                    _viewModel.Tiles[cam.Slot].NvrTitle = cam.NvrTitle ?? "";
+                    var t = _viewModel.Tiles[cam.Slot];
+                    t.NvrTitle = cam.NvrTitle ?? "";
+                    t.AiEnabled = cam.AiEnabled;
+                    t.AiClasses = cam.AiClasses;
                 }
                 _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             }
@@ -674,17 +680,25 @@ public partial class MainWindow : Window
             _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             if (cam.Slot >= 0 && cam.Slot < _viewModel.Tiles.Count)
             {
-                _viewModel.Tiles[cam.Slot].NvrTitle = cam.NvrTitle ?? "";
+                var t = _viewModel.Tiles[cam.Slot];
+                t.NvrTitle = cam.NvrTitle ?? "";
+                t.AiEnabled = cam.AiEnabled;
+                t.AiClasses = cam.AiClasses;
             }
         }
 
-        // Step 4 — refresh labels and NVR titles for cameras whose only change
-        // was a text field (no rebind needed).
+        // Step 4 — refresh labels, NVR titles and v2.0 AI settings for cameras
+        // whose only change was a non-rebind field. Toggling AI on/off or changing
+        // categories in Setup takes effect immediately on Apply without needing
+        // a restart.
         foreach (var cam in newCameras)
         {
             if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
-            _viewModel.Tiles[cam.Slot].UpdateLabel(cam.Label);
-            _viewModel.Tiles[cam.Slot].NvrTitle = cam.NvrTitle ?? "";
+            var t = _viewModel.Tiles[cam.Slot];
+            t.UpdateLabel(cam.Label);
+            t.NvrTitle = cam.NvrTitle ?? "";
+            t.AiEnabled = cam.AiEnabled;
+            t.AiClasses = cam.AiClasses;
         }
     }
 

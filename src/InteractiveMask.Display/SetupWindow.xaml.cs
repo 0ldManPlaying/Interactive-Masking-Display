@@ -563,6 +563,35 @@ public partial class SetupWindow : Window
         _cameras.Remove(row);
     }
 
+    /// <summary>
+    /// Opens the per-camera AI-masking modal. The dialog mutates the row in place
+    /// on Save; the DataGrid view is refreshed afterwards so the state-aware
+    /// button styling (accent vs. muted) reflects the new AiEnabled flag without
+    /// requiring Setup to be reopened. CameraSlotSettings is a plain POCO without
+    /// INotifyPropertyChanged so the DataTrigger needs the explicit refresh.
+    /// </summary>
+    private void OnCameraAiButton(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+        if (btn.DataContext is not CameraSlotSettings row) return;
+
+        // Best-effort description shown in the dialog subheader: prefer the
+        // operator label, fall back to NVR title, then to a numeric slot id.
+        var description = !string.IsNullOrWhiteSpace(row.Label)
+            ? row.Label
+            : !string.IsNullOrWhiteSpace(row.NvrTitle)
+                ? row.NvrTitle
+                : $"Slot {row.Slot + 1}";
+
+        var dlg = new CameraAiSettingsDialog(this, row, description);
+        if (dlg.ShowDialog() == true)
+        {
+            // Force the CameraGrid bindings to re-evaluate so the per-row AI
+            // button immediately reflects the new state.
+            CameraGrid.Items.Refresh();
+        }
+    }
+
     // ---- Cameras: sync names from NVR --------------------------------------
     //
     // Connects to each unique NVR referenced by the current camera rows,

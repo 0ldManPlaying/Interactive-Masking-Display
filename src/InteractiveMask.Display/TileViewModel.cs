@@ -1,6 +1,7 @@
 using InteractiveMask.Detection;
 using InteractiveMask.Gdk;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -50,6 +51,28 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     private int _frameCount;
     private IReadOnlyList<DetectedObject> _detections = Array.Empty<DetectedObject>();
     private const int DetectorEveryNFrames = 8;
+
+    /// <summary>
+    /// Per-camera v2.0 AI on/off. When false, OnFrameDecoded bypasses the detector
+    /// submission path entirely so cameras pointing at irrelevant scenes (lawns,
+    /// walls, ceilings) don't waste GPU. Mirrors CameraSlotSettings.AiEnabled and
+    /// is pushed from MainWindow.BindCameraToSlot at camera-attach time.
+    /// </summary>
+    public bool AiEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Per-camera v2.0 AI category filter. Detections of classes not in this set
+    /// are dropped before being rendered. Mirrors CameraSlotSettings.AiClasses.
+    /// Empty set effectively disables all detections (same effect as AiEnabled=false
+    /// but with the submission path still active - reserved for future ad-hoc
+    /// global suppression).
+    /// </summary>
+    public IReadOnlySet<ObjectClass> AiClasses { get; set; } = new HashSet<ObjectClass>
+    {
+        ObjectClass.Person,
+        ObjectClass.TwoWheeler,
+        ObjectClass.Vehicle,
+    };
 
     /// <summary>
     /// Timestamp of the last non-empty detection result. Combined with
@@ -412,7 +435,7 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         // shared detector. Skipped when masked because a masked tile shows blur,
         // not the underlying image, and per-detection overlays would be invisible.
         var detector = _detector;
-        if (detector != null && !_isMasked && detector.Status == DetectorStatus.Ready)
+        if (detector != null && AiEnabled && !_isMasked && detector.Status == DetectorStatus.Ready)
         {
             _frameCount++;
             if (_frameCount % DetectorEveryNFrames == 0)
@@ -457,6 +480,18 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     /// </summary>
     private void ApplyDetections(IReadOnlyList<DetectedObject> fresh)
     {
+        // Filter to the per-camera class set. Detector emits everything it
+        // supports; rejecting unwanted classes here keeps the configuration
+        // contract simple: tiles decide what they render, the detector stays
+        // model-agnostic.
+        if (fresh.Count > 0 && AiClasses.Count < 3)
+        {
+            // Fast-path: only allocate a new list when filtering is actually
+            // going to drop something. When all three classes are enabled the
+            // common case is "pass through".
+            fresh = fresh.Where(d => AiClasses.Contains(d.Class)).ToList();
+        }
+
         if (fresh.Count > 0)
         {
             Detections = fresh;

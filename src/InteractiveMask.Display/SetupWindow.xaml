@@ -930,6 +930,73 @@
                                                 <DataGridTextColumn Binding="{Binding Label}" Width="*">
                                                     <DataGridTextColumn.Header><TextBlock Text="{local:Loc CamerasHeaderLabel}" /></DataGridTextColumn.Header>
                                                 </DataGridTextColumn>
+                                                <!-- v2.0 AI column: button opens a small modal with the per-camera
+                                                     AI toggle plus the three masking categories. Width is fixed; the
+                                                     button text is short ("AI..." in the active locale) so the column
+                                                     stays compact. -->
+                                                <DataGridTemplateColumn Width="68" CanUserSort="False" CanUserResize="False" CanUserReorder="False">
+                                                    <DataGridTemplateColumn.Header>
+                                                        <TextBlock Text="{local:Loc CameraColumnAi}" />
+                                                    </DataGridTemplateColumn.Header>
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <!-- State-aware AI button. Default (AI ON) takes the same solid
+                                                                 bright-accent look as the primary Save button at the bottom
+                                                                 of Setup so it pops out unmistakably from the row content.
+                                                                 When AI is off the button collapses to a muted ghost so the
+                                                                 admin can scan the camera list and tell at a glance which
+                                                                 feeds are using compute. CornerRadius=6 matches BtnPrimary
+                                                                 and the rest of the app chrome (cards, NVR dialog buttons). -->
+                                                            <Button Click="OnCameraAiButton"
+                                                                    Content="{local:Loc CameraButtonAi}"
+                                                                    Padding="8,3"
+                                                                    FontSize="10"
+                                                                    FontWeight="SemiBold"
+                                                                    Cursor="Hand"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    FocusVisualStyle="{x:Null}">
+                                                                <Button.Template>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border x:Name="b"
+                                                                                Background="{TemplateBinding Background}"
+                                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                CornerRadius="6"
+                                                                                Padding="{TemplateBinding Padding}">
+                                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                        </Border>
+                                                                        <ControlTemplate.Triggers>
+                                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                                <Setter TargetName="b" Property="Opacity" Value="0.85" />
+                                                                            </Trigger>
+                                                                            <Trigger Property="IsPressed" Value="True">
+                                                                                <Setter TargetName="b" Property="Opacity" Value="0.7" />
+                                                                            </Trigger>
+                                                                        </ControlTemplate.Triggers>
+                                                                    </ControlTemplate>
+                                                                </Button.Template>
+                                                                <Button.Style>
+                                                                    <Style TargetType="Button">
+                                                                        <!-- Default = AI ON: solid accent fill, dark text. -->
+                                                                        <Setter Property="Background" Value="{StaticResource accent}" />
+                                                                        <Setter Property="Foreground" Value="#0F1115" />
+                                                                        <Setter Property="BorderThickness" Value="0" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding AiEnabled}" Value="False">
+                                                                                <!-- AI OFF: ghost, clearly de-emphasised. -->
+                                                                                <Setter Property="Background" Value="Transparent" />
+                                                                                <Setter Property="Foreground" Value="{StaticResource text.muted}" />
+                                                                                <Setter Property="BorderThickness" Value="1" />
+                                                                                <Setter Property="BorderBrush" Value="{StaticResource border}" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Button.Style>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
                                                 <!-- Delete column: trashcan-icon button per row, right-aligned, more
                                                      discoverable than relying on the Del key. -->
                                                 <DataGridTemplateColumn Width="44" CanUserSort="False" CanUserResize="False" CanUserReorder="False">

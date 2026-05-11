@@ -223,4 +223,26 @@ public sealed class CameraSlotSettings
     /// run at least once.
     /// </summary>
     public string NvrTitle { get; set; } = "";
+
+    /// <summary>
+    /// v2.0 AI masking on/off per camera. When false, the tile bypasses the
+    /// detector submission path entirely - frees compute on cameras that have
+    /// no relevant subjects (lawns, walls, ceiling-mounted overview lenses).
+    /// Defaults to true for backward compatibility on existing configs.
+    /// </summary>
+    public bool AiEnabled { get; set; } = true;
+
+    /// <summary>
+    /// v2.0 AI masking categories enabled for this camera. Detections of
+    /// classes outside this set are dropped before rendering. Lets a parking
+    /// camera ignore Person detections, a hallway camera ignore Vehicle, etc.
+    /// Defaults to the full v2.0 class set so existing configs see no behaviour
+    /// change without explicit reconfiguration.
+    /// </summary>
+    public HashSet<InteractiveMask.Detection.ObjectClass> AiClasses { get; set; } = new()
+    {
+        InteractiveMask.Detection.ObjectClass.Person,
+        InteractiveMask.Detection.ObjectClass.TwoWheeler,
+        InteractiveMask.Detection.ObjectClass.Vehicle,
+    };
 }

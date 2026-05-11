@@ -361,6 +361,15 @@ public sealed class StringsTable
     public string AboutCapsBenchmarkP50 { get; init; } = "";
     public string AboutCapsBenchmarkP95 { get; init; } = "";
     public string AboutCapsBenchmarkThroughput { get; init; } = "";
+    public string AiDialogTitle { get; init; } = "";
+    public string AiDialogHint { get; init; } = "";
+    public string AiEnableToggle { get; init; } = "";
+    public string AiClassesHeader { get; init; } = "";
+    public string AiClassPerson { get; init; } = "";
+    public string AiClassTwoWheeler { get; init; } = "";
+    public string AiClassVehicle { get; init; } = "";
+    public string CameraColumnAi { get; init; } = "";
+    public string CameraButtonAi { get; init; } = "";
 
     public static readonly StringsTable Nl = new()
     {
@@ -628,6 +637,15 @@ public sealed class StringsTable
         AboutCapsBenchmarkP50     = "Latency p50 / p95 / p99",
         AboutCapsBenchmarkP95     = "Latency p95",
         AboutCapsBenchmarkThroughput = "Doorvoer",
+        AiDialogTitle             = "AI-masking",
+        AiDialogHint              = "Cameras met AI uit sparen verwerkingskracht. Gericht selecteren van categorieën voorkomt onnodige meldingen.",
+        AiEnableToggle            = "AI inschakelen voor deze camera",
+        AiClassesHeader           = "Categorieën",
+        AiClassPerson             = "Personen",
+        AiClassTwoWheeler         = "Tweewielers (fiets, motor)",
+        AiClassVehicle            = "Voertuigen (auto, bus, vrachtwagen)",
+        CameraColumnAi            = "AI",
+        CameraButtonAi            = "AI…",
     };
 
     public static readonly StringsTable En = new()
@@ -896,6 +914,15 @@ public sealed class StringsTable
         AboutCapsBenchmarkP50     = "Latency p50 / p95 / p99",
         AboutCapsBenchmarkP95     = "Latency p95",
         AboutCapsBenchmarkThroughput = "Throughput",
+        AiDialogTitle             = "AI masking",
+        AiDialogHint              = "Cameras with AI off save processing power. Selecting only the categories you need avoids unnecessary alerts.",
+        AiEnableToggle            = "Enable AI for this camera",
+        AiClassesHeader           = "Categories",
+        AiClassPerson             = "Persons",
+        AiClassTwoWheeler         = "Two-wheelers (bicycle, motorcycle)",
+        AiClassVehicle            = "Vehicles (car, bus, truck)",
+        CameraColumnAi            = "AI",
+        CameraButtonAi            = "AI…",
     };
 
     // ------------------------------------------------------------------
@@ -1169,6 +1196,15 @@ public sealed class StringsTable
         AboutCapsBenchmarkP50     = "Latenz p50 / p95 / p99",
         AboutCapsBenchmarkP95     = "Latenz p95",
         AboutCapsBenchmarkThroughput = "Durchsatz",
+        AiDialogTitle             = "KI-Maskierung",
+        AiDialogHint              = "Kameras mit deaktivierter KI sparen Rechenleistung. Eine gezielte Kategorienauswahl vermeidet unnötige Meldungen.",
+        AiEnableToggle            = "KI für diese Kamera aktivieren",
+        AiClassesHeader           = "Kategorien",
+        AiClassPerson             = "Personen",
+        AiClassTwoWheeler         = "Zweiräder (Fahrrad, Motorrad)",
+        AiClassVehicle            = "Fahrzeuge (Auto, Bus, LKW)",
+        CameraColumnAi            = "KI",
+        CameraButtonAi            = "KI…",
     };
 
     public static readonly StringsTable Fr = new()
@@ -1437,6 +1473,15 @@ public sealed class StringsTable
         AboutCapsBenchmarkP50     = "Latence p50 / p95 / p99",
         AboutCapsBenchmarkP95     = "Latence p95",
         AboutCapsBenchmarkThroughput = "Débit",
+        AiDialogTitle             = "Masquage IA",
+        AiDialogHint              = "Désactiver l'IA sur une caméra économise de la puissance de calcul. Choisir uniquement les catégories utiles évite les alertes inutiles.",
+        AiEnableToggle            = "Activer l'IA pour cette caméra",
+        AiClassesHeader           = "Catégories",
+        AiClassPerson             = "Personnes",
+        AiClassTwoWheeler         = "Deux-roues (vélo, moto)",
+        AiClassVehicle            = "Véhicules (voiture, bus, camion)",
+        CameraColumnAi            = "IA",
+        CameraButtonAi            = "IA…",
     };
 
     public static readonly StringsTable Es = new()
@@ -1705,5 +1750,14 @@ public sealed class StringsTable
         AboutCapsBenchmarkP50     = "Latencia p50 / p95 / p99",
         AboutCapsBenchmarkP95     = "Latencia p95",
         AboutCapsBenchmarkThroughput = "Rendimiento",
+        AiDialogTitle             = "Enmascaramiento IA",
+        AiDialogHint              = "Desactivar la IA en una cámara ahorra capacidad de cálculo. Elegir solo las categorías necesarias evita avisos innecesarios.",
+        AiEnableToggle            = "Activar IA para esta cámara",
+        AiClassesHeader           = "Categorías",
+        AiClassPerson             = "Personas",
+        AiClassTwoWheeler         = "Vehículos de dos ruedas (bicicleta, moto)",
+        AiClassVehicle            = "Vehículos (coche, autobús, camión)",
+        CameraColumnAi            = "IA",
+        CameraButtonAi            = "IA…",
     };
 }

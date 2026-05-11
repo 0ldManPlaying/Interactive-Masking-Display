@@ -162,6 +162,8 @@ public sealed class ConfigService
                     StreamId = c.StreamId,
                     Label = c.Label ?? "",
                     NvrTitle = c.NvrTitle ?? "",
+                    AiEnabled = c.AiEnabled,
+                    AiClasses = ParseAiClasses(c.AiClasses),
                 })
                 .ToList();
         }
@@ -253,6 +255,8 @@ public sealed class ConfigService
                 StreamId = c.StreamId,
                 Label = c.Label,
                 NvrTitle = c.NvrTitle,
+                AiEnabled = c.AiEnabled,
+                AiClasses = c.AiClasses.Select(cls => cls.ToString()).ToList(),
             })
             .ToList(),
         Kiosk = new StoredKiosk { Enabled = settings.Kiosk.Enabled },
@@ -286,6 +290,34 @@ public sealed class ConfigService
         },
         Language = settings.Language,
     };
+
+    /// <summary>
+    /// Parse the persisted string list of AI categories back into a typed set.
+    /// Unknown entries (legacy values, typos) are skipped silently rather than
+    /// throwing on load. A null / empty list yields the v2.0 default of all
+    /// three classes so old configs (no field stored) get sensible behaviour.
+    /// </summary>
+    private static HashSet<InteractiveMask.Detection.ObjectClass> ParseAiClasses(List<string>? stored)
+    {
+        if (stored is null || stored.Count == 0)
+        {
+            return new HashSet<InteractiveMask.Detection.ObjectClass>
+            {
+                InteractiveMask.Detection.ObjectClass.Person,
+                InteractiveMask.Detection.ObjectClass.TwoWheeler,
+                InteractiveMask.Detection.ObjectClass.Vehicle,
+            };
+        }
+        var result = new HashSet<InteractiveMask.Detection.ObjectClass>();
+        foreach (var name in stored)
+        {
+            if (Enum.TryParse<InteractiveMask.Detection.ObjectClass>(name, ignoreCase: true, out var cls))
+            {
+                result.Add(cls);
+            }
+        }
+        return result;
+    }
 
     private static string? EncryptPassword(string plaintext)
     {
@@ -405,5 +437,13 @@ public sealed class ConfigService
         // Persisted so the tile bottom bar can show it from first frame after a
         // restart, no live device-status round-trip needed.
         public string NvrTitle { get; set; } = "";
+
+        // v2.0: per-camera AI masking toggle and category filter. Existing configs
+        // (no fields in JSON) deserialize to the initialiser defaults: AI on, all
+        // three v2.0 classes enabled. Classes are stored as string-names rather than
+        // an int bitmask for forward-compat: adding LicensePlate or Face in a later
+        // release is just a new value in the list; old configs simply don't list it.
+        public bool AiEnabled { get; set; } = true;
+        public List<string> AiClasses { get; set; } = new() { "Person", "TwoWheeler", "Vehicle" };
     }
 }
