@@ -370,6 +370,11 @@ public partial class SetupWindow : Window
                 StreamId = c.StreamId,
                 Label = c.Label,
                 NvrTitle = c.NvrTitle ?? "",
+                // v2.0 AI fields: copy from the loaded settings so re-opening Setup
+                // shows the actually-persisted values rather than the type defaults.
+                AiEnabled = c.AiEnabled,
+                AiClasses = new HashSet<InteractiveMask.Detection.ObjectClass>(c.AiClasses),
+                MaskPaddingPercent = c.MaskPaddingPercent,
             });
         }
 
@@ -998,6 +1003,13 @@ public partial class SetupWindow : Window
                     StreamId = c.StreamId,
                     Label = c.Label ?? "",
                     NvrTitle = c.NvrTitle ?? "",
+                    // v2.0 AI fields: must be copied here too or Save silently drops
+                    // them (same trap as v1.3's Stored DTOs - adding a field to
+                    // CameraSlotSettings requires touching every place that builds
+                    // one).
+                    AiEnabled = c.AiEnabled,
+                    AiClasses = new HashSet<InteractiveMask.Detection.ObjectClass>(c.AiClasses),
+                    MaskPaddingPercent = c.MaskPaddingPercent,
                 })
                 .ToList(),
             Kiosk = { Enabled = KioskEnabled.IsChecked == true },
