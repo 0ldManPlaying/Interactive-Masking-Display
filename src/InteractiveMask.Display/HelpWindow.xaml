@@ -398,6 +398,13 @@
                                     <TextBlock x:Name="NavApiText"       FontSize="13" />
                                 </StackPanel>
                             </RadioButton>
+                            <RadioButton x:Name="NavAi"        Style="{StaticResource NavItem}"
+                                         Tag="AiPanel"        Checked="OnNavChecked">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE9F5;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" FontSize="16" Margin="0,0,12,0" />
+                                    <TextBlock x:Name="NavAiText"        FontSize="13" />
+                                </StackPanel>
+                            </RadioButton>
                             <RadioButton x:Name="NavFaq"       Style="{StaticResource NavItem}"
                                          Tag="FaqPanel"       Checked="OnNavChecked">
                                 <StackPanel Orientation="Horizontal">
@@ -889,6 +896,109 @@
                                     <StackPanel>
                                         <TextBlock x:Name="ApiIpcTitleText" FontWeight="SemiBold" Foreground="{StaticResource accent}" Margin="0,0,0,4" />
                                         <TextBlock x:Name="ApiIpcBodyText"  Style="{StaticResource MutedText}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ============================ 10. AI-masking ============================ -->
+                            <StackPanel x:Name="AiPanel" Visibility="Collapsed">
+                                <TextBlock x:Name="AiTitleText"    Style="{StaticResource PageTitle}" />
+                                <TextBlock x:Name="AiSubtitleText" Style="{StaticResource PageSubtitle}" />
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiIntroText" Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiWhatTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="AiWhatBodyText"  Style="{StaticResource BodyText}" />
+
+                                        <!-- Inline graphic: three category chips -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                            <Border Background="#3A1A1A" BorderBrush="#8C3A3A" BorderThickness="1"
+                                                    CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
+                                                <TextBlock Text="Person" Foreground="#FF7777" FontSize="11" FontWeight="SemiBold" />
+                                            </Border>
+                                            <Border Background="#3A2A14" BorderBrush="#8B6E3C" BorderThickness="1"
+                                                    CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
+                                                <TextBlock Text="Two-wheeler" Foreground="#FFB347" FontSize="11" FontWeight="SemiBold" />
+                                            </Border>
+                                            <Border Background="#172A3A" BorderBrush="#22324A" BorderThickness="1"
+                                                    CornerRadius="12" Padding="10,4">
+                                                <TextBlock Text="Vehicle" Foreground="#4DABF7" FontSize="11" FontWeight="SemiBold" />
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiSetupTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="AiSetupIntroText" Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="AiSetupEnableText"     Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="AiSetupCategoriesText" Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="AiSetupConfidenceText" Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="AiSetupPaddingText"    Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="AiSetupStyleText"      Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="AiSetupOpacityText"    Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="AiSetupRoiText"        Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiStyleTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="AiStyleBodyText"  Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiOpacityTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="AiOpacityBodyText"  Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiRoiTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="AiRoiBodyText"  Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiRevealTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="AiRevealIntroText" Style="{StaticResource BodyText}" />
+                                        <TextBlock x:Name="AiRevealStepsText" Style="{StaticResource BodyText}" />
+
+                                        <Border Background="#1A2331" BorderBrush="#22324A" BorderThickness="1"
+                                                CornerRadius="6" Padding="12,10" Margin="0,8,0,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE946;"
+                                                           FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                                           Foreground="{StaticResource accent}"
+                                                           Margin="0,0,8,0" VerticalAlignment="Top" />
+                                                <TextBlock x:Name="AiRevealNotesText" Style="{StaticResource MutedText}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiAuditTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="AiAuditBodyText"  Style="{StaticResource BodyText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AiAdaptiveTitleText" Style="{StaticResource SectionHeader}" />
+                                        <TextBlock x:Name="AiAdaptiveBodyText"  Style="{StaticResource BodyText}" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

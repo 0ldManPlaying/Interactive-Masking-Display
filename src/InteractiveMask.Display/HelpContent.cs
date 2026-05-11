@@ -26,6 +26,7 @@ public sealed class HelpStrings
     public string NavRemote { get; init; } = "";
     public string NavAdmin { get; init; } = "";
     public string NavApi { get; init; } = "";
+    public string NavAi { get; init; } = "";
     public string NavFaq { get; init; } = "";
 
     // 1. Welcome
@@ -122,6 +123,43 @@ public sealed class HelpStrings
     public string ApiIpcTitle { get; init; } = "";
     public string ApiIpcBody { get; init; } = "";
 
+    // 10. AI-masking
+    public string AiTitle { get; init; } = "";
+    public string AiIntro { get; init; } = "";
+
+    public string AiWhatTitle { get; init; } = "";
+    public string AiWhatBody { get; init; } = "";
+
+    public string AiSetupTitle { get; init; } = "";
+    public string AiSetupIntro { get; init; } = "";
+    public string AiSetupEnable { get; init; } = "";
+    public string AiSetupCategories { get; init; } = "";
+    public string AiSetupConfidence { get; init; } = "";
+    public string AiSetupPadding { get; init; } = "";
+    public string AiSetupStyle { get; init; } = "";
+    public string AiSetupOpacity { get; init; } = "";
+    public string AiSetupRoi { get; init; } = "";
+
+    public string AiStyleTitle { get; init; } = "";
+    public string AiStyleBody { get; init; } = "";
+
+    public string AiOpacityTitle { get; init; } = "";
+    public string AiOpacityBody { get; init; } = "";
+
+    public string AiRoiTitle { get; init; } = "";
+    public string AiRoiBody { get; init; } = "";
+
+    public string AiRevealTitle { get; init; } = "";
+    public string AiRevealIntro { get; init; } = "";
+    public string AiRevealSteps { get; init; } = "";
+    public string AiRevealNotes { get; init; } = "";
+
+    public string AiAuditTitle { get; init; } = "";
+    public string AiAuditBody { get; init; } = "";
+
+    public string AiAdaptiveTitle { get; init; } = "";
+    public string AiAdaptiveBody { get; init; } = "";
+
     // 9. FAQ
     public string FaqTitle { get; init; } = "";
     public string FaqQ1 { get; init; } = "";
@@ -157,6 +195,7 @@ public sealed class HelpStrings
         NavRemote     = "Bediening op afstand",
         NavAdmin      = "Voor beheerders",
         NavApi        = "API en integratie",
+        NavAi         = "AI-maskering",
         NavFaq        = "Veelgestelde vragen",
 
         WelcomeTitle = "Welkom",
@@ -268,6 +307,58 @@ public sealed class HelpStrings
                      "met length-prefixed JSON-envelopes. Niet bedoeld voor extern gebruik; de pipe-grens is per definitie een same-machine vertrouwensgrens. " +
                      "De pre-authenticated flag op een ToggleRequest mag dus alleen door de WebHost worden gezet.",
 
+        AiTitle = "AI-maskering",
+        AiIntro = "Vanaf versie 2.0 kan InteractiveMask automatisch personen, fietsers en voertuigen onherkenbaar maken zonder dat de hele tegel hoeft te worden geblurd. " +
+                  "Dit hoofdstuk legt uit hoe u dit per camera instelt en hoe u tijdelijk inzage krijgt als dat nodig is.",
+
+        AiWhatTitle = "Wat is AI-maskering?",
+        AiWhatBody  = "Bij de gewone privacy-knop (uit versie 1.x) wordt de hele tegel onherkenbaar gemaakt zodra u klikt. " +
+                      "AI-maskering werkt continu: het systeem herkent zelf personen, fietsers en voertuigen in beeld en legt daar direct een masker overheen — de rest van de tegel blijft gewoon zichtbaar. " +
+                      "Er wordt alleen gekeken naar deze drie categorieën. Er is geen gezichtsherkenning, er worden geen kentekens gelezen en niemand wordt geïdentificeerd. " +
+                      "De NVR-opname blijft ongewijzigd; het masker is alleen op het scherm zichtbaar.",
+
+        AiSetupTitle = "Instellen per camera",
+        AiSetupIntro = "AI-maskering zet u per camera aan via Setup → Cameras → de knop “AI…” naast de camerarij. Het venster dat opent biedt de volgende opties:",
+        AiSetupEnable      = "Inschakelen — schakelaar boven in het venster. Staat deze uit, dan past het systeem op deze camera geen AI-masker toe.",
+        AiSetupCategories  = "Categorieën — drie gekleurde chips: Persoon (rood), Tweewieler (oranje) en Voertuig (blauw). Klik aan of uit welke categorieën meegenomen moeten worden. U kunt ze los kiezen, bijvoorbeeld alleen personen op een binnencamera en alleen voertuigen op een parkeercamera.",
+        AiSetupConfidence  = "Drempelwaarde (15-70%) — hoe zeker het systeem moet zijn voordat het een masker plaatst. Lager betekent meer maskers maar ook meer ruis; hoger betekent rustiger beeld maar het systeem mist soms een persoon. Tussen aan- en uitzetten zit een marge zodat een masker niet voortdurend gaat “knipperen”.",
+        AiSetupPadding     = "Mask-padding — een rand rond elk masker zodat ook randpixels (haar, schaduw, kleding) worden meegenomen. Hogere waarde = ruimere maskers.",
+        AiSetupStyle       = "Mask-stijl — kies tussen kleur-coded silhouet (per categorie gekleurd) of beeld-blur (waarbij die plek wordt waziger gemaakt).",
+        AiSetupOpacity     = "Mask-dekking — hoe ondoorzichtig het masker is, van bijna onzichtbaar (50%) tot volledig dekkend (100%).",
+        AiSetupRoi         = "Interessegebied (ROI) — een veelhoek waarbinnen het systeem zoekt. Wat buiten de veelhoek valt wordt genegeerd.",
+
+        AiStyleTitle = "Kleur-coded silhouet of beeld-blur",
+        AiStyleBody  = "Bij de stijl “kleur-coded silhouet” krijgt elke gedetecteerde persoon, tweewieler of voertuig een effen kleur die overeenkomt met de categorie-chips (rood, oranje of blauw). Dit maakt in één oogopslag duidelijk wát het systeem heeft gevonden, terwijl de identiteit volledig afgeschermd blijft. " +
+                       "Bij “beeld-blur” wordt op dezelfde plek het oorspronkelijke beeld zwaar onscherp gemaakt. Dat oogt natuurlijker en gaat soms minder snel opvallen voor langslopende bezoekers. Kies de stijl die op uw locatie het beste werkt; u kunt op iedere camera apart kiezen.",
+
+        AiOpacityTitle = "Mask-dekking instellen",
+        AiOpacityBody  = "Bij 100% dekking is het masker volledig ondoorzichtig — u ziet alleen het silhouet of de blur, niet wat er onder zit. Dit is de aanbevolen instelling voor maximale privacy. " +
+                         "Bij 50% schemert het beeld er nog door. Sommige operators verlagen de dekking iets om bijvoorbeeld te kunnen zien of iemand zit of staat, of welke richting iemand op loopt, zonder dat het gezicht herkenbaar wordt. Bij twijfel: houd het op 100%.",
+
+        AiRoiTitle = "Interessegebied (ROI)",
+        AiRoiBody  = "Soms is alleen een deel van het beeld relevant — bijvoorbeeld een wachtruimte aan de voorkant, terwijl een drukke openbare weg achter het hek alleen ruis zou opleveren. Met een interessegebied tekent u een veelhoek over een live-momentopname van de camera. Alles binnen de veelhoek wordt geanalyseerd, alles erbuiten wordt overgeslagen. " +
+                     "U opent de tekenfunctie via de knop “Teken interessegebied…” in het AI-venster. Klik om hoekpunten te plaatsen, dubbelklik om de veelhoek te sluiten. Met “Wissen” verwijdert u het gebied weer en analyseert het systeem het hele beeld.",
+
+        AiRevealTitle = "AI-inzage (nieuw met versie 2.0)",
+        AiRevealIntro = "Soms moet u even kunnen zien wat er onder een AI-masker zit — bijvoorbeeld bij een incident. Daarvoor is er per tegel een aparte AI-inzageknop.",
+        AiRevealSteps = "Zo werkt het:\n\n" +
+                        "1. Klik op de kleine “AI”-pil linksboven in de tegel waarvan u de maskering wilt opheffen.\n" +
+                        "2. Voer uw sessie-PIN in, of meld u aan met uw Windows-account — afhankelijk van wat op uw locatie is ingesteld (zie ook het hoofdstuk “Privacy uit zetten”).\n" +
+                        "3. Kies een duur: 30 seconden, 1 minuut, 5 minuten of “tot ik opnieuw maskeer”.\n" +
+                        "4. De AI-maskers verdwijnen op deze tegel en een aftellend rondje verschijnt rechtsboven.\n" +
+                        "5. Wilt u eerder weer maskeren? Klik op het aftellende rondje, dan komen de maskers direct terug.\n" +
+                        "6. Loopt de tijd af, dan worden de AI-maskers automatisch hersteld.",
+        AiRevealNotes = "Belangrijk: een inzage haalt het hele AI-overlay van die tegel weg — u kunt dus niet één enkele persoon afzonderlijk vrijgeven. De NVR-opname is in geen enkele situatie betrokken; daar staat het beeld altijd onversleuteld op zoals u in Setup → NVR heeft afgesproken. Iedere inzage wordt vastgelegd in het audit-log.",
+
+        AiAuditTitle = "Audit-trail van AI-events",
+        AiAuditBody  = "Alle AI-gebeurtenissen komen in hetzelfde audit-log als de gewone mask-acties, te vinden in %PROGRAMDATA%\\InteractiveMask\\audit.log of via de Audit-tab in Setup. " +
+                       "U herkent de AI-events aan hun naam: AiDetectorInit (AI gestart op een camera), AiDetectorFault (er ging iets mis), AiDetectorStopped (AI uitgeschakeld), AiRevealRequested (operator vroeg inzage aan) en AiRevealExpired (de inzage-timer liep af). " +
+                       "Daarnaast leggen we ook AiDetectorDegraded en AiDetectorRestored vast voor de automatische belastingregeling die hieronder beschreven wordt.",
+
+        AiAdaptiveTitle = "Automatische belastingregeling (in ontwikkeling)",
+        AiAdaptiveBody  = "Als de grafische kaart van de kioskcomputer te zwaar belast raakt, schakelt InteractiveMask vanzelf een stap terug: eerst wordt per camera de analysefrequentie verlaagd, daarna wordt AI uitgezet op camera’s met lagere prioriteit, en in het uiterste geval valt het systeem terug op alleen de handmatige privacy-knop uit versie 1.x. " +
+                          "Op de betrokken tegels verschijnt een kleine status-aanduiding, zodat u weet dat de AI tijdelijk minder doet. Hier hoeft u zelf niets voor te doen — zodra de belasting weer normaal is, herstelt het systeem zichzelf automatisch.",
+
         FaqTitle = "Veelgestelde vragen",
         FaqQ1 = "Wat als ik mijn sessie-PIN vergeet?",
         FaqA1 = "Vraag een beheerder om de admin-PIN. Via Setup → Beheerder kan deze de sessie opnieuw initialiseren door alle maskers te verwijderen; daarna kunt u een nieuwe sessie-PIN kiezen.",
@@ -298,6 +389,7 @@ public sealed class HelpStrings
         NavRemote     = "Remote control",
         NavAdmin      = "For administrators",
         NavApi        = "API and integration",
+        NavAi         = "AI masking",
         NavFaq        = "FAQ",
 
         WelcomeTitle = "Welcome",
@@ -406,6 +498,58 @@ public sealed class HelpStrings
         ApiIpcBody = "Display.exe and WebHost.exe communicate over the named pipe \\\\.\\pipe\\InteractiveMask " +
                      "with length-prefixed JSON envelopes. Not intended for external use; the pipe boundary is by design a same-machine trust boundary. " +
                      "The pre-authenticated flag on a ToggleRequest may therefore only be set by the WebHost.",
+
+        AiTitle = "AI masking",
+        AiIntro = "From version 2.0, InteractiveMask can automatically obscure people, cyclists and vehicles without having to blur the entire tile. " +
+                  "This chapter explains how to set this up per camera and how to temporarily lift the mask when you need to.",
+
+        AiWhatTitle = "What is AI masking?",
+        AiWhatBody  = "The classic privacy button (introduced in version 1.x) blurs the whole tile the moment you click it. " +
+                      "AI masking works continuously: the system itself recognises people, cyclists and vehicles in the picture and drops a mask on each one — the rest of the tile remains visible as normal. " +
+                      "Only these three categories are looked at. There is no facial recognition, no licence plate reading and no identification of individuals. " +
+                      "The NVR recording is unchanged; the mask is visible only on this screen.",
+
+        AiSetupTitle = "Per-camera setup",
+        AiSetupIntro = "AI masking is enabled per camera under Setup → Cameras → the “AI…” button next to the camera row. The dialog that opens offers the following options:",
+        AiSetupEnable      = "Enable — toggle at the top of the dialog. When off, no AI mask is applied for this camera.",
+        AiSetupCategories  = "Categories — three coloured chips: Person (red), Two-wheeler (orange) and Vehicle (blue). Click to include or exclude each category. They are independent, so you can pick only people on an indoor camera and only vehicles on a parking-lot camera.",
+        AiSetupConfidence  = "Confidence threshold (15-70%) — how sure the system has to be before placing a mask. Lower means more masks but more noise; higher means a calmer picture but the system may miss someone. A small margin between turn-on and turn-off prevents the mask from flickering on and off.",
+        AiSetupPadding     = "Mask padding — a margin around every mask so edge pixels (hair, shadow, clothing) are also covered. Higher value = more generous masks.",
+        AiSetupStyle       = "Mask style — choose between a color-coded silhouette (filled in the category colour) or a source blur (the underlying picture is blurred in that spot).",
+        AiSetupOpacity     = "Mask opacity — how solid the mask is, from barely visible (50%) to fully opaque (100%).",
+        AiSetupRoi         = "Region of interest (ROI) — a polygon inside which the system looks. Anything outside the polygon is ignored.",
+
+        AiStyleTitle = "Color-coded silhouette vs source blur",
+        AiStyleBody  = "With the “color-coded silhouette” style, every detected person, cyclist or vehicle is filled with a flat colour matching the category chips (red, orange or blue). This makes it obvious at a glance what the system has found, while identity is fully hidden. " +
+                       "With “source blur” the same area shows the underlying picture but heavily blurred. That looks more natural and is sometimes less eye-catching for passing visitors. Pick whichever works best at your site; you can choose per camera.",
+
+        AiOpacityTitle = "Setting mask opacity",
+        AiOpacityBody  = "At 100% opacity the mask is fully solid — you see only the silhouette or the blur, not what is underneath. This is the recommended setting for maximum privacy. " +
+                         "At 50% the underlying picture shows through faintly. Some operators dial the opacity down a little to still be able to tell whether someone is sitting or standing, or which direction they are walking, without the face being recognisable. When in doubt: leave it at 100%.",
+
+        AiRoiTitle = "Region of interest (ROI)",
+        AiRoiBody  = "Sometimes only part of the picture matters — say the front waiting area, while a busy public road past the fence would only produce noise. With a region of interest you draw a polygon over a live snapshot of the camera. Everything inside the polygon is analysed; everything outside is skipped. " +
+                     "Open the drawing tool with the “Draw region of interest…” button in the AI dialog. Click to drop corner points and double-click to close the polygon. Use “Clear” to remove the region and have the system look at the entire picture again.",
+
+        AiRevealTitle = "AI reveal (new in version 2.0)",
+        AiRevealIntro = "Sometimes you briefly need to see what an AI mask is covering — for example during an incident. Every tile therefore has its own AI reveal control.",
+        AiRevealSteps = "How it works:\n\n" +
+                        "1. Click the small “AI” pill in the top-left corner of the tile whose masks you want to lift.\n" +
+                        "2. Enter your session PIN, or sign in with your Windows account — whichever your site is configured to use (see also the chapter “Deactivate privacy”).\n" +
+                        "3. Pick a duration: 30 seconds, 1 minute, 5 minutes, or “until I remask”.\n" +
+                        "4. The AI masks on this tile disappear and a countdown badge appears in the top-right corner.\n" +
+                        "5. Want to remask sooner? Click the countdown badge and the masks come back immediately.\n" +
+                        "6. When the timer runs out, the AI masks are restored automatically.",
+        AiRevealNotes = "Important: a reveal lifts the entire AI overlay on that tile — you cannot selectively reveal a single detection. The NVR recording is never involved; the recorder always stores the picture as configured under Setup → NVR. Every reveal is written to the audit log.",
+
+        AiAuditTitle = "AI events in the audit trail",
+        AiAuditBody  = "All AI activity lands in the same audit log as regular mask actions, at %PROGRAMDATA%\\InteractiveMask\\audit.log or via the Audit tab in Setup. " +
+                       "You will recognise the AI events by their name: AiDetectorInit (AI started on a camera), AiDetectorFault (something went wrong), AiDetectorStopped (AI switched off), AiRevealRequested (an operator asked for reveal) and AiRevealExpired (the reveal timer ran out). " +
+                       "On top of that we also record AiDetectorDegraded and AiDetectorRestored for the adaptive load management described below.",
+
+        AiAdaptiveTitle = "Adaptive load management (work in progress)",
+        AiAdaptiveBody  = "If the kiosk computer’s graphics card becomes overloaded, InteractiveMask automatically takes a step back: first it lowers the analysis rate per camera, then it disables AI on lower-priority cameras, and as a last resort it falls back to the manual privacy button from version 1.x only. " +
+                          "Affected tiles show a small status badge so you know AI is temporarily doing less. You do not need to take any action — as soon as the load drops back to normal, the system recovers by itself.",
 
         FaqTitle = "Frequently asked questions",
         FaqQ1 = "What if I forget my session PIN?",

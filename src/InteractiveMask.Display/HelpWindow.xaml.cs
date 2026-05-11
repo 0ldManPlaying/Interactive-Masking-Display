@@ -64,6 +64,7 @@ public partial class HelpWindow : Window
         SetText(NavRemoteText,     h.NavRemote);
         SetText(NavAdminText,      h.NavAdmin);
         SetText(NavApiText,        h.NavApi);
+        SetText(NavAiText,         h.NavAi);
         SetText(NavFaqText,        h.NavFaq);
 
         // 1. Welcome
@@ -165,6 +166,36 @@ public partial class HelpWindow : Window
         SetText(ApiIpcTitleText,        h.ApiIpcTitle);
         SetText(ApiIpcBodyText,         h.ApiIpcBody);
 
+        // 10. AI-masking
+        SetText(AiTitleText,        h.AiTitle);
+        SetText(AiSubtitleText,     h.PageSubtitle);
+        SetText(AiIntroText,        h.AiIntro);
+        SetText(AiWhatTitleText,    h.AiWhatTitle);
+        SetText(AiWhatBodyText,     h.AiWhatBody);
+        SetText(AiSetupTitleText,       h.AiSetupTitle);
+        SetText(AiSetupIntroText,       h.AiSetupIntro);
+        SetText(AiSetupEnableText,      h.AiSetupEnable);
+        SetText(AiSetupCategoriesText,  h.AiSetupCategories);
+        SetText(AiSetupConfidenceText,  h.AiSetupConfidence);
+        SetText(AiSetupPaddingText,     h.AiSetupPadding);
+        SetText(AiSetupStyleText,       h.AiSetupStyle);
+        SetText(AiSetupOpacityText,     h.AiSetupOpacity);
+        SetText(AiSetupRoiText,         h.AiSetupRoi);
+        SetText(AiStyleTitleText,   h.AiStyleTitle);
+        SetText(AiStyleBodyText,    h.AiStyleBody);
+        SetText(AiOpacityTitleText, h.AiOpacityTitle);
+        SetText(AiOpacityBodyText,  h.AiOpacityBody);
+        SetText(AiRoiTitleText,     h.AiRoiTitle);
+        SetText(AiRoiBodyText,      h.AiRoiBody);
+        SetText(AiRevealTitleText,  h.AiRevealTitle);
+        SetText(AiRevealIntroText,  h.AiRevealIntro);
+        SetText(AiRevealStepsText,  h.AiRevealSteps);
+        SetText(AiRevealNotesText,  h.AiRevealNotes);
+        SetText(AiAuditTitleText,   h.AiAuditTitle);
+        SetText(AiAuditBodyText,    h.AiAuditBody);
+        SetText(AiAdaptiveTitleText,h.AiAdaptiveTitle);
+        SetText(AiAdaptiveBodyText, h.AiAdaptiveBody);
+
         // 9. FAQ
         SetText(FaqTitleText,    h.FaqTitle);
         SetText(FaqSubtitleText, h.PageSubtitle);
@@ -202,7 +233,7 @@ public partial class HelpWindow : Window
         foreach (var name in new[]
         {
             "WelcomePanel", "ScreenPanel", "PrivacyOnPanel", "PrivacyOffPanel",
-            "AutoOffPanel", "RemotePanel", "AdminPanel", "ApiPanel", "FaqPanel",
+            "AutoOffPanel", "RemotePanel", "AdminPanel", "ApiPanel", "AiPanel", "FaqPanel",
         })
         {
             if (FindName(name) is FrameworkElement fe)
