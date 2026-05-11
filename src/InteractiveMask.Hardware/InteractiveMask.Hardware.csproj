@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>InteractiveMask.Hardware</RootNamespace>
+    <AssemblyName>InteractiveMask.Hardware</AssemblyName>
+    <!-- net9.0-windows + x64 inherited from Directory.Build.props.
+         We use Win32 / WMI / registry probes that are Windows-only. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WMI access for CPU / GPU / PnP enumeration. -->
+    <PackageReference Include="System.Management" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

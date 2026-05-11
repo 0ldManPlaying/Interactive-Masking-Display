@@ -16,6 +16,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteractiveMask.Ipc", "src\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteractiveMask.WebHost", "src\InteractiveMask.WebHost\InteractiveMask.WebHost.csproj", "{2A2B2B2B-0000-0000-0000-000000000005}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteractiveMask.Hardware", "src\InteractiveMask.Hardware\InteractiveMask.Hardware.csproj", "{2A2B2B2B-0000-0000-0000-000000000006}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PoC.HardwareProbe", "tools\PoC.HardwareProbe\PoC.HardwareProbe.csproj", "{2A2B2B2B-0000-0000-0000-000000000007}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -42,6 +46,14 @@ Global
 		{2A2B2B2B-0000-0000-0000-000000000005}.Debug|x64.Build.0 = Debug|x64
 		{2A2B2B2B-0000-0000-0000-000000000005}.Release|x64.ActiveCfg = Release|x64
 		{2A2B2B2B-0000-0000-0000-000000000005}.Release|x64.Build.0 = Release|x64
+		{2A2B2B2B-0000-0000-0000-000000000006}.Debug|x64.ActiveCfg = Debug|x64
+		{2A2B2B2B-0000-0000-0000-000000000006}.Debug|x64.Build.0 = Debug|x64
+		{2A2B2B2B-0000-0000-0000-000000000006}.Release|x64.ActiveCfg = Release|x64
+		{2A2B2B2B-0000-0000-0000-000000000006}.Release|x64.Build.0 = Release|x64
+		{2A2B2B2B-0000-0000-0000-000000000007}.Debug|x64.ActiveCfg = Debug|x64
+		{2A2B2B2B-0000-0000-0000-000000000007}.Debug|x64.Build.0 = Debug|x64
+		{2A2B2B2B-0000-0000-0000-000000000007}.Release|x64.ActiveCfg = Release|x64
+		{2A2B2B2B-0000-0000-0000-000000000007}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +64,7 @@ Global
 		{2A2B2B2B-0000-0000-0000-000000000003} = {1A1B1B1B-0000-0000-0000-000000000001}
 		{2A2B2B2B-0000-0000-0000-000000000004} = {1A1B1B1B-0000-0000-0000-000000000001}
 		{2A2B2B2B-0000-0000-0000-000000000005} = {1A1B1B1B-0000-0000-0000-000000000001}
+		{2A2B2B2B-0000-0000-0000-000000000006} = {1A1B1B1B-0000-0000-0000-000000000001}
+		{2A2B2B2B-0000-0000-0000-000000000007} = {1A1B1B1B-0000-0000-0000-000000000002}
 	EndGlobalSection
 EndGlobal

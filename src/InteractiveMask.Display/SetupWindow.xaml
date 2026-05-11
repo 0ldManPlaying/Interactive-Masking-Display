@@ -1600,6 +1600,24 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- ===== System capabilities (v2.0 prerequisite P2) ===== -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <TextBlock Text="{local:Loc AboutCardSystemCapabilities}" Style="{StaticResource SectionHeader}" />
+                                            <Button x:Name="AboutCapsRefreshBtn"
+                                                    Content="{local:Loc AboutCapsRefreshButton}"
+                                                    Style="{StaticResource BtnGhost}"
+                                                    HorizontalAlignment="Right"
+                                                    Click="OnAboutCapsRefresh" />
+                                        </Grid>
+                                        <TextBlock x:Name="AboutCapsStatus"
+                                                   Foreground="{StaticResource text.muted}" FontSize="13" Margin="0,12,0,8"
+                                                   Text="{local:Loc AboutCapsProbing}" />
+                                        <StackPanel x:Name="AboutCapsContent" />
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- ===== Bug report ===== -->
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>

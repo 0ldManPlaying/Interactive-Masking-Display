@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\InteractiveMask.Gdk\InteractiveMask.Gdk.csproj" />
     <ProjectReference Include="..\InteractiveMask.Ipc\InteractiveMask.Ipc.csproj" />
+    <ProjectReference Include="..\InteractiveMask.Hardware\InteractiveMask.Hardware.csproj" />
   </ItemGroup>
 
   <!-- ApplicationIcon sets only the EXE/window chrome icon. Adding the same

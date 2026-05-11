@@ -1,4 +1,5 @@
 using InteractiveMask.Gdk;
+using InteractiveMask.Hardware;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -69,7 +70,13 @@ public partial class SetupWindow : Window
         // About tab: show the runtime assembly version so the user can spot
         // which build is installed without having to open file properties.
         AboutVersionValue.Text = typeof(SetupWindow).Assembly.GetName().Version?.ToString(3) ?? "";
-        Loaded += (_, _) => Populate();
+        Loaded += (_, _) =>
+        {
+            Populate();
+            // Kick off the v2.0 capability probe in the background. Result lands in
+            // the About > System capabilities card via the Dispatcher.
+            _ = RunCapabilityProbeAsync();
+        };
         // Dispose the per-window StreamChoices so its static-event subscription
         // on Strings.Instance.PropertyChanged is released. Otherwise every
         // Setup-open accumulates one dead handler on the singleton over the
@@ -129,6 +136,134 @@ public partial class SetupWindow : Window
             // address is also visible in the card so the user can copy it
             // manually.
         }
+    }
+
+    // ------------------------------------------------------------------
+    // v2.0 capability probe (P2 deliverable)
+    // ------------------------------------------------------------------
+
+    private HostCapabilityProfile? _capabilityProfile;
+
+    private void OnAboutCapsRefresh(object sender, RoutedEventArgs e)
+    {
+        // Fire-and-forget; the async method handles its own UI updates and
+        // re-enables the button when done.
+        _ = RunCapabilityProbeAsync();
+    }
+
+    private async Task RunCapabilityProbeAsync()
+    {
+        var T = Strings.Instance.Current;
+        if (AboutCapsRefreshBtn != null) AboutCapsRefreshBtn.IsEnabled = false;
+        AboutCapsStatus.Text = T.AboutCapsProbing;
+        AboutCapsContent.Children.Clear();
+
+        try
+        {
+            // WMI calls block; keep the UI responsive while they run.
+            var profile = await Task.Run(HostCapabilityProbe.Probe);
+            _capabilityProfile = profile;
+            // Persist for support / diagnostics. Best-effort, never throws.
+            CapabilityProfileStore.Save(profile);
+            RenderCapabilityProfile(profile);
+        }
+        catch (Exception ex)
+        {
+            AboutCapsStatus.Text = $"{T.AboutCapsProbing} {ex.GetType().Name}: {ex.Message}";
+        }
+        finally
+        {
+            if (AboutCapsRefreshBtn != null) AboutCapsRefreshBtn.IsEnabled = true;
+        }
+    }
+
+    private void RenderCapabilityProfile(HostCapabilityProfile profile)
+    {
+        var T = Strings.Instance.Current;
+        AboutCapsContent.Children.Clear();
+
+        AppendCapsRow(T.AboutCapsCpu, FormatCpu(profile.Cpu));
+        AppendCapsRow(T.AboutCapsMemory, FormatMemory(profile.Memory));
+
+        if (profile.Gpus.Count == 0)
+        {
+            AppendCapsRow(T.AboutCapsGpu, T.AboutCapsNone);
+        }
+        else
+        {
+            foreach (var g in profile.Gpus)
+            {
+                AppendCapsRow(T.AboutCapsGpu, FormatGpu(g, T));
+            }
+        }
+
+        if (profile.Npus.Count == 0)
+        {
+            AppendCapsRow(T.AboutCapsNpu, T.AboutCapsNone);
+        }
+        else
+        {
+            foreach (var n in profile.Npus)
+            {
+                AppendCapsRow(T.AboutCapsNpu, n.Name);
+            }
+        }
+
+        AppendCapsRow(T.AboutCapsAiTier, profile.Tier.ToString());
+
+        AboutCapsStatus.Text = $"{profile.ProbedAt.ToLocalTime():yyyy-MM-dd HH:mm} · schema {profile.ProbeSchemaVersion}";
+    }
+
+    private void AppendCapsRow(string label, string value)
+    {
+        var grid = new Grid { Margin = new Thickness(0, 3, 0, 3) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var labelTb = new TextBlock
+        {
+            Text = label,
+            Foreground = (Brush)TryFindResource("text.muted") ?? Brushes.Gray,
+            FontSize = 13,
+        };
+        Grid.SetColumn(labelTb, 0);
+
+        var valueTb = new TextBlock
+        {
+            Text = value,
+            Foreground = (Brush)TryFindResource("text") ?? Brushes.White,
+            FontSize = 13,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        Grid.SetColumn(valueTb, 1);
+
+        grid.Children.Add(labelTb);
+        grid.Children.Add(valueTb);
+        AboutCapsContent.Children.Add(grid);
+    }
+
+    private static string FormatCpu(CpuInfo c)
+    {
+        var dot = "·"; // middle dot, language-neutral separator
+        var avx = c.HasAvx2 ? "AVX2 ✓" : "AVX2 ✗";
+        return $"{c.Name} {dot} {c.PhysicalCores} / {c.LogicalCores} threads {dot} {avx}";
+    }
+
+    private static string FormatMemory(MemoryInfo m)
+    {
+        var totalGb = m.TotalPhysicalBytes / (1024.0 * 1024 * 1024);
+        var freeGb = m.AvailablePhysicalBytes / (1024.0 * 1024 * 1024);
+        return $"{totalGb:0.0} GB ({freeGb:0.0} GB free)";
+    }
+
+    private static string FormatGpu(GpuInfo g, StringsTable T)
+    {
+        var dot = "·";
+        var vram = g.DedicatedVramBytes.HasValue
+            ? $"{g.DedicatedVramBytes.Value / (1024.0 * 1024 * 1024):0.0} GB"
+            : "?";
+        var suffix = g.IsIntegratedHeuristic ? $" {dot} {T.AboutCapsIntegrated}" : string.Empty;
+        return $"{g.Name} {dot} {vram}{suffix}";
     }
 
     private void Populate()

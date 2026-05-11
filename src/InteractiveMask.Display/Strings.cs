@@ -343,6 +343,16 @@ public sealed class StringsTable
     public string AboutCardBugReport { get; init; } = "";
     public string AboutBugReportIntro { get; init; } = "";
     public string AboutBugReportButton { get; init; } = "";
+    public string AboutCardSystemCapabilities { get; init; } = "";
+    public string AboutCapsRefreshButton { get; init; } = "";
+    public string AboutCapsProbing { get; init; } = "";
+    public string AboutCapsCpu { get; init; } = "";
+    public string AboutCapsMemory { get; init; } = "";
+    public string AboutCapsGpu { get; init; } = "";
+    public string AboutCapsNpu { get; init; } = "";
+    public string AboutCapsAiTier { get; init; } = "";
+    public string AboutCapsNone { get; init; } = "";
+    public string AboutCapsIntegrated { get; init; } = "";
 
     public static readonly StringsTable Nl = new()
     {
@@ -592,6 +602,16 @@ public sealed class StringsTable
         AboutCardBugReport        = "Bug rapporteren",
         AboutBugReportIntro       = "Loop je tegen een probleem aan? Stuur ons een e-mail met een korte beschrijving en, indien mogelijk, een screenshot. We nemen elke melding serieus en proberen zo snel mogelijk te reageren.",
         AboutBugReportButton      = "E-mail openen",
+        AboutCardSystemCapabilities = "Systeem-eigenschappen",
+        AboutCapsRefreshButton    = "Opnieuw inventariseren",
+        AboutCapsProbing          = "Bezig met inventariseren...",
+        AboutCapsCpu              = "Processor",
+        AboutCapsMemory           = "Geheugen",
+        AboutCapsGpu              = "Grafische adapter",
+        AboutCapsNpu              = "AI-versneller (NPU)",
+        AboutCapsAiTier           = "v2.0 AI-maskering tier",
+        AboutCapsNone             = "Geen gedetecteerd",
+        AboutCapsIntegrated       = "geïntegreerd",
     };
 
     public static readonly StringsTable En = new()
@@ -842,6 +862,16 @@ public sealed class StringsTable
         AboutCardBugReport        = "Report a bug",
         AboutBugReportIntro       = "Run into a problem? Send us an email with a short description and, if possible, a screenshot. Every report is taken seriously and we try to respond as quickly as we can.",
         AboutBugReportButton      = "Open email client",
+        AboutCardSystemCapabilities = "System capabilities",
+        AboutCapsRefreshButton    = "Probe again",
+        AboutCapsProbing          = "Probing system...",
+        AboutCapsCpu              = "Processor",
+        AboutCapsMemory           = "Memory",
+        AboutCapsGpu              = "Graphics adapter",
+        AboutCapsNpu              = "AI accelerator (NPU)",
+        AboutCapsAiTier           = "v2.0 AI-masking tier",
+        AboutCapsNone             = "None detected",
+        AboutCapsIntegrated       = "integrated",
     };
 
     // ------------------------------------------------------------------
@@ -1097,6 +1127,16 @@ public sealed class StringsTable
         AboutCardBugReport        = "Fehler melden",
         AboutBugReportIntro       = "Probleme aufgetreten? Senden Sie uns eine E-Mail mit einer kurzen Beschreibung und, wenn möglich, einem Screenshot. Jede Meldung wird ernst genommen und wir versuchen, so schnell wie möglich zu antworten.",
         AboutBugReportButton      = "E-Mail öffnen",
+        AboutCardSystemCapabilities = "Systemeigenschaften",
+        AboutCapsRefreshButton    = "Erneut prüfen",
+        AboutCapsProbing          = "System wird geprüft...",
+        AboutCapsCpu              = "Prozessor",
+        AboutCapsMemory           = "Arbeitsspeicher",
+        AboutCapsGpu              = "Grafikadapter",
+        AboutCapsNpu              = "KI-Beschleuniger (NPU)",
+        AboutCapsAiTier           = "v2.0 KI-Maskierungs-Tier",
+        AboutCapsNone             = "Nicht erkannt",
+        AboutCapsIntegrated       = "integriert",
     };
 
     public static readonly StringsTable Fr = new()
@@ -1347,6 +1387,16 @@ public sealed class StringsTable
         AboutCardBugReport        = "Signaler un bogue",
         AboutBugReportIntro       = "Vous rencontrez un problème ? Envoyez-nous un e-mail avec une brève description et, si possible, une capture d'écran. Chaque signalement est pris au sérieux et nous essayons de répondre le plus rapidement possible.",
         AboutBugReportButton      = "Ouvrir le client de messagerie",
+        AboutCardSystemCapabilities = "Caractéristiques système",
+        AboutCapsRefreshButton    = "Sonder à nouveau",
+        AboutCapsProbing          = "Sondage du système en cours...",
+        AboutCapsCpu              = "Processeur",
+        AboutCapsMemory           = "Mémoire",
+        AboutCapsGpu              = "Adaptateur graphique",
+        AboutCapsNpu              = "Accélérateur IA (NPU)",
+        AboutCapsAiTier           = "Niveau de masquage IA v2.0",
+        AboutCapsNone             = "Aucun détecté",
+        AboutCapsIntegrated       = "intégré",
     };
 
     public static readonly StringsTable Es = new()
@@ -1597,5 +1647,15 @@ public sealed class StringsTable
         AboutCardBugReport        = "Reportar un error",
         AboutBugReportIntro       = "¿Encontró un problema? Envíenos un correo electrónico con una breve descripción y, si es posible, una captura de pantalla. Cada informe se toma en serio y tratamos de responder lo más rápido posible.",
         AboutBugReportButton      = "Abrir cliente de correo",
+        AboutCardSystemCapabilities = "Características del sistema",
+        AboutCapsRefreshButton    = "Sondear de nuevo",
+        AboutCapsProbing          = "Sondeando sistema...",
+        AboutCapsCpu              = "Procesador",
+        AboutCapsMemory           = "Memoria",
+        AboutCapsGpu              = "Adaptador gráfico",
+        AboutCapsNpu              = "Acelerador de IA (NPU)",
+        AboutCapsAiTier           = "Nivel de enmascaramiento IA v2.0",
+        AboutCapsNone             = "Ninguno detectado",
+        AboutCapsIntegrated       = "integrada",
     };
 }
