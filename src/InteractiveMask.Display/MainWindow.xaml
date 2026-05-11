@@ -21,6 +21,7 @@
              handle forward references. -->
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <local:BoundingBoxToViewboxConverter x:Key="BoxToViewbox" />
+        <local:SegmentationMaskToImageBrushConverter x:Key="MaskToBrush" />
 
         <DataTemplate DataType="{x:Type local:TileViewModel}">
             <!-- Background must be solid (not Transparent) for hit-testing to fire
@@ -110,8 +111,17 @@
                                          pulled from the parent TileViewModel via the
                                          ItemsControl's DataContext; per-item DataContext
                                          is a DetectedObject. -->
+                                    <!-- Per-region blur. The ImageBrush samples the bbox
+                                         region from the tile's WriteableBitmap; the BlurEffect
+                                         on top scrambles the sampled pixels. When the detector
+                                         is a segmentation variant (YOLO26n-seg from M3.5 on)
+                                         the OpacityMask clips the blur to the object silhouette
+                                         instead of the rectangular bbox; for bbox-only detectors
+                                         Mask is null and OpacityMask=null leaves the full bbox
+                                         opaque (legacy behaviour). -->
                                     <Rectangle Width="{Binding Box.Width}"
-                                               Height="{Binding Box.Height}">
+                                               Height="{Binding Box.Height}"
+                                               OpacityMask="{Binding Mask, Converter={StaticResource MaskToBrush}}">
                                         <Rectangle.Fill>
                                             <ImageBrush
                                                 ImageSource="{Binding DataContext.Bitmap, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"

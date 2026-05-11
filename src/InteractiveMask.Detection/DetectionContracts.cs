@@ -9,8 +9,14 @@ namespace InteractiveMask.Detection;
 /// <summary>
 /// A single detected object in a frame. <see cref="Class"/> is the masking-categorie
 /// that drives Setup-toggles and audit-events; <see cref="RawClassLabel"/> retains the
-/// model-native label (for instance "car" or "truck" from a YOLOv8n COCO output) for
-/// audit and support diagnostics. Mask coordinates are in frame-pixel space.
+/// model-native label (for instance "car" or "truck" from a YOLO COCO output) for
+/// audit and support diagnostics. Bbox coordinates are in source-frame pixel space.
+/// <para>
+/// <see cref="Mask"/> is populated when the detector is a segmentation variant
+/// (YOLO26n-seg from M3.5 onward); null for bbox-only detectors. The mask data is
+/// in bbox-local coordinates and sized to the bbox dimensions, ready for the
+/// renderer to apply as an OpacityMask without further resampling.
+/// </para>
 /// <para>
 /// Named <see cref="DetectedObject"/> (not <c>Detection</c>) to avoid an unresolvable
 /// type/namespace ambiguity with the enclosing <c>InteractiveMask.Detection</c>
@@ -22,7 +28,19 @@ public sealed record DetectedObject(
     string? RawClassLabel,
     float Confidence,
     BoundingBox Box,
-    Polygon? Mask);
+    SegmentationMask? Mask);
+
+/// <summary>
+/// Per-detection segmentation mask, sized to the parent <see cref="DetectedObject.Box"/>
+/// dimensions and given in bbox-local row-major byte coordinates.
+/// </summary>
+/// <param name="AlphaData">Row-major byte array of length <c>Width * Height</c>.
+/// Each byte is the alpha for the corresponding pixel: 0 means transparent (not
+/// part of the object), 255 means fully opaque (part of the object). Intermediate
+/// values are allowed but typically the model threshold collapses to {0, 255}.</param>
+/// <param name="Width">Width of the mask in pixels; equals parent bbox Width.</param>
+/// <param name="Height">Height of the mask in pixels; equals parent bbox Height.</param>
+public sealed record SegmentationMask(byte[] AlphaData, int Width, int Height);
 
 /// <summary>
 /// Masking-categorie. Drives Setup-toggles and audit policy. The underlying model can

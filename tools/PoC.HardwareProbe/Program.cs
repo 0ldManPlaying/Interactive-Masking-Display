@@ -172,6 +172,7 @@ catch (Exception ex)
     Console.WriteLine($"  OnnxLocalDetector smoke test failed: {ex.GetType().Name}: {ex.Message}");
 }
 
+
 // Local FrameRef subtype used only by this smoke test; real backends will define
 // their own typed FrameRef holding decoded-bitmap or GPU-resource handles.
 internal sealed record DummyFrame(long TimestampTicks, int Width, int Height, int StreamId)

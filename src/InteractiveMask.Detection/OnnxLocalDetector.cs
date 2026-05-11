@@ -174,13 +174,12 @@ public sealed class OnnxLocalDetector : IObjectDetector
 
     private static string ResolveYoloModelPath()
     {
-        // Prefer YOLO11n if present (newer, slightly better small-object accuracy
-        // at near-identical compute cost) and fall back to YOLOv8n. Both exports
-        // share the same I/O layout (input "images" 1x3x640x640, output "output0"
-        // 1x84x8400 with sigmoid'd class scores), so this is a pure drop-in:
-        // place yolo11n.onnx next to the binary and the next launch picks it up
-        // automatically, no decoder change required.
-        var fileNames = new[] { "yolo11n.onnx", "yolov8n.onnx" };
+        // M3.5 baseline: YOLO26n-seg (NMS-free, segmentation, ~4-5 ms warm pass
+        // on RTX 3090 via DirectML EP). yolo26n.onnx (detection-only) is the
+        // fallback if no seg variant is present. Older anchor-based models
+        // (yolo11n / yolov8n) are no longer supported by the decoder; if a
+        // legacy file is in the folder it will be ignored.
+        var fileNames = new[] { "yolo26n-seg.onnx", "yolo26n.onnx" };
         var roots = new[]
         {
             Path.Combine(AppContext.BaseDirectory, "models"),
@@ -196,6 +195,6 @@ public sealed class OnnxLocalDetector : IObjectDetector
             }
         }
         throw new FileNotFoundException(
-            $"YOLO model not found. Expected yolo11n.onnx or yolov8n.onnx under {roots[0]}.");
+            $"YOLO26 model not found. Expected yolo26n-seg.onnx or yolo26n.onnx under {roots[0]}.");
     }
 }
