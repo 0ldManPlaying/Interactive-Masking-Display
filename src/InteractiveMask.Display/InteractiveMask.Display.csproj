@@ -41,6 +41,23 @@
     </None>
   </ItemGroup>
 
+  <!-- AI detector models. The Detection project marks these as <Content> so
+       they copy into its OWN bin folder, but transitive content-flow through
+       a ProjectReference into `dotnet publish` is unreliable (the publish
+       walker treats referenced-project content as opt-in). Re-declaring the
+       same files here, with Link to keep the relative directory, guarantees
+       they end up at <publish>\models\*.onnx where OnnxLocalDetector looks
+       for them at runtime. Without this, an installed kiosk starts, hits
+       "model not found" on first frame submission, and silently degrades to
+       v1.x manual masking - the symptom is "AI just doesn't work after
+       install" with no obvious error. -->
+  <ItemGroup>
+    <Content Include="..\InteractiveMask.Detection\models\*.onnx" Link="models\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
