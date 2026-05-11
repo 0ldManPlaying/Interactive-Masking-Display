@@ -79,7 +79,9 @@
                                 <Image x:Name="SnapshotImage" Stretch="Fill" />
                                 <Canvas x:Name="DrawCanvas"
                                         Background="Transparent"
-                                        MouseLeftButtonDown="OnCanvasClick">
+                                        MouseLeftButtonDown="OnCanvasClick"
+                                        MouseMove="OnCanvasMouseMove"
+                                        MouseLeftButtonUp="OnCanvasMouseUp">
                                     <!-- Filled polygon. Stroke and Fill stay subtle so the
                                          underlying camera content is still readable while
                                          editing. -->

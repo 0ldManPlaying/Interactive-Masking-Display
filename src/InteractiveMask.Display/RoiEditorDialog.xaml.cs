@@ -33,6 +33,14 @@ public partial class RoiEditorDialog : Window
     private readonly CameraSlotSettings _target;
     private readonly List<PolygonPoint> _points = new();
 
+    /// <summary>
+    /// Index of the polygon vertex currently being dragged, or -1 when no
+    /// drag is in progress. Set on marker MouseDown, cleared on canvas MouseUp.
+    /// Mouse-capture on the canvas ensures we still receive MouseMove / MouseUp
+    /// even when the cursor leaves the marker (or the canvas bounds entirely).
+    /// </summary>
+    private int _draggingIndex = -1;
+
     public RoiEditorDialog(Window owner, CameraSlotSettings target, BitmapSource? snapshot, string cameraDescription)
     {
         InitializeComponent();
@@ -66,14 +74,62 @@ public partial class RoiEditorDialog : Window
 
     private void OnCanvasClick(object sender, MouseButtonEventArgs e)
     {
-        // GetPosition relative to the DrawCanvas returns coordinates inside the
-        // canvas's local space (source-pixel coordinates, thanks to Viewbox).
+        // Markers set e.Handled=true on their own MouseDown so we never get
+        // here when the user grabs an existing vertex; this handler only fires
+        // for clicks on empty canvas space. GetPosition relative to the
+        // DrawCanvas returns coordinates inside the canvas's local space
+        // (source-pixel coordinates, thanks to Viewbox).
         var pos = e.GetPosition(DrawCanvas);
-        int x = Math.Max(0, (int)Math.Round(pos.X));
-        int y = Math.Max(0, (int)Math.Round(pos.Y));
+        int x = ClampX(pos.X);
+        int y = ClampY(pos.Y);
         _points.Add(new PolygonPoint(x, y));
         RedrawPolygon();
     }
+
+    private void OnMarkerMouseDown(int pointIndex, MouseButtonEventArgs e)
+    {
+        if (pointIndex < 0 || pointIndex >= _points.Count) return;
+        _draggingIndex = pointIndex;
+        DrawCanvas.CaptureMouse();
+        // Stop the event bubbling so OnCanvasClick doesn't fire and add a new
+        // point on top of the one being grabbed.
+        e.Handled = true;
+    }
+
+    private void OnCanvasMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_draggingIndex < 0) return;
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            // Defensive: if the system thinks the button is up (lost focus,
+            // alt-tab during drag, etc.), end the drag cleanly.
+            EndDrag();
+            return;
+        }
+        var pos = e.GetPosition(DrawCanvas);
+        _points[_draggingIndex] = new PolygonPoint(ClampX(pos.X), ClampY(pos.Y));
+        RedrawPolygon();
+    }
+
+    private void OnCanvasMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_draggingIndex < 0) return;
+        EndDrag();
+        // Drag-release is not a click-to-add: if the user happened to release
+        // over empty canvas, we don't want a new point to appear. Marking
+        // Handled prevents the bubbling MouseLeftButtonUp event from re-
+        // triggering downstream click handlers in some WPF chrome layouts.
+        e.Handled = true;
+    }
+
+    private void EndDrag()
+    {
+        _draggingIndex = -1;
+        if (DrawCanvas.IsMouseCaptured) DrawCanvas.ReleaseMouseCapture();
+    }
+
+    private int ClampX(double v) => Math.Max(0, Math.Min((int)Math.Round(EditorContent.Width) - 1, (int)Math.Round(v)));
+    private int ClampY(double v) => Math.Max(0, Math.Min((int)Math.Round(EditorContent.Height) - 1, (int)Math.Round(v)));
 
     private void OnUndoPoint(object sender, RoutedEventArgs e)
     {
@@ -114,6 +170,7 @@ public partial class RoiEditorDialog : Window
         for (int i = 0; i < _points.Count; i++)
         {
             var p = _points[i];
+            int capturedIndex = i; // closure-safe local
             var dot = new Ellipse
             {
                 Width = markerSize,
@@ -121,7 +178,14 @@ public partial class RoiEditorDialog : Window
                 Stroke = Brushes.White,
                 StrokeThickness = 2,
                 Fill = new SolidColorBrush(Color.FromRgb(0x4D, 0xAB, 0xF7)),
+                // SizeAll cursor signals to the user that the marker is
+                // grab-and-move, not just a static decoration.
+                Cursor = Cursors.SizeAll,
             };
+            // MouseDown on the marker starts a drag. The handler sets
+            // _draggingIndex and captures the mouse on DrawCanvas so move/up
+            // events keep flowing even if the cursor leaves the marker.
+            dot.MouseLeftButtonDown += (s, ev) => OnMarkerMouseDown(capturedIndex, ev);
             Canvas.SetLeft(dot, p.X - markerSize / 2);
             Canvas.SetTop(dot, p.Y - markerSize / 2);
             DrawCanvas.Children.Add(dot);
