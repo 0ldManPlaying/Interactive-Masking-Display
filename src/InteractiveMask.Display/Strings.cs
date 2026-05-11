@@ -372,6 +372,15 @@ public sealed class StringsTable
     public string CameraButtonAi { get; init; } = "";
     public string AiPaddingHeader { get; init; } = "";
     public string AiPaddingHint { get; init; } = "";
+    public string AiRoiSection { get; init; } = "";
+    public string AiRoiButton { get; init; } = "";
+    public string AiRoiHint { get; init; } = "";
+    public string AiRoiPointsLabel { get; init; } = "";
+    public string AiRoiEditorTitle { get; init; } = "";
+    public string AiRoiEditorHint { get; init; } = "";
+    public string AiRoiNoFrame { get; init; } = "";
+    public string AiRoiUndo { get; init; } = "";
+    public string AiRoiClear { get; init; } = "";
 
     public static readonly StringsTable Nl = new()
     {
@@ -650,6 +659,15 @@ public sealed class StringsTable
         CameraButtonAi            = "AI…",
         AiPaddingHeader           = "Mask-padding",
         AiPaddingHint             = "Vergroot het blur-vlak met dit percentage rondom de detectie. Compenseert voor strakke bboxen die het object net niet helemaal afdekken.",
+        AiRoiSection              = "Region of Interest",
+        AiRoiButton               = "ROI tekenen…",
+        AiRoiHint                 = "Beperk de detectie tot een polygon-gebied. Detecties buiten het gebied worden niet gemaskeerd.",
+        AiRoiPointsLabel          = "{0} punten geplaatst",
+        AiRoiEditorTitle          = "ROI tekenen",
+        AiRoiEditorHint           = "Klik in het beeld om punten toe te voegen. Sluit met minstens 3 punten af. Laat leeg om de hele camera te gebruiken.",
+        AiRoiNoFrame              = "Geen live beeld beschikbaar — wacht tot de camera verbonden is.",
+        AiRoiUndo                 = "Laatste punt",
+        AiRoiClear                = "Wissen",
     };
 
     public static readonly StringsTable En = new()
@@ -929,6 +947,15 @@ public sealed class StringsTable
         CameraButtonAi            = "AI…",
         AiPaddingHeader           = "Mask padding",
         AiPaddingHint             = "Enlarges the blur area by this percentage around the detection. Compensates for tight bounding boxes that don't quite cover the object.",
+        AiRoiSection              = "Region of Interest",
+        AiRoiButton               = "Draw ROI…",
+        AiRoiHint                 = "Limit detection to a polygon area. Detections outside the polygon are not masked.",
+        AiRoiPointsLabel          = "{0} points placed",
+        AiRoiEditorTitle          = "Draw ROI",
+        AiRoiEditorHint           = "Click in the image to add points. Close with at least 3 points. Leave empty to use the whole camera.",
+        AiRoiNoFrame              = "No live frame available — wait until the camera connects.",
+        AiRoiUndo                 = "Last point",
+        AiRoiClear                = "Clear",
     };
 
     // ------------------------------------------------------------------
@@ -1213,6 +1240,15 @@ public sealed class StringsTable
         CameraButtonAi            = "KI…",
         AiPaddingHeader           = "Maskenpolsterung",
         AiPaddingHint             = "Vergrößert den Unschärfebereich um diesen Prozentsatz rund um die Erkennung. Kompensiert enge Bounding-Boxen, die das Objekt nicht ganz abdecken.",
+        AiRoiSection              = "Bereich (ROI)",
+        AiRoiButton               = "ROI zeichnen…",
+        AiRoiHint                 = "Erkennung auf einen Polygon-Bereich beschränken. Erkennungen außerhalb werden nicht maskiert.",
+        AiRoiPointsLabel          = "{0} Punkte gesetzt",
+        AiRoiEditorTitle          = "ROI zeichnen",
+        AiRoiEditorHint           = "Im Bild klicken, um Punkte hinzuzufügen. Mindestens 3 Punkte für eine gültige Region. Leer lassen, um die ganze Kamera zu verwenden.",
+        AiRoiNoFrame              = "Kein Livebild verfügbar — warten Sie auf die Kameraverbindung.",
+        AiRoiUndo                 = "Letzter Punkt",
+        AiRoiClear                = "Löschen",
     };
 
     public static readonly StringsTable Fr = new()
@@ -1492,6 +1528,15 @@ public sealed class StringsTable
         CameraButtonAi            = "IA…",
         AiPaddingHeader           = "Marge du masque",
         AiPaddingHint             = "Agrandit la zone de flou de ce pourcentage autour de la détection. Compense les boîtes englobantes trop serrées qui ne couvrent pas tout à fait l'objet.",
+        AiRoiSection              = "Zone d'intérêt",
+        AiRoiButton               = "Dessiner la zone…",
+        AiRoiHint                 = "Limite la détection à une zone polygonale. Les détections hors de la zone ne sont pas masquées.",
+        AiRoiPointsLabel          = "{0} points placés",
+        AiRoiEditorTitle          = "Dessiner la zone",
+        AiRoiEditorHint           = "Cliquez dans l'image pour ajouter des points. Au moins 3 points pour fermer. Laisser vide pour utiliser toute la caméra.",
+        AiRoiNoFrame              = "Aucune image en direct disponible — attendez la connexion de la caméra.",
+        AiRoiUndo                 = "Dernier point",
+        AiRoiClear                = "Effacer",
     };
 
     public static readonly StringsTable Es = new()
@@ -1771,5 +1816,14 @@ public sealed class StringsTable
         CameraButtonAi            = "IA…",
         AiPaddingHeader           = "Relleno de la máscara",
         AiPaddingHint             = "Amplía la zona de desenfoque este porcentaje alrededor de la detección. Compensa los cuadros delimitadores ajustados que no cubren del todo el objeto.",
+        AiRoiSection              = "Región de interés",
+        AiRoiButton               = "Dibujar región…",
+        AiRoiHint                 = "Limita la detección a un área poligonal. Las detecciones fuera del área no se enmascaran.",
+        AiRoiPointsLabel          = "{0} puntos colocados",
+        AiRoiEditorTitle          = "Dibujar región",
+        AiRoiEditorHint           = "Haga clic en la imagen para añadir puntos. Al menos 3 puntos para cerrar. Deje vacío para usar toda la cámara.",
+        AiRoiNoFrame              = "Sin imagen en vivo disponible — espere a que la cámara conecte.",
+        AiRoiUndo                 = "Último punto",
+        AiRoiClear                = "Borrar",
     };
 }

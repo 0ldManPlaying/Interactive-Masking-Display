@@ -101,6 +101,36 @@
                     Margin="0,6,0,0"
                     ValueChanged="OnPaddingSliderChanged" />
 
+            <!-- Region of Interest section (M3.4): button opens the polygon
+                 editor. Disabled when no snapshot is available so the user gets
+                 a clear "wait until camera is connected" message instead of a
+                 cryptic empty editor. -->
+            <TextBlock Text="{local:Loc AiRoiSection}"
+                       Foreground="#8B95A7"
+                       FontSize="12"
+                       Margin="0,20,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           x:Name="RoiStatusText"
+                           Foreground="#E6E6E6"
+                           FontSize="13"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        x:Name="RoiOpenButton"
+                        Content="{local:Loc AiRoiButton}"
+                        Click="OnOpenRoiEditor"
+                        Background="Transparent" Foreground="#E6E6E6"
+                        BorderBrush="#374050" BorderThickness="1"
+                        Padding="12,5" Cursor="Hand" />
+            </Grid>
+            <TextBlock Foreground="#8B95A7" FontSize="11" TextWrapping="Wrap"
+                       Margin="0,6,0,0"
+                       Text="{local:Loc AiRoiHint}" />
+
             <TextBlock Foreground="#8B95A7" FontSize="11" TextWrapping="Wrap"
                        Margin="0,16,0,0"
                        Text="{local:Loc AiDialogHint}" />

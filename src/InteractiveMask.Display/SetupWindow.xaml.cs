@@ -35,6 +35,14 @@ public partial class SetupWindow : Window
     private readonly Func<int, CancellationToken, Task<IReadOnlyDictionary<int, string>>>? _cameraNameFetcher;
 
     /// <summary>
+    /// Optional callback supplying a frozen snapshot of the live tile at the
+    /// given slot index. Used by the ROI editor to draw the polygon over a
+    /// representative frame. Returns null when no frame is yet available
+    /// (camera disconnected, or initial connect not complete).
+    /// </summary>
+    private readonly Func<int, System.Windows.Media.Imaging.BitmapSource?>? _frameSnapshotProvider;
+
+    /// <summary>
     /// Optional callback fired after a successful Apply / Save. Lets MainWindow
     /// hot-reload the new config without waiting for the dialog to close, so
     /// the operator can keep tweaking after seeing the change live.
@@ -45,10 +53,12 @@ public partial class SetupWindow : Window
 
     public SetupWindow(ConfigService configService, AdminPinService adminPin, AuditLog audit,
                        Func<int, CancellationToken, Task<IReadOnlyDictionary<int, string>>>? cameraNameFetcher = null,
-                       Action? onApplied = null)
+                       Action? onApplied = null,
+                       Func<int, System.Windows.Media.Imaging.BitmapSource?>? frameSnapshotProvider = null)
     {
         _cameraNameFetcher = cameraNameFetcher;
         _onApplied = onApplied;
+        _frameSnapshotProvider = frameSnapshotProvider;
         InitializeComponent();
         _configService = configService;
         _adminPin = adminPin;
@@ -375,6 +385,9 @@ public partial class SetupWindow : Window
                 AiEnabled = c.AiEnabled,
                 AiClasses = new HashSet<InteractiveMask.Detection.ObjectClass>(c.AiClasses),
                 MaskPaddingPercent = c.MaskPaddingPercent,
+                // ROI polygon copied as a new list so dialog edits don't bleed into
+                // the loaded settings reference.
+                AiRoiPolygon = new List<InteractiveMask.Detection.PolygonPoint>(c.AiRoiPolygon),
             });
         }
 
@@ -588,7 +601,12 @@ public partial class SetupWindow : Window
                 ? row.NvrTitle
                 : $"Slot {row.Slot + 1}";
 
-        var dlg = new CameraAiSettingsDialog(this, row, description);
+        // Pull the latest live snapshot for this slot (if any) so the ROI editor
+        // can draw on top of a representative frame. Null means "no live frame
+        // available" - editor still opens, just with the placeholder.
+        var snapshot = _frameSnapshotProvider?.Invoke(row.Slot);
+
+        var dlg = new CameraAiSettingsDialog(this, row, description, snapshot);
         if (dlg.ShowDialog() == true)
         {
             // Force the CameraGrid bindings to re-evaluate so the per-row AI
@@ -1010,6 +1028,7 @@ public partial class SetupWindow : Window
                     AiEnabled = c.AiEnabled,
                     AiClasses = new HashSet<InteractiveMask.Detection.ObjectClass>(c.AiClasses),
                     MaskPaddingPercent = c.MaskPaddingPercent,
+                    AiRoiPolygon = new List<InteractiveMask.Detection.PolygonPoint>(c.AiRoiPolygon),
                 })
                 .ToList(),
             Kiosk = { Enabled = KioskEnabled.IsChecked == true },

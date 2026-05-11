@@ -161,6 +161,7 @@ public partial class MainWindow : Window
                     t.AiEnabled = cam.AiEnabled;
                     t.AiClasses = cam.AiClasses;
                     t.MaskPaddingPercent = cam.MaskPaddingPercent;
+                    t.AiRoiPolygon = cam.AiRoiPolygon;
                 }
                 _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             }
@@ -546,12 +547,41 @@ public partial class MainWindow : Window
             // Apply-button path: the dialog stays open but we still want
             // MainWindow to pick up the new config so the operator can see
             // their changes live without closing Setup first.
-            onApplied: ApplyChangedSettings)
+            onApplied: ApplyChangedSettings,
+            // ROI editor snapshot source: clone + freeze the current tile bitmap
+            // so the editor sees a stable frame even while the live feed keeps
+            // updating in the background.
+            frameSnapshotProvider: CaptureSlotSnapshot)
         { Owner = this };
         setup.ShowDialog();
         // The Save path also fires onApplied (via SaveAndApply), so when the
         // dialog finally closes the live state is already current. Calling
         // ApplyChangedSettings again here would be redundant.
+    }
+
+    /// <summary>
+    /// Captures a frozen snapshot of the live tile at the given slot. Used by
+    /// the ROI editor in Setup so the polygon can be drawn over a representative
+    /// frame even while the underlying WriteableBitmap keeps receiving GDK
+    /// updates. Returns null when the slot is out of range or has no frame yet.
+    /// </summary>
+    private System.Windows.Media.Imaging.BitmapSource? CaptureSlotSnapshot(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= _viewModel.Tiles.Count) return null;
+        var bmp = _viewModel.Tiles[slotIndex].Bitmap;
+        if (bmp is null || bmp.PixelWidth == 0 || bmp.PixelHeight == 0) return null;
+        try
+        {
+            var clone = bmp.Clone();
+            clone.Freeze();
+            return clone;
+        }
+        catch
+        {
+            // Snapshot is best-effort. If Clone fails (e.g. format mismatch) the
+            // ROI editor falls back to its "no live frame available" placeholder.
+            return null;
+        }
     }
 
     /// <summary>
@@ -686,6 +716,7 @@ public partial class MainWindow : Window
                 t.AiEnabled = cam.AiEnabled;
                 t.AiClasses = cam.AiClasses;
                 t.MaskPaddingPercent = cam.MaskPaddingPercent;
+                t.AiRoiPolygon = cam.AiRoiPolygon;
             }
         }
 
@@ -702,6 +733,7 @@ public partial class MainWindow : Window
             t.AiEnabled = cam.AiEnabled;
             t.AiClasses = cam.AiClasses;
             t.MaskPaddingPercent = cam.MaskPaddingPercent;
+            t.AiRoiPolygon = cam.AiRoiPolygon;
         }
     }
 

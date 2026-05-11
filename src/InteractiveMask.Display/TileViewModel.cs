@@ -84,6 +84,14 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     public int MaskPaddingPercent { get; set; } = 10;
 
     /// <summary>
+    /// Region of Interest polygon in source-pixel coordinates. When >= 3 points
+    /// are set, detections whose bbox centroid falls outside the polygon are
+    /// dropped before render. Empty / fewer-than-3 points means "no ROI - whole
+    /// frame in scope". Mirrors CameraSlotSettings.AiRoiPolygon.
+    /// </summary>
+    public IReadOnlyList<PolygonPoint> AiRoiPolygon { get; set; } = Array.Empty<PolygonPoint>();
+
+    /// <summary>
     /// Timestamp of the last non-empty detection result. Combined with
     /// <see cref="EmptyDetectionGrace"/> it rides out single-frame false negatives:
     /// when the detector returns no detections on a frame but we had detections
@@ -501,6 +509,18 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             fresh = fresh.Where(d => AiClasses.Contains(d.Class)).ToList();
         }
 
+        // ROI filter (M3.4): drop detections whose bbox centroid falls outside
+        // the per-camera region polygon. Polygon must have >= 3 points; empty
+        // or degenerate polygon means "no ROI configured, keep everything".
+        var roi = AiRoiPolygon;
+        if (fresh.Count > 0 && roi.Count >= 3)
+        {
+            fresh = fresh.Where(d => PointInPolygon(
+                d.Box.X + d.Box.Width / 2,
+                d.Box.Y + d.Box.Height / 2,
+                roi)).ToList();
+        }
+
         // Inflate bboxes by the per-camera padding percent so the privacy
         // blur extends slightly past the detection. Inflation happens here
         // (post-detector, pre-render) so audit and any future analytics keep
@@ -527,6 +547,30 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             return;
         }
         Detections = fresh;
+    }
+
+    /// <summary>
+    /// Standard ray-casting point-in-polygon test. Counts how many edges the
+    /// rightward-going ray from (x, y) crosses; odd means inside. Polygon is
+    /// implicitly closed (last segment goes from the last point back to the
+    /// first). Linear in polygon size, allocation-free.
+    /// </summary>
+    private static bool PointInPolygon(int x, int y, IReadOnlyList<PolygonPoint> polygon)
+    {
+        int n = polygon.Count;
+        bool inside = false;
+        for (int i = 0, j = n - 1; i < n; j = i++)
+        {
+            var pi = polygon[i];
+            var pj = polygon[j];
+            if ((pi.Y > y) != (pj.Y > y))
+            {
+                // Edge crosses the horizontal y line; compute the x-intercept.
+                double xIntercept = pj.X + (double)(y - pj.Y) * (pi.X - pj.X) / (pi.Y - pj.Y);
+                if (x < xIntercept) inside = !inside;
+            }
+        }
+        return inside;
     }
 
     private static DetectedObject InflateForRender(DetectedObject d, float frac, int srcW, int srcH)

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using InteractiveMask.Detection;
 
 namespace InteractiveMask.Display;
@@ -17,12 +18,16 @@ namespace InteractiveMask.Display;
 public partial class CameraAiSettingsDialog : Window
 {
     private readonly CameraSlotSettings _target;
+    private readonly BitmapSource? _snapshot;
+    private readonly string _cameraDescription;
 
-    public CameraAiSettingsDialog(Window owner, CameraSlotSettings target, string cameraDescription)
+    public CameraAiSettingsDialog(Window owner, CameraSlotSettings target, string cameraDescription, BitmapSource? snapshot = null)
     {
         InitializeComponent();
         Owner = owner;
         _target = target;
+        _snapshot = snapshot;
+        _cameraDescription = cameraDescription;
 
         SubheaderText.Text = cameraDescription;
 
@@ -32,8 +37,27 @@ public partial class CameraAiSettingsDialog : Window
         VehicleBox.IsChecked    = target.AiClasses.Contains(ObjectClass.Vehicle);
         PaddingSlider.Value = Math.Clamp(target.MaskPaddingPercent, 0, 50);
         UpdatePaddingText();
+        UpdateRoiStatus();
 
         UpdateClassesEnabledState();
+    }
+
+    private void UpdateRoiStatus()
+    {
+        var t = Strings.Instance.Current;
+        RoiStatusText.Text = string.Format(CultureInfo.CurrentCulture, t.AiRoiPointsLabel, _target.AiRoiPolygon.Count);
+    }
+
+    private void OnOpenRoiEditor(object sender, RoutedEventArgs e)
+    {
+        // The editor mutates _target.AiRoiPolygon in place on Save, so we just
+        // refresh the status text afterwards. Snapshot may be null - editor
+        // handles that gracefully with its "No live frame available" message.
+        var dlg = new RoiEditorDialog(this, _target, _snapshot, _cameraDescription);
+        if (dlg.ShowDialog() == true)
+        {
+            UpdateRoiStatus();
+        }
     }
 
     private void OnPaddingSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => UpdatePaddingText();

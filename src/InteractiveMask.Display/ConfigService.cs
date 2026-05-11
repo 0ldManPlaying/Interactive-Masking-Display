@@ -165,6 +165,7 @@ public sealed class ConfigService
                     AiEnabled = c.AiEnabled,
                     AiClasses = ParseAiClasses(c.AiClasses),
                     MaskPaddingPercent = Math.Clamp(c.MaskPaddingPercent, 0, 50),
+                    AiRoiPolygon = ParseAiRoiPolygon(c.AiRoiPolygon),
                 })
                 .ToList();
         }
@@ -259,6 +260,7 @@ public sealed class ConfigService
                 AiEnabled = c.AiEnabled,
                 AiClasses = c.AiClasses.Select(cls => cls.ToString()).ToList(),
                 MaskPaddingPercent = c.MaskPaddingPercent,
+                AiRoiPolygon = c.AiRoiPolygon.Select(p => new[] { p.X, p.Y }).ToList(),
             })
             .ToList(),
         Kiosk = new StoredKiosk { Enabled = settings.Kiosk.Enabled },
@@ -317,6 +319,27 @@ public sealed class ConfigService
             {
                 result.Add(cls);
             }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Parse the persisted ROI polygon (list of [x, y] arrays) back into a typed
+    /// list of <see cref="InteractiveMask.Detection.PolygonPoint"/>. Defensive:
+    /// rows with the wrong shape (not exactly 2 ints) or null entries are
+    /// skipped silently. Empty / null input yields the empty default.
+    /// </summary>
+    private static List<InteractiveMask.Detection.PolygonPoint> ParseAiRoiPolygon(List<int[]>? stored)
+    {
+        if (stored is null || stored.Count == 0)
+        {
+            return new List<InteractiveMask.Detection.PolygonPoint>();
+        }
+        var result = new List<InteractiveMask.Detection.PolygonPoint>(stored.Count);
+        foreach (var pair in stored)
+        {
+            if (pair is null || pair.Length < 2) continue;
+            result.Add(new InteractiveMask.Detection.PolygonPoint(pair[0], pair[1]));
         }
         return result;
     }
@@ -452,5 +475,8 @@ public sealed class ConfigService
         // so existing configs get a small but useful padding without explicit
         // reconfiguration.
         public int MaskPaddingPercent { get; set; } = 10;
+        // v2.0 ROI polygon serialised as a list of [x, y] int pairs for readability
+        // in config.json. Empty list (default) means "no ROI configured".
+        public List<int[]> AiRoiPolygon { get; set; } = new();
     }
 }

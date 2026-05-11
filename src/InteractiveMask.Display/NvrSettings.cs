@@ -256,4 +256,12 @@ public sealed class CameraSlotSettings
     /// grows by 20% per axis. Clamped to frame bounds when applied.
     /// </summary>
     public int MaskPaddingPercent { get; set; } = 10;
+
+    /// <summary>
+    /// v2.0 Region of Interest: list of polygon vertices in source-frame pixel
+    /// coordinates. When non-empty (>= 3 points) detections whose bbox centroid
+    /// falls outside this polygon are dropped before rendering. Empty / single-
+    /// point / pair = "no ROI configured, the whole frame is in scope" (default).
+    /// </summary>
+    public List<InteractiveMask.Detection.PolygonPoint> AiRoiPolygon { get; set; } = new();
 }
