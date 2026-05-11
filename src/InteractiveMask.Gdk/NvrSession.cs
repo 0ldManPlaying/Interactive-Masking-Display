@@ -190,7 +190,19 @@ public sealed class NvrSession : g2watch_listener, IDisposable
         timeoutCts.CancelAfter(timeout);
         await using var registration = timeoutCts.Token.Register(() =>
         {
-            if (Interlocked.CompareExchange(ref _pendingNamesTcs, null, tcs) == tcs)
+            if (Interlocked.CompareExchange(ref _pendingNamesTcs, null, tcs) != tcs)
+                return;
+
+            // Differentiate between external cancellation and our internal
+            // CancelAfter(). Callers (e.g. the Pull-names path in Setup) want
+            // to log a timeout differently from a user-initiated cancel, and
+            // a TimeoutException returned to a caller who explicitly cancelled
+            // would be misleading.
+            if (cancellationToken.IsCancellationRequested)
+            {
+                tcs.TrySetCanceled(cancellationToken);
+            }
+            else
             {
                 tcs.TrySetException(new TimeoutException(
                     $"NVR device status not received within {timeout.TotalSeconds:0} s."));

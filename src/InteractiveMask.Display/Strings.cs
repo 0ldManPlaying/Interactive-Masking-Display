@@ -86,7 +86,6 @@ public sealed class StringsTable
     public string StatusConnecting { get; init; } = "";
     public string StatusDisconnected { get; init; } = "";
     public string StatusVideoLoss { get; init; } = "";
-    public string StatusError { get; init; } = "";
     public string ErrorPrefix { get; init; } = "";
 
     // PIN dialog (session)
@@ -122,7 +121,6 @@ public sealed class StringsTable
     // Setup window — sidebar nav labels
     public string NavNvr { get; init; } = "";
     public string NavCameras { get; init; } = "";
-    public string NavGrid { get; init; } = "";
     public string NavPrivacy { get; init; } = "";
     public string NavWeb { get; init; } = "";
     public string NavAudit { get; init; } = "";
@@ -174,7 +172,6 @@ public sealed class StringsTable
     public string CamerasHeaderNvrTitle { get; init; } = "";
 
     // Grid tab
-    public string GridPageTitle { get; init; } = "";
     public string GridPageSubtitle { get; init; } = "";
     public string GridCardSize { get; init; } = "";
     public string GridTilesCountFormat { get; init; } = "";
@@ -267,8 +264,6 @@ public sealed class StringsTable
     public string AdminPinDescription { get; init; } = "";
     public string AdminPinChangeButton { get; init; } = "";
     public string AdminCardLanguage { get; init; } = "";
-    public string AdminLangNl { get; init; } = "";
-    public string AdminLangEn { get; init; } = "";
     public string AdminLanguageHint { get; init; } = "";
     public string AdminCardIdentity { get; init; } = "";
     public string AdminIdentityDescription { get; init; } = "";
@@ -279,6 +274,7 @@ public sealed class StringsTable
     public string AdminCardHelp { get; init; } = "";
     public string AdminHelpDescription { get; init; } = "";
     public string AdminHelpOpen { get; init; } = "";
+    public string HelpOpenErrorFormat { get; init; } = "";
 
     // Setup validation / status messages
     public string SetupErrPort { get; init; } = "";
@@ -403,7 +399,6 @@ public sealed class StringsTable
         StatusConnecting          = "Verbinden...",
         StatusDisconnected        = "Verbinding verbroken",
         StatusVideoLoss           = "Geen videosignaal",
-        StatusError               = "Fout",
         ErrorPrefix               = "Fout: ",
 
         PinSetTitle               = "Stel sessie-PIN in",
@@ -435,7 +430,6 @@ public sealed class StringsTable
 
         NavNvr                    = "NVR",
         NavCameras                = "Cameras",
-        NavGrid                   = "Grid",
         NavPrivacy                = "Privacy",
         NavWeb                    = "Web-UI",
         NavAudit                  = "Audit-log",
@@ -484,7 +478,6 @@ public sealed class StringsTable
         CamerasHeaderNvrTitle     = "NVR-TITEL",
         CamerasHeaderLabel        = "EIGEN LABEL",
 
-        GridPageTitle             = "Grid",
         GridPageSubtitle          = "Hoeveel tegels worden er op het scherm getoond.",
         GridCardSize              = "Grid-grootte",
         GridTilesCountFormat      = "{0} tegels",
@@ -571,8 +564,6 @@ public sealed class StringsTable
         AdminPinDescription       = "Wordt gevraagd bij afsluiten van de kiosk en bij openen van setup. Vier cijfers.",
         AdminPinChangeButton      = "Nieuwe admin-PIN instellen...",
         AdminCardLanguage         = "Taal van de gebruikersinterface",
-        AdminLangNl               = "Nederlands",
-        AdminLangEn               = "English",
         AdminLanguageHint         = "Wijzigingen worden direct toegepast op alle weergegeven teksten.",
         AdminCardIdentity         = "Identiteit operators",
         AdminIdentityDescription  = "Wanneer ingeschakeld vraagt het systeem om een Windows-aanmelding (LogonUser) bij elke unmask in plaats van een gedeelde sessie-PIN. Het audit-log toont de gebruikersnaam van degene die het mask heeft uitgezet — zinvol voor verantwoording en compliance.",
@@ -583,6 +574,7 @@ public sealed class StringsTable
         AdminCardHelp             = "Help",
         AdminHelpDescription      = "Open de ingebouwde handleiding voor operators. Handig om door te lopen bij eerste ingebruikname of bij het instrueren van nieuwe collega's.",
         AdminHelpOpen             = "Open handleiding",
+        HelpOpenErrorFormat       = "Handleiding kon niet worden geopend: {0}",
 
         SetupErrPort              = "Poort moet een getal zijn.",
         SetupErrAutoMinutes       = "Auto-uit timer moet 0 of hoger zijn.",
@@ -702,7 +694,6 @@ public sealed class StringsTable
         StatusConnecting          = "Connecting...",
         StatusDisconnected        = "Connection lost",
         StatusVideoLoss           = "No video signal",
-        StatusError               = "Error",
         ErrorPrefix               = "Error: ",
 
         PinSetTitle               = "Set session PIN",
@@ -734,7 +725,6 @@ public sealed class StringsTable
 
         NavNvr                    = "NVR",
         NavCameras                = "Cameras",
-        NavGrid                   = "Grid",
         NavPrivacy                = "Privacy",
         NavWeb                    = "Web UI",
         NavAudit                  = "Audit log",
@@ -783,7 +773,6 @@ public sealed class StringsTable
         CamerasHeaderNvrTitle     = "NVR TITLE",
         CamerasHeaderLabel        = "CUSTOM LABEL",
 
-        GridPageTitle             = "Grid",
         GridPageSubtitle          = "How many tiles are shown on screen.",
         GridCardSize              = "Grid size",
         GridTilesCountFormat      = "{0} tiles",
@@ -870,8 +859,6 @@ public sealed class StringsTable
         AdminPinDescription       = "Required when exiting the kiosk and opening setup. Four digits.",
         AdminPinChangeButton      = "Set new admin PIN...",
         AdminCardLanguage         = "User-interface language",
-        AdminLangNl               = "Dutch",
-        AdminLangEn               = "English",
         AdminLanguageHint         = "Changes are applied immediately to all visible texts.",
         AdminCardIdentity         = "Operator identity",
         AdminIdentityDescription  = "When enabled, the system prompts for Windows credentials (LogonUser) on every unmask instead of a shared session PIN. The audit log records the username of whoever disabled the mask — useful for accountability and compliance.",
@@ -882,6 +869,7 @@ public sealed class StringsTable
         AdminCardHelp             = "Help",
         AdminHelpDescription      = "Open the built-in manual for operators. Useful when first using the system or when training new colleagues.",
         AdminHelpOpen             = "Open manual",
+        HelpOpenErrorFormat       = "Could not open the manual: {0}",
 
         SetupErrPort              = "Port must be a number.",
         SetupErrAutoMinutes       = "Auto-off timer must be 0 or higher.",
@@ -1006,7 +994,6 @@ public sealed class StringsTable
         StatusConnecting          = "Verbinde...",
         StatusDisconnected        = "Verbindung getrennt",
         StatusVideoLoss           = "Kein Videosignal",
-        StatusError               = "Fehler",
         ErrorPrefix               = "Fehler: ",
 
         PinSetTitle               = "Sitzungs-PIN festlegen",
@@ -1038,7 +1025,6 @@ public sealed class StringsTable
 
         NavNvr                    = "NVR",
         NavCameras                = "Kameras",
-        NavGrid                   = "Raster",
         NavPrivacy                = "Privatsphäre",
         NavWeb                    = "Web-UI",
         NavAudit                  = "Audit-Protokoll",
@@ -1087,7 +1073,6 @@ public sealed class StringsTable
         CamerasHeaderNvrTitle     = "NVR-TITEL",
         CamerasHeaderLabel        = "EIGENE BEZEICHNUNG",
 
-        GridPageTitle             = "Raster",
         GridPageSubtitle          = "Wie viele Kacheln werden auf dem Bildschirm angezeigt.",
         GridCardSize              = "Rastergröße",
         GridTilesCountFormat      = "{0} Kacheln",
@@ -1174,8 +1159,6 @@ public sealed class StringsTable
         AdminPinDescription       = "Erforderlich beim Beenden des Kiosks und beim Öffnen der Einrichtung. Vier Ziffern.",
         AdminPinChangeButton      = "Neue Admin-PIN festlegen...",
         AdminCardLanguage         = "Sprache der Benutzeroberfläche",
-        AdminLangNl               = "Niederländisch",
-        AdminLangEn               = "Englisch",
         AdminLanguageHint         = "Änderungen werden sofort auf alle angezeigten Texte angewendet.",
         AdminCardIdentity         = "Identität der Bediener",
         AdminIdentityDescription  = "Wenn aktiviert, fordert das System bei jeder Aufdeckung eine Windows-Anmeldung (LogonUser) anstelle einer gemeinsamen Sitzungs-PIN. Das Audit-Protokoll erfasst den Benutzernamen der Person, die die Maske deaktiviert hat — sinnvoll für Nachvollziehbarkeit und Compliance.",
@@ -1186,6 +1169,7 @@ public sealed class StringsTable
         AdminCardHelp             = "Hilfe",
         AdminHelpDescription      = "Öffnet das integrierte Handbuch für Bediener. Hilfreich beim ersten Einsatz oder bei der Schulung neuer Kollegen.",
         AdminHelpOpen             = "Handbuch öffnen",
+        HelpOpenErrorFormat       = "Das Handbuch konnte nicht geöffnet werden: {0}",
 
         SetupErrPort              = "Port muss eine Zahl sein.",
         SetupErrAutoMinutes       = "Auto-Aus-Timer muss 0 oder höher sein.",
@@ -1305,7 +1289,6 @@ public sealed class StringsTable
         StatusConnecting          = "Connexion...",
         StatusDisconnected        = "Connexion perdue",
         StatusVideoLoss           = "Aucun signal vidéo",
-        StatusError               = "Erreur",
         ErrorPrefix               = "Erreur : ",
 
         PinSetTitle               = "Définir le PIN de session",
@@ -1337,7 +1320,6 @@ public sealed class StringsTable
 
         NavNvr                    = "NVR",
         NavCameras                = "Caméras",
-        NavGrid                   = "Grille",
         NavPrivacy                = "Confidentialité",
         NavWeb                    = "Interface Web",
         NavAudit                  = "Journal d'audit",
@@ -1386,7 +1368,6 @@ public sealed class StringsTable
         CamerasHeaderNvrTitle     = "TITRE NVR",
         CamerasHeaderLabel        = "ÉTIQUETTE PERSONNALISÉE",
 
-        GridPageTitle             = "Grille",
         GridPageSubtitle          = "Combien de tuiles sont affichées à l'écran.",
         GridCardSize              = "Taille de la grille",
         GridTilesCountFormat      = "{0} tuiles",
@@ -1473,8 +1454,6 @@ public sealed class StringsTable
         AdminPinDescription       = "Requis lors de la sortie du kiosque et de l'ouverture de la configuration. Quatre chiffres.",
         AdminPinChangeButton      = "Définir un nouveau PIN administrateur...",
         AdminCardLanguage         = "Langue de l'interface utilisateur",
-        AdminLangNl               = "Néerlandais",
-        AdminLangEn               = "Anglais",
         AdminLanguageHint         = "Les modifications sont appliquées immédiatement à tous les textes affichés.",
         AdminCardIdentity         = "Identité des opérateurs",
         AdminIdentityDescription  = "Lorsqu'il est activé, le système demande des informations d'identification Windows (LogonUser) à chaque révélation au lieu d'un PIN de session partagé. Le journal d'audit enregistre le nom d'utilisateur de la personne qui a désactivé le masque — utile pour la responsabilité et la conformité.",
@@ -1485,6 +1464,7 @@ public sealed class StringsTable
         AdminCardHelp             = "Aide",
         AdminHelpDescription      = "Ouvrez le manuel intégré pour les opérateurs. Utile lors de la première utilisation ou pour former de nouveaux collègues.",
         AdminHelpOpen             = "Ouvrir le manuel",
+        HelpOpenErrorFormat       = "Impossible d'ouvrir le manuel : {0}",
 
         SetupErrPort              = "Le port doit être un nombre.",
         SetupErrAutoMinutes       = "Le minuteur d'auto-désactivation doit être 0 ou plus.",
@@ -1604,7 +1584,6 @@ public sealed class StringsTable
         StatusConnecting          = "Conectando...",
         StatusDisconnected        = "Conexión perdida",
         StatusVideoLoss           = "Sin señal de vídeo",
-        StatusError               = "Error",
         ErrorPrefix               = "Error: ",
 
         PinSetTitle               = "Establecer PIN de sesión",
@@ -1636,7 +1615,6 @@ public sealed class StringsTable
 
         NavNvr                    = "NVR",
         NavCameras                = "Cámaras",
-        NavGrid                   = "Cuadrícula",
         NavPrivacy                = "Privacidad",
         NavWeb                    = "Interfaz web",
         NavAudit                  = "Registro de auditoría",
@@ -1685,7 +1663,6 @@ public sealed class StringsTable
         CamerasHeaderNvrTitle     = "TÍTULO NVR",
         CamerasHeaderLabel        = "ETIQUETA PERSONALIZADA",
 
-        GridPageTitle             = "Cuadrícula",
         GridPageSubtitle          = "Cuántos mosaicos se muestran en pantalla.",
         GridCardSize              = "Tamaño de la cuadrícula",
         GridTilesCountFormat      = "{0} mosaicos",
@@ -1772,8 +1749,6 @@ public sealed class StringsTable
         AdminPinDescription       = "Requerido al salir del quiosco y al abrir la configuración. Cuatro dígitos.",
         AdminPinChangeButton      = "Establecer nuevo PIN de administrador...",
         AdminCardLanguage         = "Idioma de la interfaz de usuario",
-        AdminLangNl               = "Holandés",
-        AdminLangEn               = "Inglés",
         AdminLanguageHint         = "Los cambios se aplican inmediatamente a todos los textos visibles.",
         AdminCardIdentity         = "Identidad de operadores",
         AdminIdentityDescription  = "Cuando está habilitado, el sistema solicita credenciales de Windows (LogonUser) en cada revelación en lugar de un PIN de sesión compartido. El registro de auditoría registra el nombre de usuario de quien desactivó la máscara — útil para la rendición de cuentas y el cumplimiento.",
@@ -1784,6 +1759,7 @@ public sealed class StringsTable
         AdminCardHelp             = "Ayuda",
         AdminHelpDescription      = "Abra el manual integrado para operadores. Útil al usar el sistema por primera vez o al formar a nuevos compañeros.",
         AdminHelpOpen             = "Abrir manual",
+        HelpOpenErrorFormat       = "No se pudo abrir el manual: {0}",
 
         SetupErrPort              = "El puerto debe ser un número.",
         SetupErrAutoMinutes       = "El temporizador de auto-desactivación debe ser 0 o mayor.",

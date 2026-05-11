@@ -1140,7 +1140,10 @@ public partial class SetupWindow : Window
         }
         catch (Exception ex)
         {
-            ShowError($"Help kon niet worden geopend: {ex.Message}");
+            ShowError(string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                T.HelpOpenErrorFormat,
+                ex.Message));
         }
     }
 
