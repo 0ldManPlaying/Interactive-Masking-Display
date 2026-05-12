@@ -661,15 +661,34 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
             if (!disabledByLoad && _frameCount % effectiveEvery == 0)
             {
                 int byteLen = frame.Stride * frame.Height;
-                var bgra = new byte[byteLen];
-                Marshal.Copy(frame.Buffer, bgra, 0, byteLen);
-                var frameRef = BitmapFrameRef.FromBgra(
-                    timestampTicks: DateTime.UtcNow.Ticks,
-                    width: frame.Width,
-                    height: frame.Height,
-                    streamId: SlotIndex,
-                    bgraPixels: bgra);
-                _ = SubmitDetectionAsync(detector, frameRef);
+                // v2.0.2 memory optimisation: rent the BGRA buffer from
+                // ArrayPool.Shared rather than allocating a fresh byte[] on
+                // every submission. At 1080p that's ~8 MB per submitted frame;
+                // with 4 active AI cameras at the cadence configured this used
+                // to push 50-150 MB/sec straight to gen-0 GC. The
+                // InferenceCoordinator owns the frame after Submit() and
+                // returns the buffer to the pool via BitmapFrameRef.Dispose
+                // when consumption finishes (both happy path and drop path).
+                var bgra = System.Buffers.ArrayPool<byte>.Shared.Rent(byteLen);
+                try
+                {
+                    Marshal.Copy(frame.Buffer, bgra, 0, byteLen);
+                    var frameRef = BitmapFrameRef.FromPooledBgra(
+                        timestampTicks: DateTime.UtcNow.Ticks,
+                        width: frame.Width,
+                        height: frame.Height,
+                        streamId: SlotIndex,
+                        bgraPixels: bgra);
+                    _ = SubmitDetectionAsync(detector, frameRef);
+                }
+                catch
+                {
+                    // If the path between rent and Submit throws, the
+                    // coordinator never gets ownership and won't Dispose.
+                    // Return the rental directly so the pool stays balanced.
+                    System.Buffers.ArrayPool<byte>.Shared.Return(bgra, clearArray: false);
+                    throw;
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -147,6 +148,10 @@ public sealed class InferenceCoordinator : IAsyncDisposable
                     Metrics: new DetectorMetrics(0, QueueDepth: 1, GpuUtilizationPercent: null)));
             }
             catch { }
+            // v2.0.2: return the dropped frame's pool-rented buffer (no-op for
+            // non-pooled frames). Without this the byte[] stays referenced
+            // until the next gen-2 GC, defeating the pool.
+            oldFrame.Dispose();
         }
 
         _wakeup.Writer.TryWrite(0);
@@ -183,7 +188,13 @@ public sealed class InferenceCoordinator : IAsyncDisposable
 
     private void ProcessSlot(BitmapFrameRef frame, Action<DetectionFrame>? callback)
     {
-        if (callback is null) return;
+        if (callback is null)
+        {
+            // Callback was already consumed; still must return the frame's
+            // pool-rented buffer so the byte[] doesn't leak into gen-2.
+            frame.Dispose();
+            return;
+        }
         try
         {
             var result = RunInference(frame);
@@ -201,6 +212,13 @@ public sealed class InferenceCoordinator : IAsyncDisposable
             }
             catch { }
         }
+        finally
+        {
+            // v2.0.2: always return the pool-rented buffer, success or fault.
+            // The inference path has already copied / consumed the pixels by
+            // the time RunInference returns, so it's safe to release here.
+            frame.Dispose();
+        }
     }
 
     // ------------------------------------------------------------------ Inference
@@ -209,45 +227,62 @@ public sealed class InferenceCoordinator : IAsyncDisposable
     {
         var sw = Stopwatch.StartNew();
 
-        var (inputTensor, scaleX, scaleY) = PreprocessForYolo(bitmapFrame);
-        var inputs = new List<NamedOnnxValue>
+        // v2.0.2: rent the preprocess buffer from ArrayPool<float>. The
+        // pool-rented array is wrapped in a DenseTensor; ORT's Run() copies
+        // the data into native session buffers, so the managed array can be
+        // returned to the pool after Run() returns. 3 * 640 * 640 floats =
+        // ~4.9 MB per inference; this used to allocate fresh on every call.
+        const int PreprocessBufferLen = 3 * YoloInputSize * YoloInputSize;
+        var preprocessBuffer = ArrayPool<float>.Shared.Rent(PreprocessBufferLen);
+        try
         {
-            NamedOnnxValue.CreateFromTensor("images", inputTensor),
-        };
+            var (inputTensor, scaleX, scaleY) = PreprocessForYolo(bitmapFrame, preprocessBuffer);
+            var inputs = new List<NamedOnnxValue>
+            {
+                NamedOnnxValue.CreateFromTensor("images", inputTensor),
+            };
 
-        IReadOnlyList<DetectedObject> detections;
-        using (var outputs = _session.Run(inputs))
-        {
-            detections = DecodeNmsFree(outputs, _confidenceThreshold, scaleX, scaleY,
-                bitmapFrame.Width, bitmapFrame.Height);
+            IReadOnlyList<DetectedObject> detections;
+            using (var outputs = _session.Run(inputs))
+            {
+                detections = DecodeNmsFree(outputs, _confidenceThreshold, scaleX, scaleY,
+                    bitmapFrame.Width, bitmapFrame.Height);
+            }
+
+            sw.Stop();
+            double latencyMs = sw.Elapsed.TotalMilliseconds;
+
+            // Feed the adaptive controller (F3) outside the InferenceSession-using
+            // path so the lock contention - if the controller's StateChanged
+            // handler is slow - doesn't extend the time we hold inputs/outputs.
+            // Null-safe: many test/lightweight setups attach no controller.
+            DegradationController?.RecordLatency(latencyMs);
+
+            return new DetectionFrame(
+                FrameTimestampTicks: bitmapFrame.TimestampTicks,
+                StreamId: bitmapFrame.StreamId,
+                Detections: detections,
+                Metrics: new DetectorMetrics(
+                    InferenceLatencyMs: latencyMs,
+                    QueueDepth: 0,
+                    GpuUtilizationPercent: null));
         }
-
-        sw.Stop();
-        double latencyMs = sw.Elapsed.TotalMilliseconds;
-
-        // Feed the adaptive controller (F3) outside the InferenceSession-using
-        // path so the lock contention - if the controller's StateChanged
-        // handler is slow - doesn't extend the time we hold inputs/outputs.
-        // Null-safe: many test/lightweight setups attach no controller.
-        DegradationController?.RecordLatency(latencyMs);
-
-        return new DetectionFrame(
-            FrameTimestampTicks: bitmapFrame.TimestampTicks,
-            StreamId: bitmapFrame.StreamId,
-            Detections: detections,
-            Metrics: new DetectorMetrics(
-                InferenceLatencyMs: latencyMs,
-                QueueDepth: 0,
-                GpuUtilizationPercent: null));
+        finally
+        {
+            // ORT Run() has already copied the input data into native session
+            // memory by this point, so it's safe to release the preprocess
+            // buffer back to the pool. clearArray=false: the next renter will
+            // overwrite every cell in PreprocessForYolo.
+            ArrayPool<float>.Shared.Return(preprocessBuffer, clearArray: false);
+        }
     }
 
-    private static (DenseTensor<float> Tensor, float ScaleX, float ScaleY) PreprocessForYolo(BitmapFrameRef frame)
+    private static (DenseTensor<float> Tensor, float ScaleX, float ScaleY) PreprocessForYolo(BitmapFrameRef frame, float[] buffer)
     {
         float scaleX = (float)frame.Width / YoloInputSize;
         float scaleY = (float)frame.Height / YoloInputSize;
 
         const int plane = YoloInputSize * YoloInputSize;
-        var buffer = new float[3 * plane];
 
         var pixels = frame.BgraPixels;
         int stride = frame.Stride;
@@ -274,7 +309,12 @@ public sealed class InferenceCoordinator : IAsyncDisposable
             }
         }
 
-        var tensor = new DenseTensor<float>(buffer, new[] { 1, 3, YoloInputSize, YoloInputSize });
+        // Slice to exactly the required length: ArrayPool.Rent can return a
+        // buffer larger than requested, and DenseTensor validates that
+        // Memory.Length == product-of-dimensions.
+        var tensor = new DenseTensor<float>(
+            new Memory<float>(buffer, 0, 3 * plane),
+            new[] { 1, 3, YoloInputSize, YoloInputSize });
         return (tensor, scaleX, scaleY);
     }
 
@@ -374,43 +414,63 @@ public sealed class InferenceCoordinator : IAsyncDisposable
         int ph = py2 - py1;
         if (pw <= 0 || ph <= 0) return null;
 
-        // Compute the cropped sigmoid mask: for each pixel (py, px) inside the
-        // bbox-in-proto-space, mask[py, px] = sigmoid(sum_c coeff[c] * proto[c, py, px]).
-        var protoMask = new float[ph * pw];
-        for (int c = 0; c < NumProtoChannels; c++)
+        // v2.0.2: rent the per-detection proto-mask accumulator from the pool.
+        // ~100 KB worst case (160×160 floats); 3-5 detections per inference at
+        // 10-25 Hz makes this measurable in GC time even though each buffer
+        // is small. Lifetime is strictly inside this method, so Return is
+        // unconditional in a finally block. Important: protoMask must start
+        // zero-initialised because the sum-over-channels loop below uses +=.
+        // ArrayPool returns potentially dirty buffers, so we clear the live
+        // slice (ph*pw) ourselves.
+        var protoMask = ArrayPool<float>.Shared.Rent(ph * pw);
+        try
         {
-            float coeff = det[0, detIdx, 6 + c];
-            for (int yy = 0; yy < ph; yy++)
+            Array.Clear(protoMask, 0, ph * pw);
+
+            // Compute the cropped sigmoid mask: for each pixel (py, px) inside the
+            // bbox-in-proto-space, mask[py, px] = sigmoid(sum_c coeff[c] * proto[c, py, px]).
+            for (int c = 0; c < NumProtoChannels; c++)
             {
-                int srcY = py1 + yy;
-                int outRow = yy * pw;
-                for (int xx = 0; xx < pw; xx++)
+                float coeff = det[0, detIdx, 6 + c];
+                for (int yy = 0; yy < ph; yy++)
                 {
-                    int srcX = px1 + xx;
-                    protoMask[outRow + xx] += coeff * proto[0, c, srcY, srcX];
+                    int srcY = py1 + yy;
+                    int outRow = yy * pw;
+                    for (int xx = 0; xx < pw; xx++)
+                    {
+                        int srcX = px1 + xx;
+                        protoMask[outRow + xx] += coeff * proto[0, c, srcY, srcX];
+                    }
                 }
             }
-        }
 
-        // Sigmoid and threshold at 0.5; resample to source-bbox dimensions with
-        // nearest-neighbour. Output is a single-channel alpha byte array.
-        var alpha = new byte[sourceW * sourceH];
-        for (int yy = 0; yy < sourceH; yy++)
-        {
-            // Map source-y to proto-mask y. Proto-mask covers the bbox region,
-            // so sourceY 0..sourceH maps to protoMask 0..ph.
-            int py = Math.Min(ph - 1, (int)(yy * (float)ph / sourceH));
-            int outRow = yy * sourceW;
-            int srcRow = py * pw;
-            for (int xx = 0; xx < sourceW; xx++)
+            // Sigmoid and threshold at 0.5; resample to source-bbox dimensions with
+            // nearest-neighbour. Output is a single-channel alpha byte array. The
+            // alpha buffer is NOT pooled - it lives on the SegmentationMask record
+            // returned all the way back to the WPF render path, and there's no
+            // clean signal for "consumer is done with this detection's mask".
+            var alpha = new byte[sourceW * sourceH];
+            for (int yy = 0; yy < sourceH; yy++)
             {
-                int px = Math.Min(pw - 1, (int)(xx * (float)pw / sourceW));
-                float v = Sigmoid(protoMask[srcRow + px]);
-                alpha[outRow + xx] = v >= MaskBinaryThreshold ? (byte)255 : (byte)0;
+                // Map source-y to proto-mask y. Proto-mask covers the bbox region,
+                // so sourceY 0..sourceH maps to protoMask 0..ph.
+                int py = Math.Min(ph - 1, (int)(yy * (float)ph / sourceH));
+                int outRow = yy * sourceW;
+                int srcRow = py * pw;
+                for (int xx = 0; xx < sourceW; xx++)
+                {
+                    int px = Math.Min(pw - 1, (int)(xx * (float)pw / sourceW));
+                    float v = Sigmoid(protoMask[srcRow + px]);
+                    alpha[outRow + xx] = v >= MaskBinaryThreshold ? (byte)255 : (byte)0;
+                }
             }
-        }
 
-        return new SegmentationMask(alpha, sourceW, sourceH);
+            return new SegmentationMask(alpha, sourceW, sourceH);
+        }
+        finally
+        {
+            ArrayPool<float>.Shared.Return(protoMask, clearArray: false);
+        }
     }
 
     private static float Sigmoid(float x) => 1f / (1f + MathF.Exp(-x));
@@ -448,6 +508,17 @@ public sealed class InferenceCoordinator : IAsyncDisposable
             await _workerTask.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
         }
         catch { }
+
+        // v2.0.2: release any frames still sitting in slots at shutdown so
+        // their pool-rented buffers go back to the pool rather than to gen-2
+        // GC. Worker exits without processing these when cancellation fires.
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            var leftover = Interlocked.Exchange(ref _slots[i], null);
+            leftover?.Dispose();
+            _callbacks[i] = null;
+        }
+
         try { _session.Dispose(); } catch { }
         _cts.Dispose();
     }
