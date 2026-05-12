@@ -693,11 +693,12 @@ public partial class MainWindow : Window
         // 3) Kiosk mode toggles can be installed/uninstalled live without restart.
         ApplyKioskMode(newSettings.Kiosk.Enabled);
 
-        // 3) Camera-list change is live-applied: NvrSession reconciles the diff
-        //    against the GDK subscription, then we rebind tiles in the view model
-        //    without losing the live image on cameras that didn't change.
+        // 3) NVR fleet changes (v2.0.2) and camera-list changes are both live-applied.
+        //    Order matters: reconcile the session set FIRST so that ApplyCameraChangesLive
+        //    sees the post-change set in _sessionsById when it iterates new cameras.
         if (!structuralChange)
         {
+            ReconcileNvrFleet(newSettings.Nvrs);
             ApplyCameraChangesLive(newSettings.Cameras);
             _lastAppliedSettings = newSettings;
             _viewModel.StatusLine = Strings.Instance.Current.SetupChangesApplied;
@@ -909,32 +910,26 @@ public partial class MainWindow : Window
         a.SyslogAppName == b.SyslogAppName;
 
     /// <summary>
-    /// True when at least one of the settings that requires reconnecting to the
-    /// NVR or rebuilding the tile grid has changed. Camera list changes are
-    /// NOT structural anymore — they're live-applied via NvrSession.UpdateCameras
-    /// + a ViewModel rebind, so the user keeps the live image during the change.
+    /// True when at least one of the settings that requires rebuilding the
+    /// tile grid or re-running first-launch initialisation has changed.
+    ///
+    /// <para>
+    /// Live-applied (i.e. NOT structural; handled by <see cref="ReconcileNvrFleet"/>
+    /// and <see cref="ApplyCameraChangesLive"/>):
+    /// </para>
+    /// <list type="bullet">
+    ///   <item>Camera list (add / remove / rebind / per-camera AI tweaks).</item>
+    ///   <item>NVR fleet — add a new NVR, remove an existing one, rename, or change
+    ///   its connection fields (host / port / user / password). Added in v2.0.2;
+    ///   prior versions forced a restart whenever any NVR field changed.</item>
+    /// </list>
     /// </summary>
     private bool HasStructuralChange(AppSettings updated)
     {
+        // "Started with zero NVRs" stays structural: the no-config startup path
+        // skips MaskController / DispatcherTimer / IPC broadcaster init, and
+        // bringing those up after the fact is more work than just restarting.
         if (_lastAppliedSettings is null || _sessionsById.Count == 0) return true;
-
-        // Any change to the NVR fleet (added, removed, or any connection field
-        // changed for an existing NVR) is structural. We could in theory live-add
-        // or live-remove a session, but doing it transactionally with the camera
-        // bindings is fiddly enough that a clean restart is the safer default.
-        var oldById = _lastAppliedSettings.Nvrs.ToDictionary(n => n.Id);
-        var newById = updated.Nvrs.ToDictionary(n => n.Id);
-        if (oldById.Count != newById.Count) return true;
-        foreach (var (id, oldNvr) in oldById)
-        {
-            if (!newById.TryGetValue(id, out var newNvr)) return true;
-            if (oldNvr.Ip != newNvr.Ip ||
-                oldNvr.Port != newNvr.Port ||
-                oldNvr.User != newNvr.User ||
-                oldNvr.Password != newNvr.Password ||
-                oldNvr.Name != newNvr.Name)
-                return true;
-        }
 
         if (_viewModel.Rows != updated.Grid.Rows || _viewModel.Columns != updated.Grid.Columns)
             return true;
@@ -947,6 +942,127 @@ public partial class MainWindow : Window
             return true;
 
         return false;
+    }
+
+    /// <summary>
+    /// Reconcile the running set of <see cref="NvrSession"/>s against an updated
+    /// NVR list (v2.0.2 live-apply). Three transitions handled:
+    /// <list type="number">
+    ///   <item><b>Removed</b> — NVR id present in <c>_sessionsById</c> but not in
+    ///   <paramref name="updated"/>: detach every tile bound to it, dispose the
+    ///   session, drop it from the dictionary. Tiles get a status update via the
+    ///   normal disconnect path.</item>
+    ///   <item><b>Connection-field changed</b> — same id, but Ip / Port / User /
+    ///   Password differ: tear down the old session and re-create from scratch.
+    ///   Re-create rather than mutate because the underlying GDK session caches
+    ///   the credentials at <c>Start()</c> time and there's no live-rotate API.</item>
+    ///   <item><b>Added</b> — id appears in <paramref name="updated"/> for the first
+    ///   time: wire a new session, register an audit event, call Start with the
+    ///   credentials. Camera bindings are wired by <see cref="ApplyCameraChangesLive"/>
+    ///   immediately after this method.</item>
+    /// </list>
+    /// <para>
+    /// A pure rename (only <see cref="NvrSettings.Name"/> changed) does NOT
+    /// recreate the session — the visual NVR-title shown on the tile bar is
+    /// read from <c>CameraSlotSettings.NvrTitle</c> which the camera-reconcile
+    /// step already refreshes; only audit/status messages keep using the old
+    /// name until the session is naturally torn down. Acceptable trade-off
+    /// vs. dropping the live image for a cosmetic rename.
+    /// </para>
+    /// </summary>
+    private void ReconcileNvrFleet(List<NvrSettings> updated)
+    {
+        var newById = updated
+            .Where(n => !string.IsNullOrWhiteSpace(n.Ip) && !string.IsNullOrWhiteSpace(n.Password))
+            .ToDictionary(n => n.Id);
+        var oldById = _lastAppliedSettings?.Nvrs.ToDictionary(n => n.Id)
+            ?? new Dictionary<int, NvrSettings>();
+
+        // Pass 1: removals + reconnect-required (connection-field changed).
+        // Snapshot the keys so we can mutate _sessionsById safely inside the loop.
+        foreach (var nvrId in _sessionsById.Keys.ToList())
+        {
+            if (!newById.TryGetValue(nvrId, out var newNvr))
+            {
+                TearDownNvrSession(nvrId, reason: "nvr-removed");
+                continue;
+            }
+
+            if (oldById.TryGetValue(nvrId, out var oldNvr) && NeedsReconnect(oldNvr, newNvr))
+            {
+                TearDownNvrSession(nvrId, reason: "nvr-credentials-changed");
+                // Falls through to pass 2 below: id is no longer in
+                // _sessionsById so the additions loop will recreate it.
+            }
+        }
+
+        // Pass 2: additions (true additions + replacements from pass 1).
+        foreach (var nvr in updated)
+        {
+            if (_sessionsById.ContainsKey(nvr.Id)) continue;
+            if (string.IsNullOrWhiteSpace(nvr.Ip) || string.IsNullOrWhiteSpace(nvr.Password)) continue;
+
+            var session = CreateAndWireSession(nvr);
+            var conn = new NvrConnectionInfo(nvr.Ip, nvr.Port, nvr.User, nvr.Password);
+            session.Start(conn);
+            _audit.Write(AuditEventType.AppStarted, source: $"nvr:{nvr.Id}",
+                detail: "nvr-added (live-apply)");
+        }
+    }
+
+    /// <summary>
+    /// Returns true when an existing NVR's connection-relevant fields differ
+    /// from the new settings. Name is excluded on purpose; see ReconcileNvrFleet.
+    /// </summary>
+    private static bool NeedsReconnect(NvrSettings oldNvr, NvrSettings newNvr) =>
+        oldNvr.Ip       != newNvr.Ip       ||
+        oldNvr.Port     != newNvr.Port     ||
+        oldNvr.User     != newNvr.User     ||
+        oldNvr.Password != newNvr.Password;
+
+    /// <summary>
+    /// Detach every tile bound to the given NVR, dispose its session, and
+    /// remove it from <c>_sessionsById</c>. Tiles bound to other NVRs are
+    /// untouched. Active AI-reveals on detached tiles are cancelled first so
+    /// the audit trail records why the reveal window ended.
+    /// </summary>
+    private void TearDownNvrSession(int nvrId, string reason)
+    {
+        if (!_sessionsById.TryGetValue(nvrId, out var session)) return;
+
+        var slotsToDetach = _bindingsBySlot
+            .Where(kv => kv.Value.NvrId == nvrId)
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var slot in slotsToDetach)
+        {
+            if (slot >= 0 && slot < _viewModel.Tiles.Count)
+            {
+                var tile = _viewModel.Tiles[slot];
+                if (tile.IsAiRevealed)
+                {
+                    _maskController?.CancelAiReveal(tile, reason: "nvr-removed");
+                }
+                tile.Detach();
+            }
+            _bindingsBySlot.Remove(slot);
+        }
+
+        // Drop banner state for this NVR so the aggregated reconnect bar
+        // doesn't keep referring to it.
+        _disconnectLabelByNvr.Remove(nvrId);
+        _nextReconnectByNvr.Remove(nvrId);
+        UpdateConnectionBanner();
+
+        try { session.Dispose(); }
+        catch (Exception ex)
+        {
+            _audit.Write(AuditEventType.NvrDisconnected, source: $"nvr:{nvrId}",
+                detail: $"{reason} dispose-error: {ex.GetType().Name}: {ex.Message}");
+        }
+        _sessionsById.Remove(nvrId);
+
+        _audit.Write(AuditEventType.NvrDisconnected, source: $"nvr:{nvrId}", detail: reason);
     }
 
     private void RequestExit()
