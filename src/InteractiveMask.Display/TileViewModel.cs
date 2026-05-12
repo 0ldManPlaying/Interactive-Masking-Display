@@ -86,6 +86,19 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
     /// is pushed from MainWindow.BindCameraToSlot at camera-attach time. INPC is
     /// wired so the AI-icon overlay in the live tile reacts to a Setup → Apply
     /// that toggles AI on or off without forcing a full grid rebuild.
+    /// <para>
+    /// Default flipped from <c>true</c> to <c>false</c> in v2.0.2 to match the
+    /// persistence DTO; see <see cref="CameraSlotSettings.AiEnabled"/>.
+    /// </para>
+    /// <para>
+    /// Side-effect on flip-to-false (v2.0.2 bug fix): clears
+    /// <see cref="Detections"/> so the last frame of overlays does not stay
+    /// painted on the tile. Without this, the cached detections from when AI
+    /// was on remained in the ObservableCollection and the XAML render path
+    /// kept drawing the silhouettes / source-blur rectangles indefinitely
+    /// after the operator turned AI off in Setup. Also cancels any active
+    /// AI-reveal window — a reveal of nothing makes no sense.
+    /// </para>
     /// </summary>
     public bool AiEnabled
     {
@@ -94,10 +107,27 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         {
             if (_aiEnabled == value) return;
             _aiEnabled = value;
+            if (!value)
+            {
+                // Clear stale overlay state when AI is turned off. v2.0.2 bug
+                // fix: without this, the last batch of detections stayed in
+                // the collection after the operator disabled AI in Setup →
+                // Apply, and the render template kept drawing the silhouettes
+                // / source-blur rectangles indefinitely. The visible result
+                // was "AI mask doesn't go away when I turn AI off".
+                // <para>
+                // Note: we do NOT clear AiRevealedUntilUtc here. An active
+                // reveal must be cancelled through MaskController.CancelAiReveal
+                // so the audit log records *why* the reveal ended (ai-disabled).
+                // MainWindow.ApplyCameraChangesLive does that cancel BEFORE
+                // assigning the new AiEnabled value.
+                // </para>
+                Detections = Array.Empty<DetectedObject>();
+            }
             OnPropertyChanged(nameof(AiEnabled));
         }
     }
-    private bool _aiEnabled = true;
+    private bool _aiEnabled = false;
 
     /// <summary>
     /// Per-camera v2.0 AI category filter. Detections of classes not in this set

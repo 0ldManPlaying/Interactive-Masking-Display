@@ -228,9 +228,18 @@ public sealed class CameraSlotSettings
     /// v2.0 AI masking on/off per camera. When false, the tile bypasses the
     /// detector submission path entirely - frees compute on cameras that have
     /// no relevant subjects (lawns, walls, ceiling-mounted overview lenses).
-    /// Defaults to true for backward compatibility on existing configs.
+    /// <para>
+    /// Defaults to <c>false</c> as of v2.0.2. A new camera added in Setup
+    /// boots up with AI off; the operator opts in per camera via the AI…
+    /// dialog. This matches the v1.x privacy contract (no detection unless
+    /// explicitly configured) and avoids surprising customers on first
+    /// install where every newly-added camera would otherwise immediately
+    /// start running inference. Existing v2.0 / v2.0.1 configs are
+    /// unaffected: an explicit <c>"AiEnabled": true</c> in their
+    /// <c>config.json</c> overrides the default and is preserved on load.
+    /// </para>
     /// </summary>
-    public bool AiEnabled { get; set; } = true;
+    public bool AiEnabled { get; set; } = false;
 
     /// <summary>
     /// v2.0 AI masking categories enabled for this camera. Detections of

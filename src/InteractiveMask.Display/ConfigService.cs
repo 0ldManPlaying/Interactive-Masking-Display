@@ -469,12 +469,19 @@ public sealed class ConfigService
         // restart, no live device-status round-trip needed.
         public string NvrTitle { get; set; } = "";
 
-        // v2.0: per-camera AI masking toggle and category filter. Existing configs
-        // (no fields in JSON) deserialize to the initialiser defaults: AI on, all
-        // three v2.0 classes enabled. Classes are stored as string-names rather than
-        // an int bitmask for forward-compat: adding LicensePlate or Face in a later
-        // release is just a new value in the list; old configs simply don't list it.
-        public bool AiEnabled { get; set; } = true;
+        // v2.0: per-camera AI masking toggle and category filter. Classes are
+        // stored as string-names rather than an int bitmask for forward-compat:
+        // adding LicensePlate or Face in a later release is just a new value
+        // in the list; old configs simply don't list it.
+        //
+        // AiEnabled default flipped to false in v2.0.2 (matches the DTO in
+        // NvrSettings.CameraSlotSettings). Configs upgraded from v1.x — which
+        // never had AI — keep their no-AI behaviour. Configs written by v2.0.0
+        // or v2.0.1 explicitly serialised "AiEnabled": true for every camera
+        // (DefaultIgnoreCondition=Never), so their AI-on cameras stay AI-on
+        // through the upgrade. Only NEW JSON missing the key (or NEW Setup
+        // rows) gets the safer "off" default.
+        public bool AiEnabled { get; set; } = false;
         public List<string> AiClasses { get; set; } = new() { "Person", "TwoWheeler", "Vehicle" };
         // v2.0 mask-padding percent (0..50). 10 means add 10% per side, so the
         // privacy blur extends slightly past the detection bbox. Defaults to 10

@@ -816,6 +816,18 @@ public partial class MainWindow : Window
             if (cam.Slot >= 0 && cam.Slot < _viewModel.Tiles.Count)
             {
                 var t = _viewModel.Tiles[cam.Slot];
+
+                // If the operator just turned AI off on a tile that still had
+                // an active reveal window running, the reveal becomes nonsense
+                // (there's no AI overlay to reveal). Cancel BEFORE flipping
+                // AiEnabled — the setter clears Detections as a side effect,
+                // and we want the audit cancel to land with a proper reason
+                // ("ai-disabled") before that fires.
+                if (t.IsAiRevealed && !cam.AiEnabled)
+                {
+                    _maskController?.CancelAiReveal(t, reason: "ai-disabled");
+                }
+
                 t.NvrTitle = cam.NvrTitle ?? "";
                 t.AiEnabled = cam.AiEnabled;
                 t.AiClasses = cam.AiClasses;
@@ -825,15 +837,6 @@ public partial class MainWindow : Window
                 t.AiUseSourceBlur = cam.AiUseSourceBlur;
                 t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
                 freshlyBound.Add(cam.Slot);
-
-                // If the operator just turned AI off on a tile that still had
-                // an active reveal window running, the reveal becomes nonsense
-                // (there's no AI overlay to reveal). End it cleanly so the
-                // badge clears and the audit trail records the supersession.
-                if (!t.AiEnabled && t.IsAiRevealed)
-                {
-                    _maskController?.CancelAiReveal(t, reason: "ai-disabled");
-                }
             }
         }
 
@@ -855,6 +858,16 @@ public partial class MainWindow : Window
                 continue;
 
             var t = _viewModel.Tiles[cam.Slot];
+
+            // Same reveal-cancel-before-flip pattern as step 3. v2.0.2 bug
+            // fix: prior versions only had this in step 3 (newly-bound tile
+            // path), so a Setup edit on an already-bound camera could leave
+            // an active reveal hanging without an audit row.
+            if (t.IsAiRevealed && !cam.AiEnabled)
+            {
+                _maskController?.CancelAiReveal(t, reason: "ai-disabled");
+            }
+
             t.UpdateLabel(cam.Label);
             t.NvrTitle = cam.NvrTitle ?? "";
             t.AiEnabled = cam.AiEnabled;
