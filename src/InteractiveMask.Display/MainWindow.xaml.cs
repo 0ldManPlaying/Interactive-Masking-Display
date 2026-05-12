@@ -52,31 +52,54 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        BootstrapLog.Step("MainWindow.ctor.begin");
         InitializeComponent();
+        BootstrapLog.Step("MainWindow.ctor.after-InitializeComponent");
         DataContext = _viewModel;
         _timerTick.Tick += OnTimerTick;
+        BootstrapLog.Step("MainWindow.ctor.end");
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        BootstrapLog.Step("MainWindow.OnLoaded.begin");
         // First-launch admin-PIN bootstrap. Without an admin PIN configured, the
         // kiosk can be exited and reconfigured by anyone walking past — so we
         // refuse to start until one exists.
         if (!_adminPin.IsConfigured)
         {
+            BootstrapLog.Step("MainWindow.OnLoaded.admin-pin-not-configured");
             var s0 = Strings.Instance.Current;
-            var newPin = PinDialog.PromptForNewPin(
-                this,
-                title: s0.AdminPinFirstSetupTitle,
-                subtitle: s0.AdminPinFirstSetupSub);
+            BootstrapLog.Step("MainWindow.OnLoaded.before-PromptForNewPin");
+            string? newPin = null;
+            try
+            {
+                newPin = PinDialog.PromptForNewPin(
+                    this,
+                    title: s0.AdminPinFirstSetupTitle,
+                    subtitle: s0.AdminPinFirstSetupSub);
+            }
+            catch (Exception ex)
+            {
+                BootstrapLog.Step("MainWindow.OnLoaded.PromptForNewPin-THREW",
+                    $"{ex.GetType().Name}: {ex.Message}");
+                throw;
+            }
+            BootstrapLog.Step("MainWindow.OnLoaded.after-PromptForNewPin",
+                $"newPin={(string.IsNullOrEmpty(newPin) ? "<empty/cancelled>" : "<set>")}");
             if (string.IsNullOrEmpty(newPin))
             {
+                BootstrapLog.Step("MainWindow.OnLoaded.pin-cancelled  -- closing window");
                 _authenticatedExit = true;
                 Close();
                 return;
             }
             _adminPin.SetPin(newPin);
             _audit.Write(AuditEventType.PinSet, source: "admin", detail: "admin-pin initial setup");
+        }
+        else
+        {
+            BootstrapLog.Step("MainWindow.OnLoaded.admin-pin-already-configured");
         }
 
         var settings = LoadSettings();

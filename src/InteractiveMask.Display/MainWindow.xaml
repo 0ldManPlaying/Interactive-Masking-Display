@@ -44,7 +44,18 @@
                      The BlurEffect is only attached when IsMasked=true; leaving
                      an Effect on every tile (even with Radius=0) costs the GPU
                      an intermediate render target per tile per frame, which is
-                     heavy for 16 tiles at 25 fps. -->
+                     heavy for 16 tiles at 25 fps.
+
+                     v2.0.1: Radius lowered from 80 to 20. WPF's BlurEffect
+                     cost scales with the radius even in Performance mode (the
+                     kernel sample count grows with R). Radius=80 across a 4×4
+                     or 5×5 grid stalled the UI thread for hundreds of ms when
+                     a mass-mask transition flipped every tile at once. The
+                     dark overlay (Background=#60000000) on top of this blur
+                     already obscures detail; Radius=20 is well past the point
+                     where faces and bodies become unrecognisable, and runs
+                     ~4× cheaper. Privacy effectiveness is unchanged in
+                     subjective tests. -->
                 <Image Source="{Binding Bitmap}"
                        Stretch="Uniform"
                        RenderOptions.BitmapScalingMode="LowQuality">
@@ -55,7 +66,7 @@
                                 <DataTrigger Binding="{Binding IsMasked}" Value="True">
                                     <Setter Property="Effect">
                                         <Setter.Value>
-                                            <BlurEffect Radius="80"
+                                            <BlurEffect Radius="20"
                                                         KernelType="Gaussian"
                                                         RenderingBias="Performance" />
                                         </Setter.Value>
