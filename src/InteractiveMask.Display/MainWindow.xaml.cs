@@ -17,27 +17,10 @@ public partial class MainWindow : Window
     private readonly StateStore _stateStore = new();
     private readonly AuditLog _audit = new();
     private readonly ConfigService _configService = new();
-    /// <summary>Per-slot binding to a unique camera identity (NVR + camera index).
-    /// Replaces the old single-NVR <c>_slotByCameraIndex</c> map.</summary>
-    private readonly Dictionary<int, (int NvrId, int CameraIndex)> _bindingsBySlot = new();
-    /// <summary>One <see cref="NvrSession"/> per configured NVR id. Lifetime
-    /// managed alongside the rest of the app: created on load, hot-swapped on
-    /// structural NVR changes, all disposed on Closing.</summary>
-    private readonly Dictionary<int, NvrSession> _sessionsById = new();
-    /// <summary>Per-NVR latest disconnect label. The reconnect banner aggregates
-    /// across all NVRs ("Verbinding met N NVRs verloren — opnieuw...").</summary>
-    private readonly Dictionary<int, string> _disconnectLabelByNvr = new();
-    /// <summary>Per-NVR earliest scheduled reconnect time. The banner shows the
-    /// soonest one so the countdown reflects the next attempt across the fleet.</summary>
-    private readonly Dictionary<int, DateTime> _nextReconnectByNvr = new();
+    /// <summary>Per-slot binding to a unique camera identity (NVR + camera index).</summary>
+    private NvrConnectionManager? _nvrConnections;
+    private AiDetectorHost? _aiHost;
     private readonly DispatcherTimer _timerTick = new() { Interval = TimeSpan.FromSeconds(1) };
-
-    /// <summary>
-    /// v2.0 AI-masking detector. Created and initialised asynchronously after the
-    /// tile grid is wired; <c>null</c> while initialising and on init-failure (which
-    /// silently falls back to v1.x masking with no per-detection overlay).
-    /// </summary>
-    private IObjectDetector? _aiDetector;
 
     private readonly KioskGuard _kioskGuard = new();
     private MaskController? _maskController;
@@ -131,13 +114,9 @@ public partial class MainWindow : Window
 
         _gdkLifetime = GdkLifetime.Acquire("InteractiveMask.Display");
 
-        // Spin up one NvrSession per configured NVR. Each session reconnects
-        // independently; the banner aggregates their state.
-        foreach (var nvr in settings.Nvrs)
-        {
-            if (string.IsNullOrWhiteSpace(nvr.Ip) || string.IsNullOrWhiteSpace(nvr.Password)) continue;
-            CreateAndWireSession(nvr);
-        }
+        _nvrConnections = new NvrConnectionManager(
+            _viewModel, _audit, Dispatcher, () => _maskController);
+        _nvrConnections.CreateSessionsForNvrs(settings.Nvrs);
 
         // Defensive registration: a corrupted config (or a manual edit) could contain
         // the same slot twice or two cameras pointing at the same (NVR, camera) pair.
@@ -161,7 +140,7 @@ public partial class MainWindow : Window
                     detail: $"duplicate camera nvr={cam.NvrId} idx={cam.CameraIndex} skipped (slot={cam.Slot})");
                 continue;
             }
-            if (!_sessionsById.TryGetValue(cam.NvrId, out var session))
+            if (!_nvrConnections!.SessionsById.TryGetValue(cam.NvrId, out var session))
             {
                 _audit.Write(AuditEventType.AppStarted, source: "config",
                     detail: $"camera nvr={cam.NvrId} idx={cam.CameraIndex} skipped: NVR not configured");
@@ -189,7 +168,7 @@ public partial class MainWindow : Window
                     t.AiUseSourceBlur = cam.AiUseSourceBlur;
                     t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
                 }
-                _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
+                _nvrConnections.Bindings[cam.Slot] = (cam.NvrId, cam.CameraIndex);
             }
             catch (Exception ex)
             {
@@ -215,88 +194,21 @@ public partial class MainWindow : Window
         // bottom bar reflects the persisted Setup choice from the first frame.
         ApplyTileOverlayToggles();
 
-        // Kick off v2.0 AI detector init in the background. Tiles get AttachDetector
-        // once the model is loaded; until then their Detections stay empty (which
-        // renders as nothing on top of the live image). On init failure the app
-        // keeps running with v1.x masking only - no privacy regression.
-        _ = InitializeAiDetectorAsync();
+        _aiHost = new AiDetectorHost(_audit, Dispatcher);
+        _aiHost.DegradationStateChanged += OnDegradationStateChanged;
+        _ = _aiHost.InitializeAsync(_viewModel.Tiles);
 
         // Start the IPC broadcaster after the grid is fully wired so the very first
         // Hello snapshot already reflects any restored masks.
         _ipcBroadcaster = new IpcStateBroadcaster(
-            _viewModel, _bindingsBySlot, _maskController, _pinService, Dispatcher);
+            _viewModel, _nvrConnections.Bindings, _maskController, _pinService, Dispatcher);
         _ipcBroadcaster.Start();
 
-        // Connect every configured NVR. Each session manages its own retry.
-        foreach (var nvr in settings.Nvrs)
-        {
-            if (!_sessionsById.TryGetValue(nvr.Id, out var session)) continue;
-            var conn = new NvrConnectionInfo(nvr.Ip, nvr.Port, nvr.User, nvr.Password);
-            session.Start(conn);
-        }
+        _nvrConnections.StartAllSessions(settings.Nvrs);
 
         _timerTick.Start();
         ApplyKioskMode(settings.Kiosk.Enabled);
         _lastAppliedSettings = settings;
-    }
-
-    /// <summary>
-    /// Build a new <see cref="NvrSession"/> for one configured NVR and wire its
-    /// connect / disconnect / reconnect events into the per-NVR aggregation
-    /// dictionaries. Called on startup and on the live-add path.
-    /// </summary>
-    private NvrSession CreateAndWireSession(NvrSettings nvr)
-    {
-        var session = new NvrSession();
-        int nvrId = nvr.Id;
-        string nvrName = string.IsNullOrEmpty(nvr.Name) ? $"NVR {nvr.Id + 1}" : nvr.Name;
-
-        session.Log += msg => Dispatcher.BeginInvoke(
-            () => _viewModel.StatusLine = $"[{nvrName}] {msg}");
-
-        session.Connected += channel =>
-        {
-            _audit.Write(AuditEventType.NvrConnected, source: $"nvr:{nvrId}", detail: $"channel={channel}");
-            Dispatcher.BeginInvoke(() =>
-            {
-                _disconnectLabelByNvr.Remove(nvrId);
-                _nextReconnectByNvr.Remove(nvrId);
-                UpdateConnectionBanner();
-            });
-        };
-
-        session.Disconnected += reason =>
-        {
-            var label = DisconnectReasonText.ForUser(reason);
-            _audit.Write(AuditEventType.NvrDisconnected, source: $"nvr:{nvrId}", detail: $"{reason} - {label}");
-            Dispatcher.BeginInvoke(() =>
-            {
-                _disconnectLabelByNvr[nvrId] = label;
-                // Mark only tiles bound to THIS NVR as disconnected; tiles on
-                // other NVRs may still be live.
-                foreach (var (slot, identity) in _bindingsBySlot)
-                {
-                    if (identity.NvrId != nvrId) continue;
-                    if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
-                    var tile = _viewModel.Tiles[slot];
-                    if (tile.HasCamera) tile.SetDisconnectDetail(label);
-                }
-                _viewModel.StatusLine = $"[{nvrName}] {label}";
-                UpdateConnectionBanner();
-            });
-        };
-
-        session.ReconnectScheduled += nextAttemptUtc =>
-        {
-            Dispatcher.BeginInvoke(() =>
-            {
-                _nextReconnectByNvr[nvrId] = nextAttemptUtc;
-                UpdateConnectionBanner();
-            });
-        };
-
-        _sessionsById[nvrId] = session;
-        return session;
     }
 
     /// <summary>
@@ -473,10 +385,9 @@ public partial class MainWindow : Window
             }
         }
 
-        if (_viewModel.ConnectionLost) UpdateConnectionBanner();
+        if (_viewModel.ConnectionLost) _nvrConnections?.UpdateConnectionBanner();
     }
 
-    /// <summary>
     /// <summary>
     /// Push the current ShowCameraLabel / ShowNvrTitle privacy toggles onto
     /// every tile so the bottom-bar overlay reflects them without restart.
@@ -489,46 +400,6 @@ public partial class MainWindow : Window
             tile.ShowLabel = _privacy.ShowCameraLabel;
             tile.ShowNvrTitle = _privacy.ShowNvrTitle;
         }
-    }
-
-    /// <summary>
-    /// Refresh the disconnect banner text from current state. Called once on
-    /// disconnect/schedule and then every tick while disconnected so the
-    /// countdown ticks down.
-    /// </summary>
-    private void UpdateConnectionBanner()
-    {
-        var s = Strings.Instance.Current;
-        // Aggregate across all NVRs: any disconnect → banner on. The countdown
-        // tracks the soonest scheduled reconnect across the fleet so the user
-        // sees a sensible single timer.
-        bool anyDisconnected = _disconnectLabelByNvr.Count > 0 || _nextReconnectByNvr.Count > 0;
-        if (!anyDisconnected)
-        {
-            _viewModel.ConnectionLost = false;
-            _viewModel.ConnectionBanner = "";
-            return;
-        }
-        _viewModel.ConnectionLost = true;
-
-        DateTime? nextAttempt = _nextReconnectByNvr.Values.Count > 0 ? _nextReconnectByNvr.Values.Min() : (DateTime?)null;
-        if (nextAttempt is null)
-        {
-            _viewModel.ConnectionBanner = s.ConnectionAttempting;
-            return;
-        }
-        var remaining = nextAttempt.Value - DateTime.UtcNow;
-        if (remaining <= TimeSpan.Zero)
-        {
-            _viewModel.ConnectionBanner = s.ConnectionAttempting;
-            return;
-        }
-        int seconds = (int)Math.Ceiling(remaining.TotalSeconds);
-        // Pick the most-recent disconnect label as a representative reason; with
-        // multiple NVRs offline at once we show one of them rather than a
-        // running list (the per-tile status bar shows the per-NVR detail).
-        string reason = _disconnectLabelByNvr.Values.LastOrDefault() ?? s.ConnectionLost;
-        _viewModel.ConnectionBanner = string.Format(s.ConnectionLostFormat, reason, seconds);
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
@@ -586,14 +457,14 @@ public partial class MainWindow : Window
         var s = Strings.Instance.Current;
         if (!VerifyAdminPin(s.AdminPinSetupOpenTitle, s.AdminPinSetupOpenSub)) return;
 
-        // Lambda captures _sessionsById so Setup can ask the live, already-
+        // Lambda captures _nvrConnections!.SessionsById so Setup can ask the live, already-
         // authenticated NvrSession for camera names instead of opening a
         // second concurrent session against the NVR (which most IDIS NVRs
         // refuse on the same user).
         var setup = new SetupWindow(_configService, _adminPin, _audit,
             cameraNameFetcher: async (nvrId, ct) =>
             {
-                if (!_sessionsById.TryGetValue(nvrId, out var session))
+                if (!_nvrConnections!.SessionsById.TryGetValue(nvrId, out var session))
                 {
                     throw new InvalidOperationException(
                         $"NVR id={nvrId} is not currently connected.");
@@ -625,14 +496,8 @@ public partial class MainWindow : Window
     /// </summary>
     private AiRuntimeInfo SnapshotAiRuntime()
     {
-        var detector = _aiDetector;
-        if (detector is null)
-        {
-            return new AiRuntimeInfo(Status: "Unavailable", ModelDescription: null);
-        }
-        return new AiRuntimeInfo(
-            Status: detector.Status.ToString(),
-            ModelDescription: detector.Capability.ModelDescription);
+        return _aiHost?.SnapshotRuntime()
+            ?? new AiRuntimeInfo(Status: "Unavailable", ModelDescription: null);
     }
 
     /// <summary>
@@ -695,11 +560,14 @@ public partial class MainWindow : Window
 
         // 3) NVR fleet changes (v2.0.2) and camera-list changes are both live-applied.
         //    Order matters: reconcile the session set FIRST so that ApplyCameraChangesLive
-        //    sees the post-change set in _sessionsById when it iterates new cameras.
+        //    sees the post-change set in _nvrConnections!.SessionsById when it iterates new cameras.
         if (!structuralChange)
         {
-            ReconcileNvrFleet(newSettings.Nvrs);
-            ApplyCameraChangesLive(newSettings.Cameras);
+            _nvrConnections?.ReconcileNvrFleet(newSettings.Nvrs, _lastAppliedSettings);
+            _nvrConnections?.ApplyCameraChangesLive(
+                newSettings.Cameras,
+                _lastAppliedSettings,
+                () => _aiHost?.RefreshDegradationEligibleStreams(_viewModel.Tiles));
             _lastAppliedSettings = newSettings;
             _viewModel.StatusLine = Strings.Instance.Current.SetupChangesApplied;
             return;
@@ -719,201 +587,6 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Reconcile the running sessions against a new camera list without a restart.
-    /// With multi-NVR, the per-NVR target list determines what each session ends
-    /// up subscribing to; bindings are slot-keyed so a camera moved between
-    /// NVRs detaches from one session and attaches via another.
-    /// </summary>
-    private void ApplyCameraChangesLive(List<CameraSlotSettings> newCameras)
-    {
-        if (_sessionsById.Count == 0) return;
-
-        // Step 1 — detach tiles whose binding (NvrId, CameraIndex) changed or
-        // whose slot moved. The post-step 3 loop reattaches them at the new slot.
-        var newBySlot = newCameras
-            .Where(c => c.Slot >= 0)
-            .GroupBy(c => c.Slot)
-            .ToDictionary(g => g.Key, g => g.First());
-
-        var oldEntries = _bindingsBySlot.ToList();
-        foreach (var (oldSlot, identity) in oldEntries)
-        {
-            bool keep = newBySlot.TryGetValue(oldSlot, out var newCam)
-                        && newCam!.NvrId == identity.NvrId
-                        && newCam.CameraIndex == identity.CameraIndex;
-            if (!keep)
-            {
-                if (oldSlot >= 0 && oldSlot < _viewModel.Tiles.Count)
-                {
-                    // If the tile being detached has an active AI-reveal, end it
-                    // first so the audit trail records that the reveal window was
-                    // cut by a camera rebinding rather than disappearing silently.
-                    var oldTile = _viewModel.Tiles[oldSlot];
-                    if (oldTile.IsAiRevealed)
-                    {
-                        _maskController?.CancelAiReveal(oldTile, reason: "tile-rebound");
-                    }
-                    oldTile.Detach();
-                }
-                _bindingsBySlot.Remove(oldSlot);
-            }
-        }
-
-        // Step 2 — recompute the per-NVR target list and ask each session to
-        // reconcile. Cameras in the new list that point at an unknown NVR id
-        // are silently skipped (the user never reaches that state via Setup;
-        // it would only happen with a hand-edited config).
-        var grouped = newCameras
-            .Where(c => _sessionsById.ContainsKey(c.NvrId))
-            .GroupBy(c => c.NvrId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        int totalAdded = 0, totalRemoved = 0;
-        foreach (var (nvrId, session) in _sessionsById)
-        {
-            grouped.TryGetValue(nvrId, out var camsForThisNvr);
-            var diff = session.UpdateCameras(
-                (camsForThisNvr ?? new()).Select(c => (c.CameraIndex, c.StreamId, c.Label)));
-            totalAdded += diff.Added.Count;
-            totalRemoved += diff.Removed.Count;
-        }
-
-        _audit.Write(AuditEventType.AppStarted, source: "config",
-            detail: $"camera list updated: +{totalAdded} / -{totalRemoved}");
-
-        // Snapshot the previous per-slot camera config so step 4 can skip tiles
-        // whose Setup state didn't actually change. Without this every Apply
-        // re-pushed Label / NvrTitle / AI settings to every tile, which (a)
-        // re-allocated the AiClasses / AiRoiPolygon collection references every
-        // time, (b) triggered an unconditional MaskOverlayText + IsLabelVisible
-        // property-change ping on every tile via UpdateLabel, and (c) re-fired
-        // the AI-icon visibility MultiDataTrigger across the grid. Cheap to
-        // compare; saves the work for tiles that didn't change.
-        var prevBySlot = _lastAppliedSettings?.Cameras
-            .Where(c => c.Slot >= 0)
-            .GroupBy(c => c.Slot)
-            .ToDictionary(g => g.Key, g => g.First())
-            ?? new();
-
-        // Track slots that got their state freshly pushed in step 3 so step 4
-        // doesn't redundantly write the same values a second time on the same
-        // Apply pass.
-        var freshlyBound = new HashSet<int>();
-
-        // Step 3 — bind every camera in the new list to its slot. Cameras that
-        // were already bound at the right slot are skipped so the live image
-        // stays uninterrupted.
-        foreach (var cam in newCameras)
-        {
-            if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
-            if (_bindingsBySlot.ContainsKey(cam.Slot)) continue;
-            if (!_sessionsById.TryGetValue(cam.NvrId, out var session)) continue;
-            if (!session.Tiles.TryGetValue(cam.CameraIndex, out var cameraTile)) continue;
-
-            _viewModel.BindCameraToSlot(cam.Slot, cameraTile);
-            _bindingsBySlot[cam.Slot] = (cam.NvrId, cam.CameraIndex);
-            if (cam.Slot >= 0 && cam.Slot < _viewModel.Tiles.Count)
-            {
-                var t = _viewModel.Tiles[cam.Slot];
-
-                // If the operator just turned AI off on a tile that still had
-                // an active reveal window running, the reveal becomes nonsense
-                // (there's no AI overlay to reveal). Cancel BEFORE flipping
-                // AiEnabled — the setter clears Detections as a side effect,
-                // and we want the audit cancel to land with a proper reason
-                // ("ai-disabled") before that fires.
-                if (t.IsAiRevealed && !cam.AiEnabled)
-                {
-                    _maskController?.CancelAiReveal(t, reason: "ai-disabled");
-                }
-
-                t.NvrTitle = cam.NvrTitle ?? "";
-                t.AiEnabled = cam.AiEnabled;
-                t.AiClasses = cam.AiClasses;
-                t.MaskPaddingPercent = cam.MaskPaddingPercent;
-                t.AiRoiPolygon = cam.AiRoiPolygon;
-                t.AiConfidencePercent = cam.AiConfidencePercent;
-                t.AiUseSourceBlur = cam.AiUseSourceBlur;
-                t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
-                freshlyBound.Add(cam.Slot);
-            }
-        }
-
-        // F3: the eligible-streams set may have changed (operator toggled AI
-        // on/off on one or more cameras). Push the new set to the adaptive
-        // controller so its disable-victim logic reads from the current grid.
-        RefreshDegradationEligibleStreams();
-
-        // Step 4 — refresh labels, NVR titles and v2.0 AI settings for cameras
-        // whose only change was a non-rebind field. Toggling AI on/off or changing
-        // categories in Setup takes effect immediately on Apply without needing
-        // a restart. Skipped for slots that step 3 just freshly bound, and for
-        // slots whose config is identical to last Apply (no work, no INPC churn).
-        foreach (var cam in newCameras)
-        {
-            if (cam.Slot < 0 || cam.Slot >= _viewModel.Tiles.Count) continue;
-            if (freshlyBound.Contains(cam.Slot)) continue;
-            if (prevBySlot.TryGetValue(cam.Slot, out var prev) && CameraConfigUnchanged(prev, cam))
-                continue;
-
-            var t = _viewModel.Tiles[cam.Slot];
-
-            // Same reveal-cancel-before-flip pattern as step 3. v2.0.2 bug
-            // fix: prior versions only had this in step 3 (newly-bound tile
-            // path), so a Setup edit on an already-bound camera could leave
-            // an active reveal hanging without an audit row.
-            if (t.IsAiRevealed && !cam.AiEnabled)
-            {
-                _maskController?.CancelAiReveal(t, reason: "ai-disabled");
-            }
-
-            t.UpdateLabel(cam.Label);
-            t.NvrTitle = cam.NvrTitle ?? "";
-            t.AiEnabled = cam.AiEnabled;
-            t.AiClasses = cam.AiClasses;
-            t.MaskPaddingPercent = cam.MaskPaddingPercent;
-            t.AiRoiPolygon = cam.AiRoiPolygon;
-            t.AiConfidencePercent = cam.AiConfidencePercent;
-            t.AiUseSourceBlur = cam.AiUseSourceBlur;
-            t.AiMaskOpacity = Math.Clamp(cam.AiMaskOpacityPercent, 20, 100) / 100.0;
-        }
-    }
-
-    /// <summary>
-    /// True when every field that step 4 of ApplyCameraChangesLive would push
-    /// to the TileViewModel is identical between two camera-slot configs.
-    /// Collection fields (AiClasses, AiRoiPolygon) are compared by reference
-    /// first as a fast path, then by deep equality; SetupWindow rebuilds these
-    /// per Save, so equal contents in different instances are the common case
-    /// when only an unrelated tile was edited.
-    /// </summary>
-    private static bool CameraConfigUnchanged(CameraSlotSettings a, CameraSlotSettings b)
-    {
-        if (a.Label != b.Label) return false;
-        if ((a.NvrTitle ?? "") != (b.NvrTitle ?? "")) return false;
-        if (a.AiEnabled != b.AiEnabled) return false;
-        if (a.MaskPaddingPercent != b.MaskPaddingPercent) return false;
-        if (a.AiConfidencePercent != b.AiConfidencePercent) return false;
-        if (a.AiUseSourceBlur != b.AiUseSourceBlur) return false;
-        if (a.AiMaskOpacityPercent != b.AiMaskOpacityPercent) return false;
-
-        if (!ReferenceEquals(a.AiClasses, b.AiClasses)
-            && !a.AiClasses.SetEquals(b.AiClasses)) return false;
-
-        if (!ReferenceEquals(a.AiRoiPolygon, b.AiRoiPolygon))
-        {
-            if (a.AiRoiPolygon.Count != b.AiRoiPolygon.Count) return false;
-            for (int i = 0; i < a.AiRoiPolygon.Count; i++)
-            {
-                if (a.AiRoiPolygon[i].X != b.AiRoiPolygon[i].X) return false;
-                if (a.AiRoiPolygon[i].Y != b.AiRoiPolygon[i].Y) return false;
-            }
-        }
-
-        return true;
-    }
-
     private static bool AuditForwardEqual(AuditForwardSettings a, AuditForwardSettings b) =>
         a.SyslogEnabled == b.SyslogEnabled &&
         a.SyslogHost == b.SyslogHost &&
@@ -927,8 +600,7 @@ public partial class MainWindow : Window
     /// tile grid or re-running first-launch initialisation has changed.
     ///
     /// <para>
-    /// Live-applied (i.e. NOT structural; handled by <see cref="ReconcileNvrFleet"/>
-    /// and <see cref="ApplyCameraChangesLive"/>):
+    /// Live-applied (i.e. NOT structural; handled by <see cref="NvrConnectionManager"/>):
     /// </para>
     /// <list type="bullet">
     ///   <item>Camera list (add / remove / rebind / per-camera AI tweaks).</item>
@@ -942,7 +614,7 @@ public partial class MainWindow : Window
         // "Started with zero NVRs" stays structural: the no-config startup path
         // skips MaskController / DispatcherTimer / IPC broadcaster init, and
         // bringing those up after the fact is more work than just restarting.
-        if (_lastAppliedSettings is null || _sessionsById.Count == 0) return true;
+        if (_lastAppliedSettings is null || _nvrConnections is null || _nvrConnections.SessionsById.Count == 0) return true;
 
         if (_viewModel.Rows != updated.Grid.Rows || _viewModel.Columns != updated.Grid.Columns)
             return true;
@@ -955,127 +627,6 @@ public partial class MainWindow : Window
             return true;
 
         return false;
-    }
-
-    /// <summary>
-    /// Reconcile the running set of <see cref="NvrSession"/>s against an updated
-    /// NVR list (v2.0.2 live-apply). Three transitions handled:
-    /// <list type="number">
-    ///   <item><b>Removed</b> — NVR id present in <c>_sessionsById</c> but not in
-    ///   <paramref name="updated"/>: detach every tile bound to it, dispose the
-    ///   session, drop it from the dictionary. Tiles get a status update via the
-    ///   normal disconnect path.</item>
-    ///   <item><b>Connection-field changed</b> — same id, but Ip / Port / User /
-    ///   Password differ: tear down the old session and re-create from scratch.
-    ///   Re-create rather than mutate because the underlying GDK session caches
-    ///   the credentials at <c>Start()</c> time and there's no live-rotate API.</item>
-    ///   <item><b>Added</b> — id appears in <paramref name="updated"/> for the first
-    ///   time: wire a new session, register an audit event, call Start with the
-    ///   credentials. Camera bindings are wired by <see cref="ApplyCameraChangesLive"/>
-    ///   immediately after this method.</item>
-    /// </list>
-    /// <para>
-    /// A pure rename (only <see cref="NvrSettings.Name"/> changed) does NOT
-    /// recreate the session — the visual NVR-title shown on the tile bar is
-    /// read from <c>CameraSlotSettings.NvrTitle</c> which the camera-reconcile
-    /// step already refreshes; only audit/status messages keep using the old
-    /// name until the session is naturally torn down. Acceptable trade-off
-    /// vs. dropping the live image for a cosmetic rename.
-    /// </para>
-    /// </summary>
-    private void ReconcileNvrFleet(List<NvrSettings> updated)
-    {
-        var newById = updated
-            .Where(n => !string.IsNullOrWhiteSpace(n.Ip) && !string.IsNullOrWhiteSpace(n.Password))
-            .ToDictionary(n => n.Id);
-        var oldById = _lastAppliedSettings?.Nvrs.ToDictionary(n => n.Id)
-            ?? new Dictionary<int, NvrSettings>();
-
-        // Pass 1: removals + reconnect-required (connection-field changed).
-        // Snapshot the keys so we can mutate _sessionsById safely inside the loop.
-        foreach (var nvrId in _sessionsById.Keys.ToList())
-        {
-            if (!newById.TryGetValue(nvrId, out var newNvr))
-            {
-                TearDownNvrSession(nvrId, reason: "nvr-removed");
-                continue;
-            }
-
-            if (oldById.TryGetValue(nvrId, out var oldNvr) && NeedsReconnect(oldNvr, newNvr))
-            {
-                TearDownNvrSession(nvrId, reason: "nvr-credentials-changed");
-                // Falls through to pass 2 below: id is no longer in
-                // _sessionsById so the additions loop will recreate it.
-            }
-        }
-
-        // Pass 2: additions (true additions + replacements from pass 1).
-        foreach (var nvr in updated)
-        {
-            if (_sessionsById.ContainsKey(nvr.Id)) continue;
-            if (string.IsNullOrWhiteSpace(nvr.Ip) || string.IsNullOrWhiteSpace(nvr.Password)) continue;
-
-            var session = CreateAndWireSession(nvr);
-            var conn = new NvrConnectionInfo(nvr.Ip, nvr.Port, nvr.User, nvr.Password);
-            session.Start(conn);
-            _audit.Write(AuditEventType.AppStarted, source: $"nvr:{nvr.Id}",
-                detail: "nvr-added (live-apply)");
-        }
-    }
-
-    /// <summary>
-    /// Returns true when an existing NVR's connection-relevant fields differ
-    /// from the new settings. Name is excluded on purpose; see ReconcileNvrFleet.
-    /// </summary>
-    private static bool NeedsReconnect(NvrSettings oldNvr, NvrSettings newNvr) =>
-        oldNvr.Ip       != newNvr.Ip       ||
-        oldNvr.Port     != newNvr.Port     ||
-        oldNvr.User     != newNvr.User     ||
-        oldNvr.Password != newNvr.Password;
-
-    /// <summary>
-    /// Detach every tile bound to the given NVR, dispose its session, and
-    /// remove it from <c>_sessionsById</c>. Tiles bound to other NVRs are
-    /// untouched. Active AI-reveals on detached tiles are cancelled first so
-    /// the audit trail records why the reveal window ended.
-    /// </summary>
-    private void TearDownNvrSession(int nvrId, string reason)
-    {
-        if (!_sessionsById.TryGetValue(nvrId, out var session)) return;
-
-        var slotsToDetach = _bindingsBySlot
-            .Where(kv => kv.Value.NvrId == nvrId)
-            .Select(kv => kv.Key)
-            .ToList();
-        foreach (var slot in slotsToDetach)
-        {
-            if (slot >= 0 && slot < _viewModel.Tiles.Count)
-            {
-                var tile = _viewModel.Tiles[slot];
-                if (tile.IsAiRevealed)
-                {
-                    _maskController?.CancelAiReveal(tile, reason: "nvr-removed");
-                }
-                tile.Detach();
-            }
-            _bindingsBySlot.Remove(slot);
-        }
-
-        // Drop banner state for this NVR so the aggregated reconnect bar
-        // doesn't keep referring to it.
-        _disconnectLabelByNvr.Remove(nvrId);
-        _nextReconnectByNvr.Remove(nvrId);
-        UpdateConnectionBanner();
-
-        try { session.Dispose(); }
-        catch (Exception ex)
-        {
-            _audit.Write(AuditEventType.NvrDisconnected, source: $"nvr:{nvrId}",
-                detail: $"{reason} dispose-error: {ex.GetType().Name}: {ex.Message}");
-        }
-        _sessionsById.Remove(nvrId);
-
-        _audit.Write(AuditEventType.NvrDisconnected, source: $"nvr:{nvrId}", detail: reason);
     }
 
     private void RequestExit()
@@ -1128,48 +679,12 @@ public partial class MainWindow : Window
         _stateStore.Flush();
         _ipcBroadcaster?.Dispose();
         _ipcBroadcaster = null;
-        // Detach the AI detector from each tile before disposing so any in-flight
-        // SubmitDetectionAsync calls won't try to assign back to a torn-down VM.
-        foreach (var tile in _viewModel.Tiles)
+        if (_aiHost is not null)
         {
-            tile.AttachDetector(null);
-            tile.Degradation = null;       // F3: drop the controller reference
+            _aiHost.DegradationStateChanged -= OnDegradationStateChanged;
+            _aiHost.Shutdown(_viewModel.Tiles);
         }
-        if (_aiDetector is OnnxLocalDetector localBeforeDispose
-            && localBeforeDispose.Degradation is { } degBefore)
-        {
-            // F3: unsubscribe so the controller can't fire StateChanged into
-            // the about-to-be-torn-down window once dispose returns.
-            degBefore.StateChanged -= OnDegradationStateChanged;
-        }
-        if (_aiDetector != null)
-        {
-            try
-            {
-                // Run the async dispose on the thread pool so it can't capture and
-                // deadlock against the UI dispatcher, then wait at most 2 seconds.
-                // ONNX session dispose is sub-second; the timeout is purely a safety
-                // net so a future remote-detector backend can't strand the shutdown.
-                Task.Run(() => _aiDetector.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(2));
-                _audit.Write(AuditEventType.AiDetectorStopped, source: "ai-detector",
-                    detail: "graceful dispose");
-            }
-            catch (Exception ex)
-            {
-                // Best-effort log; shutdown continues regardless. If we couldn't
-                // dispose cleanly the support engineer at least sees that we
-                // tried to, with the reason it failed.
-                try
-                {
-                    _audit.Write(AuditEventType.AiDetectorStopped, source: "ai-detector",
-                        detail: $"dispose error: {ex.GetType().Name}: {ex.Message}");
-                }
-                catch { }
-            }
-            _aiDetector = null;
-        }
-        foreach (var session in _sessionsById.Values) session.Dispose();
-        _sessionsById.Clear();
+        _nvrConnections?.DisposeAll();
         _gdkLifetime?.Dispose();
         _gdkLifetime = null;
         _audit.Write(AuditEventType.AppStopped, source: "local");
@@ -1182,68 +697,6 @@ public partial class MainWindow : Window
         // AppStopped event just above is in the buffer until Dispose flushes,
         // so this is the durability point for the close-out record.
         _audit.Dispose();
-    }
-
-    /// <summary>
-    /// Loads the YuNet face detector via ONNX Runtime + DirectML and, on success,
-    /// attaches it to every tile so per-frame detection submission begins on the
-    /// next frame. Init failure is non-fatal: tiles continue showing the live
-    /// image plus v1.x manual masking, just without AI overlays.
-    /// </summary>
-    private async Task InitializeAiDetectorAsync()
-    {
-        try
-        {
-            var detector = new OnnxLocalDetector();
-            var config = new DetectorConfig(
-                EnabledClasses: new HashSet<ObjectClass>
-                {
-                    ObjectClass.Person,
-                    ObjectClass.TwoWheeler,
-                    ObjectClass.Vehicle,
-                },
-                ConfidenceThresholds: new Dictionary<ObjectClass, float>
-                {
-                    // Coordinator threshold is the FLOOR below which detections
-                    // never reach the per-tile filter. Per-tile thresholds (from
-                    // CameraSlotSettings.AiConfidencePercent, 15..70 in Setup)
-                    // are applied on top. Keeping the coordinator floor at 0.15
-                    // means a per-tile setting of 15% has actual effect; raising
-                    // the coordinator floor would clip the bottom of that range.
-                    [ObjectClass.Person]     = 0.15f,
-                    [ObjectClass.TwoWheeler] = 0.15f,
-                    [ObjectClass.Vehicle]    = 0.15f,
-                },
-                MaxQueueDepth: 1,
-                PreferPolygonMasks: false);
-            await detector.InitializeAsync(config).ConfigureAwait(true);
-
-            _aiDetector = detector;
-            foreach (var tile in _viewModel.Tiles)
-            {
-                tile.AttachDetector(detector);
-                // F3: every tile reads the same DegradationController so the
-                // adaptive frame-skip multiplier and the disabled-streams
-                // set apply uniformly across the grid.
-                tile.Degradation = detector.Degradation;
-            }
-
-            // F3: subscribe to degradation transitions for audit + the
-            // per-tile "AI suspended by load" badge.
-            if (detector.Degradation is not null)
-            {
-                detector.Degradation.StateChanged += OnDegradationStateChanged;
-                RefreshDegradationEligibleStreams();
-            }
-
-            _audit.Write(AuditEventType.AiDetectorInit, source: "ai-detector",
-                detail: $"{detector.Capability.BackendName}: {detector.Capability.ModelDescription}");
-        }
-        catch (Exception ex)
-        {
-            _audit.Write(AuditEventType.AiDetectorFault, source: "ai-detector",
-                detail: $"init failed, falling back to v1.x masking: {ex.GetType().Name}: {ex.Message}");
-        }
     }
 
     /// <summary>
@@ -1289,27 +742,6 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// F3: feed the controller the current set of streams that are AI-eligible
-    /// (i.e. operator has AiEnabled=true and a camera is bound). Called from
-    /// post-init and from Setup → Apply.
-    /// </summary>
-    private void RefreshDegradationEligibleStreams()
-    {
-        // The controller is only attached to the local-ONNX backend; remote
-        // backends (v2.1 Jetson sidecar) run their own degradation logic and
-        // don't expose this surface yet.
-        var degradation = (_aiDetector as OnnxLocalDetector)?.Degradation;
-        if (degradation is null) return;
-
-        var eligible = new List<int>();
-        foreach (var tile in _viewModel.Tiles)
-        {
-            if (tile.HasCamera && tile.AiEnabled) eligible.Add(tile.SlotIndex);
-        }
-        degradation.SetEligibleStreams(eligible);
-    }
-
-    /// <summary>
     /// Build a snapshot of the current mask + PIN state and ask the StateStore to
     /// persist it (debounced). Called by the controller after every state change.
     /// </summary>
@@ -1320,7 +752,7 @@ public partial class MainWindow : Window
         {
             if (!tile.HasCamera) continue;
             int cameraIndex = -1;
-            if (_bindingsBySlot.TryGetValue(tile.SlotIndex, out var identity))
+            if (_nvrConnections!.Bindings.TryGetValue(tile.SlotIndex, out var identity))
             {
                 cameraIndex = identity.CameraIndex;
             }
@@ -1355,7 +787,7 @@ public partial class MainWindow : Window
             if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
             // Only restore if the slot is currently bound to a camera at all;
             // a re-config that emptied the slot drops the persisted mask.
-            if (!_bindingsBySlot.ContainsKey(slot)) continue;
+            if (!_nvrConnections!.Bindings.ContainsKey(slot)) continue;
             if (slot < 0 || slot >= _viewModel.Tiles.Count) continue;
             var tile = _viewModel.Tiles[slot];
             if (pt.IsMasked)

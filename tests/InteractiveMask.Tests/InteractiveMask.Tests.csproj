@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>InteractiveMask.Tests</RootNamespace>
+    <AssemblyName>InteractiveMask.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Xunit.StaFact" Version="1.1.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\InteractiveMask.Display\InteractiveMask.Display.csproj" />
+    <ProjectReference Include="..\..\src\InteractiveMask.Detection\InteractiveMask.Detection.csproj" />
+    <ProjectReference Include="..\..\src\InteractiveMask.Ipc\InteractiveMask.Ipc.csproj" />
+  </ItemGroup>
+
+</Project>

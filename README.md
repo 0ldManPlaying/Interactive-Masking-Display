@@ -1,6 +1,6 @@
 # InteractiveMask
 
-**Version 2.0.0**
+**Version 2.0.3**
 
 ## Demo
 
@@ -14,7 +14,7 @@ A companion ASP.NET Core WebHost provides the same functionality over a browser,
 
 ## What's new in 2.0.0
 
-- **AI-driven privacy masking** — YOLO26s-seg segmentation runs locally on the GPU via DirectML and applies privacy masks per detected object instead of the whole tile. Three categories: **Person** (red), **TwoWheeler** (orange), **Vehicle** (blue).
+- **AI-driven privacy masking** — YOLO26n-seg segmentation (default; optional yolo26s-seg drop-in) runs locally on the GPU via DirectML and applies privacy masks per detected object instead of the whole tile. Three categories: **Person** (red), **TwoWheeler** (orange), **Vehicle** (blue).
 - **Per-camera AI configuration** — enable / disable per camera, pick categories, tune confidence threshold (15–70 %) with hysteresis to remove flicker on small / distant objects, set mask-padding (0–50 %).
 - **Region of Interest polygon** — draw a polygon on a live snapshot to restrict detection to a specific area; detections outside the polygon are not masked. Drag-to-move on existing vertices.
 - **Mask-style toggle** — choose between **Color-coded silhouette** (per-class colour clipped by the segmentation mask) and **Source blur** (classic CCTV look — the camera area itself blurred).

@@ -75,6 +75,7 @@ public sealed class IpcServer : IDisposable
         _cts.Cancel();
         foreach (var c in _clients.Values) c.Dispose();
         _clients.Clear();
+        _cts.Dispose();
     }
 
     private async Task AcceptLoop(CancellationToken token)

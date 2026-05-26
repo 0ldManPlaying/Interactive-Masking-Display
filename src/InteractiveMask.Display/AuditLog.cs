@@ -155,8 +155,9 @@ public sealed class AuditLog : IDisposable
                 FileShare.ReadWrite);
             _writer = new StreamWriter(stream, System.Text.Encoding.UTF8) { AutoFlush = false };
         }
-        catch
+        catch (Exception ex)
         {
+            DiagnosticLog.SwallowedException("AuditLog ctor open", ex);
             // Fall back to per-call AppendAllText if the persistent handle
             // can't be opened (e.g. permissions, locked path). Audit must
             // never crash the app at startup.
@@ -196,8 +197,9 @@ public sealed class AuditLog : IDisposable
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            DiagnosticLog.SwallowedException("AuditLog.Write", ex);
             // Audit must never crash the app. A failed write is observed via
             // missing entries when reviewing the log; in production we'd add a
             // fallback to the Windows Event Log.
@@ -205,7 +207,7 @@ public sealed class AuditLog : IDisposable
 
         // Forward after the local write so a slow sink can't delay the disk
         // write; the forwarder itself is non-blocking (bounded queue).
-        try { _forwarder?.Forward(ev); } catch { /* sink failures must never crash audit */ }
+        try { _forwarder?.Forward(ev); } catch (Exception ex) { DiagnosticLog.SwallowedException("AuditLog.Forward", ex); }
     }
 
     public void Dispose()

@@ -740,7 +740,7 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         var roi = AiRoiPolygon;
         if (fresh.Count > 0 && roi.Count >= 3)
         {
-            fresh = fresh.Where(d => PointInPolygon(
+            fresh = fresh.Where(d => PointInPolygonHelper.Contains(
                 d.Box.X + d.Box.Width / 2,
                 d.Box.Y + d.Box.Height / 2,
                 roi)).ToList();
@@ -829,30 +829,6 @@ public sealed class TileViewModel : INotifyPropertyChanged, IDisposable
         int interArea = (interX2 - interX1) * (interY2 - interY1);
         int unionArea = a.Width * a.Height + b.Width * b.Height - interArea;
         return unionArea > 0 ? (float)interArea / unionArea : 0f;
-    }
-
-    /// <summary>
-    /// Standard ray-casting point-in-polygon test. Counts how many edges the
-    /// rightward-going ray from (x, y) crosses; odd means inside. Polygon is
-    /// implicitly closed (last segment goes from the last point back to the
-    /// first). Linear in polygon size, allocation-free.
-    /// </summary>
-    private static bool PointInPolygon(int x, int y, IReadOnlyList<PolygonPoint> polygon)
-    {
-        int n = polygon.Count;
-        bool inside = false;
-        for (int i = 0, j = n - 1; i < n; j = i++)
-        {
-            var pi = polygon[i];
-            var pj = polygon[j];
-            if ((pi.Y > y) != (pj.Y > y))
-            {
-                // Edge crosses the horizontal y line; compute the x-intercept.
-                double xIntercept = pj.X + (double)(y - pj.Y) * (pi.X - pj.X) / (pi.Y - pj.Y);
-                if (x < xIntercept) inside = !inside;
-            }
-        }
-        return inside;
     }
 
     private static DetectedObject InflateForRender(DetectedObject d, float frac, int srcW, int srcH)

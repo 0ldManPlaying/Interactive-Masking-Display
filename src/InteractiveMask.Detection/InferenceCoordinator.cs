@@ -147,8 +147,10 @@ public sealed class InferenceCoordinator : IAsyncDisposable
                     Detections: Array.Empty<DetectedObject>(),
                     Metrics: new DetectorMetrics(0, QueueDepth: 1, GpuUtilizationPercent: null)));
             }
-            catch { }
-            // v2.0.2: return the dropped frame's pool-rented buffer (no-op for
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[InteractiveMask] InferenceCoordinator drop callback: {ex.GetType().Name}: {ex.Message}");
+            }
             // non-pooled frames). Without this the byte[] stays referenced
             // until the next gen-2 GC, defeating the pool.
             oldFrame.Dispose();
@@ -210,11 +212,10 @@ public sealed class InferenceCoordinator : IAsyncDisposable
                     Detections: Array.Empty<DetectedObject>(),
                     Metrics: new DetectorMetrics(0, 0, null)));
             }
-            catch { }
-        }
-        finally
-        {
-            // v2.0.2: always return the pool-rented buffer, success or fault.
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[InteractiveMask] InferenceCoordinator fault callback: {ex.GetType().Name}: {ex.Message}");
+            }
             // The inference path has already copied / consumed the pixels by
             // the time RunInference returns, so it's safe to release here.
             frame.Dispose();
@@ -507,9 +508,10 @@ public sealed class InferenceCoordinator : IAsyncDisposable
         {
             await _workerTask.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
         }
-        catch { }
-
-        // v2.0.2: release any frames still sitting in slots at shutdown so
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[InteractiveMask] InferenceCoordinator worker shutdown wait: {ex.Message}");
+        }
         // their pool-rented buffers go back to the pool rather than to gen-2
         // GC. Worker exits without processing these when cancellation fires.
         for (int i = 0; i < _slots.Length; i++)
@@ -519,7 +521,11 @@ public sealed class InferenceCoordinator : IAsyncDisposable
             _callbacks[i] = null;
         }
 
-        try { _session.Dispose(); } catch { }
+        try { _session.Dispose(); }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[InteractiveMask] InferenceCoordinator session dispose: {ex.GetType().Name}: {ex.Message}");
+        }
         _cts.Dispose();
     }
 }

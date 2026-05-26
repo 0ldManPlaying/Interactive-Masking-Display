@@ -35,8 +35,19 @@ public sealed class ConfigService
         var dir = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "InteractiveMask");
-        try { Directory.CreateDirectory(dir); } catch { }
+        try { Directory.CreateDirectory(dir); } catch (Exception ex) { DiagnosticLog.SwallowedException("ConfigService ctor mkdir", ex); }
         _path = System.IO.Path.Combine(dir, "config.json");
+    }
+
+    /// <summary>For unit tests: read/write config at an explicit file path.</summary>
+    internal ConfigService(string configPath)
+    {
+        _path = configPath;
+        var dir = System.IO.Path.GetDirectoryName(configPath);
+        if (!string.IsNullOrEmpty(dir))
+        {
+            try { Directory.CreateDirectory(dir); } catch (Exception ex) { DiagnosticLog.SwallowedException("ConfigService test ctor mkdir", ex); }
+        }
     }
 
     /// <summary>
@@ -64,8 +75,9 @@ public sealed class ConfigService
                 var stored = JsonSerializer.Deserialize<StoredConfig>(json, JsonOpts);
                 if (stored is not null) ApplyStored(settings, stored);
             }
-            catch
+            catch (Exception ex)
             {
+                DiagnosticLog.SwallowedException("ConfigService.Load corrupt config", ex);
                 // Corrupt config falls back to the appsettings template; admin
                 // can wipe config.json to recover.
             }
