@@ -131,7 +131,7 @@ De installatiestap is bewust laag-drempelig gehouden:
 |---|---|
 | Doelplatform | Windows 10/11 x64 |
 | Runtime | .NET 9 (ingebakken in installer, self-contained) |
-| NVR-koppeling | IDIS GDK 6.6.1 via TCP |
+| NVR-koppeling | IDIS GDK 7.0.0 via TCP |
 | Cameracapaciteit | 16 streams gelijktijdig per kioskscherm |
 | Codec ondersteuning | H.264 en H.265 (HEVC) |
 | Web-component | ASP.NET Core, HTTP en HTTPS, lokaal of LAN-bind |

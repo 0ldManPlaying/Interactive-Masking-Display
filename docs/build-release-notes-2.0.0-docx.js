@@ -551,7 +551,7 @@ body.push(para("No data migration is required. The persisted state, audit log, a
 body.push(h1("Credits"));
 body.push(bullet([bold("Model architecture: "), r("YOLO26s-seg by Ultralytics (AGPL-3.0 licence).")]));
 body.push(bullet([bold("Inference runtime: "), r("Microsoft ONNX Runtime with the DirectML execution provider.")]));
-body.push(bullet([bold("Camera SDK: "), r("IDIS GDK 6.6.1 by IDIS Co., Ltd.")]));
+body.push(bullet([bold("Camera SDK: "), r("IDIS GDK 6.6.1 by IDIS Co., Ltd. (v2.0.0 era; current releases use GDK 7.0.0).")]));
 body.push(bullet([bold("Release engineering and acceptance testing: "), r("IDIS Nederland BV.")]));
 
 // ----- doc -------------------------------------------------------------------

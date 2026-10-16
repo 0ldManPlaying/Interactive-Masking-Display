@@ -250,7 +250,7 @@ body.push(buildTable([2700, 6326],
         ["Release date", "8 May 2026"],
         ["Build", [r("InteractiveMask-1.3.0.msi", { size: TABLE_SIZE }), r(" (109 MB, self-contained)", { size: TABLE_SIZE })]],
         ["Signed by", "IDIS Nederland BV (EV Authenticode, Sectigo Public Code Signing CA R36, SHA-256 + DigiCert timestamp)"],
-        ["Compatibility", "Windows 10/11 x64, requires IDIS GDK 6.6.1 native runtime alongside the EXE"],
+        ["Compatibility", "Windows 10/11 x64, requires IDIS GDK native runtime alongside the EXE (v1.3.0 was built on GDK 6.6.1)"],
         ["Upgrade path", [r("In-place over v1.2.0 / v1.1.x / v1.0.x — existing ", { size: TABLE_SIZE }), code("config.json"), r(" migrates automatically.", { size: TABLE_SIZE })]],
     ],
 ));

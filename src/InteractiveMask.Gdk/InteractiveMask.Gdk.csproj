@@ -56,7 +56,9 @@
   </ItemGroup>
 
   <!-- Copy the GDK runtime DLLs next to the output so consumers can run.
-       G2ClientGDK depends on G2LibavMT (FFmpeg) and G2FishEye; SDL2 is used for audio.
+       G2ClientGDK depends on G2LibavMT (FFmpeg); SDL2 is used for audio.
+       G2FishEye.dll was removed in GDK 7.0.0 (fish-eye control lives in the core DLL);
+       the Exists-conditional copy below remains for older local packages only.
        The Microsoft.DirectX/SlimDX assemblies are legacy and not needed for our codepath. -->
   <ItemGroup>
     <None Include="$(GdkBinPath)\G2ClientGDK.dll" Condition="Exists('$(GdkBinPath)\G2ClientGDK.dll')">

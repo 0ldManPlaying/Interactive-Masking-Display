@@ -220,4 +220,6 @@ internal sealed class PocWatchListener : g2watch_listener
     public void on_g2watch_probe_session_profile(int handle, int channel, ref G2PROBE_SESSION_PROFILE probe) { }
     public void on_g2watch_si_fns_receive_audio_out_open(int handle, int channel, ref G2AUDIO_CODEC_INFO ci, bool available, int num) { }
     public void on_g2watch_si_fns_receive_audio_codec_info(int handle, int channel, ref G2AUDIO_CODEC_INFO ci, int num) { }
+    public void on_g2watch_receive_control_session_expired(int handle, int channel, ref G2CONTROL_SESSION_EXPIRED expired) { }
+    public void on_g2watch_receive_response_control_session_renew(int handle, int channel, ref G2CONTROL_SESSION_RENEW_RESPONSE resp) { }
 }

@@ -45,7 +45,7 @@ Verwachte output: `Status : Valid`, signer-CN `IDIS Nederland BV`.
 
 - **Display.exe** — WPF kiosk-applicatie (de "voorkant" die de operators zien)
 - **WebHost.exe** — ASP.NET Core service voor browser-bediening op afstand
-- **IDIS GDK 6.6.1** native runtime (G2ClientGDK, G2LibavMT, G2FishEye, SDL2)
+- **IDIS GDK** native runtime (at the time of the 2.0.0 build: 6.6.1 — G2ClientGDK, G2LibavMT, G2FishEye, SDL2; current releases use GDK 7.0.0 without G2FishEye)
 - **ONNX Runtime 1.24.4 + DirectML EP** voor lokale AI-inferentie op de GPU
 - **.NET 9 + WindowsDesktop runtime** (self-contained — de host hoeft niets vooraf te installeren)
 

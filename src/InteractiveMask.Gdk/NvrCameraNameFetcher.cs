@@ -169,6 +169,8 @@ public sealed class NvrCameraNameFetcher : g2watch_listener, IDisposable
     void g2watch_listener.on_g2watch_receive_instant_recording_status(int handle, int channel, G2INSTANT_RECORDING_RESULT.TYPE result, G2INSTANT_RECORDING_CHANNEL_STATUS[] statuses) { }
     void g2watch_listener.on_g2watch_receive_rds_remote_control(int handle, int channel, ref G2LIVE_RDS_REMOTE_CONTROL_RESPONSE response) { }
     void g2watch_listener.on_g2watch_receive_rest_api(int handle, int channel, ref G2REST_API_RESPONSE response) { }
+    void g2watch_listener.on_g2watch_receive_control_session_expired(int handle, int channel, ref G2CONTROL_SESSION_EXPIRED expired) { }
+    void g2watch_listener.on_g2watch_receive_response_control_session_renew(int handle, int channel, ref G2CONTROL_SESSION_RENEW_RESPONSE resp) { }
 
     public void Dispose()
     {

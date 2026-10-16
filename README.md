@@ -1,6 +1,6 @@
 # InteractiveMask
 
-**Version 2.0.3**
+**Version 2.0.4**
 
 ## Demo
 
@@ -31,7 +31,7 @@ The v1.3.0 release notes remain at [`docs/release-notes-1.3.0.md`](docs/release-
 
 ## Features
 
-- **Live video grid** — 1×1 / 2×2 / 3×3 / 4×4 / 5×5 layouts driven by the IDIS GDK 6.6.1 (H.264 + HEVC), default stream picked per tile (high / normal / low).
+- **Live video grid** — 1×1 / 2×2 / 3×3 / 4×4 / 5×5 layouts driven by the IDIS GDK 7.0.0 (H.264 + HEVC), default stream picked per tile (high / normal / low).
 - **Multi-NVR** — single installation can connect to multiple IDIS NVRs simultaneously; each tile picks its own NVR + camera + stream.
 - **Privacy blur** — Gaussian blur attached only when masked (perf-friendly). Optional auto-unmask / auto-rollback timer per tile.
 - **Two privacy modes** — *OversightDefault* (visible by default, tap to apply privacy) or *PrivacyDefault* (blurred by default, tap to reveal briefly).
@@ -69,7 +69,7 @@ The v1.3.0 release notes remain at [`docs/release-notes-1.3.0.md`](docs/release-
 | `InteractiveMask.Display` | WPF kiosk app. Owns the video grid, mask state, audit log, setup window, in-app help |
 | `InteractiveMask.WebHost` | ASP.NET Core service for browser remote control |
 | `InteractiveMask.Ipc` | Shared named-pipe IPC: bidirectional, length-prefixed JSON, request/response correlation |
-| `InteractiveMask.Gdk` | C# wrapper around the IDIS GDK 6.6.1 native libraries |
+| `InteractiveMask.Gdk` | C# wrapper around the IDIS GDK 7.0.0 native libraries |
 | `InteractiveMask.Setup` | WiX 5 MSI installer |
 
 ## Build
@@ -77,7 +77,7 @@ The v1.3.0 release notes remain at [`docs/release-notes-1.3.0.md`](docs/release-
 Requirements:
 - Windows 10/11 x64
 - .NET 9 SDK
-- IDIS GDK 6.6.1 native runtime (`G2ClientGDK.dll`, `G2LibavMT.dll`, `G2FishEye.dll`, `SDL2.dll`) — copied alongside `InteractiveMask.Display.exe`
+- IDIS GDK 7.0.0 native runtime (`G2ClientGDK.dll`, `G2LibavMT.dll`, `SDL2.dll`) — copied alongside `InteractiveMask.Display.exe`
 - WiX 5 SDK (only for installer build)
 
 ```bash

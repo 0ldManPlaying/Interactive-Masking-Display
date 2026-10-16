@@ -30,7 +30,7 @@ InteractiveMask/
 │   ├── InteractiveMask.Display/      WPF kiosk app (main entry point)
 │   ├── InteractiveMask.WebHost/      ASP.NET Core remote-control service
 │   ├── InteractiveMask.Ipc/          Named-pipe IPC primitives, shared between Display and WebHost
-│   ├── InteractiveMask.Gdk/          C# wrapper around the native IDIS GDK 6.6.1 DLLs
+│   ├── InteractiveMask.Gdk/          C# wrapper around the native IDIS GDK 7.0.0 DLLs
 │   ├── InteractiveMask.Detection/    AI detector contracts + ONNX Runtime implementation
 │   ├── InteractiveMask.Hardware/     Host-capability probe (GPU / RAM / CPU) + benchmark runner
 │   └── InteractiveMask.Setup/        WiX 5 MSI installer project
@@ -62,7 +62,7 @@ InteractiveMask/
 - **Windows 10 22H2 or 11 23H2 / 24H2, x64.** The app is Windows-only because WPF is Windows-only.
 - **.NET 9 SDK** (current `Directory.Build.props` pins `net9.0-windows`). Get it from <https://dotnet.microsoft.com/download/dotnet/9.0>.
 - **Visual Studio 2022 17.10+** or **VS Code with the C# Dev Kit**. Either works; the team uses both.
-- **IDIS GDK 6.6.1** native DLLs in your local path. The native runtime is not on NuGet — ask the lead for the binary drop and copy `G2ClientGDK.dll`, `G2LibavMT.dll`, `G2FishEye.dll`, `SDL2.dll` alongside `InteractiveMask.Display.exe` after a build. Without them the app starts but every tile shows "No video".
+- **IDIS GDK 7.0.0** native DLLs in your local path (`Directory.Build.props` defaults to `E:\ISS GDK\GDK-RAS-x64-7.0.0.12-260122\7.0.0`; override with `IDIS_GDK_PATH`). The native runtime is not on NuGet — after a build the package copies `G2ClientGDK.dll`, `G2LibavMT.dll`, and `SDL2.dll` alongside `InteractiveMask.Display.exe`. Without them the app starts but every tile shows "No video".
 - **A DirectML-capable GPU** for AI work — NVIDIA RTX, AMD 700-series, or Intel Arc with a driver from 2020 or newer. Not strictly required to compile or to test v1.x features; AI will silently fall back to v1.x-style manual masking on hosts without a suitable GPU.
 - **WiX 5 SDK** — needed only when building the MSI. NuGet fetches it automatically on first installer build.
 - **Windows 10/11 SDK with signtool** — needed only for signed builds. Comes with VS, or stand-alone.
